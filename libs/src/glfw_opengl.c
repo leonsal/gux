@@ -15,7 +15,8 @@ typedef struct {
 } window_state_t;
 
 
-bool _gl_init(const char* glsl_version);
+static bool _gl_init(const char* glsl_version);
+static void _gb_render(gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx);
 
 gl_window_t gl_create_window(const char* title, int width, int height, gl_config_t* cfg) {
 
@@ -111,7 +112,7 @@ bool gl_window_start_frame(gl_window_t bw, double timeout) {
 
 
 // Renders the frame
-void gl_window_render_frame(gl_window_t bw, gl_draw_list_t dl) {
+void gl_window_render_frame(gl_window_t bw, gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
 
     window_state_t* s = (window_state_t*)(bw);
     int display_w, display_h;
@@ -121,7 +122,7 @@ void gl_window_render_frame(gl_window_t bw, gl_draw_list_t dl) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Renders data here
-    // TODO
+    _gb_render(cmds, cmd_count, buf_idx, buf_vtx);
     glfwSwapBuffers(s->w);
 }
 
@@ -164,62 +165,13 @@ bool _gl_createDeviceObjects() {
 
 }
 
+static void _gb_render(gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
 
+    for (int i = 0; i < cmd_count; i++) {
+        printf("x:%f, y:%f, z:%f, w:%f, texid:%f, vtx_offset:%f, idx_offset:%f, elem_count:%f\n",
+            cmds[i].clip_rect.x, cmds[i].clip_rect.y, cmds[i].clip_rect.z, cmds[i].clip_rect.w,
+            cmds[i].texid, cmds[i].vtx_offset, cmds[i].idx_offset, cmds[i].elem_count);
+    }
+    printf("\n");
+}
 
-//
-//// Ends rendering the frame
-//void backend_window_end_frame(backend_window_t bw, backend_color_t clear) {
-//
-//    auto win = reinterpret_cast<GLFWwindow*>(bw);
-//    ImGui::Render();
-//    int display_w, display_h;
-//    glfwGetFramebufferSize(win, &display_w, &display_h);
-//    glViewport(0, 0, display_w, display_h);
-//    glClearColor(clear.r, clear.g, clear.b, clear.w);
-//    glClear(GL_COLOR_BUFFER_BIT);
-//    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-//    glfwSwapBuffers(win);
-//}
-//
-//void backend_update_fonts() {
-//
-//    ImGui_ImplOpenGL3_DestroyFontsTexture();
-//    ImGui_ImplOpenGL3_CreateFontsTexture();
-//}
-//
-//// Creates and returns an OpenGL texture idenfifier
-//ImTextureID backend_create_texture() {
-//
-//    // Create a OpenGL texture identifier
-//    GLuint image_texture;
-//    glGenTextures(1, &image_texture);
-//    glBindTexture(GL_TEXTURE_2D, image_texture);
-//
-//    // Setup filtering parameters for display
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//
-//    return (void*)(intptr_t)image_texture;
-//}
-//
-//// Deletes previously created texture
-//void backend_delete_texture(ImTextureID tid) {
-//
-//    GLuint tex = reinterpret_cast<intptr_t>(tid);
-//    glDeleteTextures(1, &tex); 
-//}
-//
-//// Transfer data for the specified texture
-//void backend_transfer_texture(ImTextureID tid, int width, int height, const void* data) {
-//
-//    GLuint tex = reinterpret_cast<intptr_t>(tid);
-//    glBindTexture(GL_TEXTURE_2D, tex);
-//    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-//}
-//
-//
-//
-//
-//
-//

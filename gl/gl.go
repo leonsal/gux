@@ -15,25 +15,41 @@ type Vec4 struct {
 	W float32
 }
 
-//    gl_vec4_t       clip_rect;  // Clip rectangle
-//    unsigned int    texid;      // Texture id
-//    unsigned int    vtx_offset; // Start offset in vertex buffer
-//    unsigned int    idx_offset; // Start offset in index buffer
-//    unsigned int    elem_count; // Number of indices
-
-type DrawCmd struct {
+type drawCmd struct {
 	clipRect  Vec4
-	textId    uint32
-	vtxOffset uint32
-	idxOffset uint32
-	elemCount uint32
+	textId    float32
+	vtxOffset float32
+	idxOffset float32
+	elemCount float32
 }
 
 type DrawList struct {
-	bufCmd   *DrawCmd
-	cmdCount uint32
-	idxBuf   *uint32
-	vtxBuf   *uint32
+	bufCmd []drawCmd // List of draw commands
+	bufIdx []uint32  // List of vertices indices
+	bufVtx []float32 // List of vertices positions
+}
+
+func NewDrawList() *DrawList {
+
+	dl := new(DrawList)
+	return dl
+}
+
+func (dl *DrawList) AddCmd(clipRect Vec4, texId uint, vtxOffset uint, idxOffset uint, elemCount uint) {
+
+	cmd := drawCmd{
+		clipRect, float32(texId), float32(vtxOffset), float32(idxOffset), float32(elemCount),
+	}
+	dl.bufCmd = append(dl.bufCmd, cmd)
+	dl.bufIdx = append(dl.bufIdx, 1)   // just for test
+	dl.bufVtx = append(dl.bufVtx, 1.0) // just for test
+}
+
+func (dl *DrawList) Clear() {
+
+	dl.bufCmd = dl.bufCmd[:0]
+	dl.bufIdx = dl.bufIdx[:0]
+	dl.bufVtx = dl.bufVtx[:0]
 }
 
 type Window struct {
@@ -62,7 +78,16 @@ func (w *Window) StartFrame(timeout float64) bool {
 	return bool(C.gl_window_start_frame(w.c, C.double(timeout)))
 }
 
-func (w *Window) RenderFrame(dl DrawList) {
+func (w *Window) RenderFrame(dl *DrawList) {
 
-	C.gl_window_render_frame(w.c)
+	if len(dl.bufCmd) == 0 {
+		return
+	}
+
+	C.gl_window_render_frame(w.c,
+		(*C.gl_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0])),
+		C.int(len(dl.bufCmd)),
+		(*C.int)(unsafe.Pointer(&dl.bufIdx[0])),
+		(*C.float)(unsafe.Pointer(&dl.bufVtx[0])),
+	)
 }

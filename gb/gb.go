@@ -1,4 +1,4 @@
-package gl
+package gb
 
 // #include <stdlib.h>
 // #include "libgux.h"

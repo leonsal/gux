@@ -1,6 +1,6 @@
 //go:build !vulkan
 
-package gl
+package gb
 
 // #cgo CFLAGS: -I../libs/src
 // #cgo linux   LDFLAGS: -L../libs -lguxgl -lGL -lglfw3 -lm -ldl -lX11

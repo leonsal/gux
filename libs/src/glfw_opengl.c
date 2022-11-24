@@ -73,7 +73,8 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         fprintf(stderr, "OpenGL initialization error");
         return NULL;
     }
-    
+
+    // Creates and initializes window/backend state
     window_state_t* s = malloc(sizeof(window_state_t));
     if (s == NULL) {
         return NULL;
@@ -83,7 +84,6 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->clearColor.g = 0.5;
     s->clearColor.b = 0.5;
     s->clearColor.a = 1.0;
-    printf("%f/%f/%f\n", s->clearColor.r, s->clearColor.g, s->clearColor.b);
     return s;
 }
 
@@ -99,27 +99,22 @@ void gb_window_destroy(gb_window_t bw) {
 // Starts the frame or returns false if the window should be closed
 bool gb_window_start_frame(gb_window_t bw, double timeout) {
 
-    window_state_t* s = (window_state_t*)(bw);
     // Checks if user requested window close
+    window_state_t* s = (window_state_t*)(bw);
     if (glfwWindowShouldClose(s->w)) {
         return false;
     }
 
-    // Poll and handle events (inputs, window resize, etc.)
-    // Blocks if no events for the specified timeout
+    // Poll and handle events, blocking if no events for the specified timeout
     glfwWaitEventsTimeout(timeout);
-
-    // Starts the gl frame...
-    // TODO
     return true;
 }
-
 
 // Renders the frame
 //void gb_window_render_frame(gb_window_t bw, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
 void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 
-    // Sets the OpenGL viewport
+    // Sets the OpenGL viewport from the framebuffer size
     window_state_t* s = (window_state_t*)(bw);
     int display_w, display_h;
     glfwGetFramebufferSize(s->w, &display_w, &display_h);
@@ -154,7 +149,7 @@ static bool _gb_init(const char* glsl_version) {
     return true;
 }
 
-// Sets desired OpenGL state
+// Sets required OpenGL state
 static void _gb_set_state() {
 
     glEnable(GL_BLEND);
@@ -174,10 +169,10 @@ static bool _gb_createDeviceObjects() {
 // Render commands
 static void _gb_render(window_state_t* s, gb_draw_list_t dl)  {
 
-    //printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
     for (int i = 0; i < dl.cmd_count; i++) {
-
         gb_draw_cmd_t cmd = dl.bufCmd[i];
+        // Convert float fields to int
         int texid = cmd.texid;
         int idx_offset = cmd.idx_offset;
         int vtx_offset = cmd.vtx_offset;

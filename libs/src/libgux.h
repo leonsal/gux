@@ -1,6 +1,7 @@
 #pragma once
 #include <stdbool.h>
 
+// Graphics backend configuration 
 typedef struct gb_config {
     struct {
         bool es;
@@ -11,11 +12,8 @@ typedef struct gb_config {
     } opengl;
 } gb_config_t;
 
+// Opaque backend window pointer
 typedef void* gb_window_t;
-
-typedef struct gb_color {
-    float r; float g; float b; float w;
-} gb_color_t;
 
 typedef struct gb_vec4 {
     float x; float y; float z; float w;
@@ -23,14 +21,14 @@ typedef struct gb_vec4 {
 
 // Single draw command
 typedef struct gb_draw_cmd {
-    gb_vec4_t   clip_rect;  // Clip rectangle
-    float       texid;      // Texture id
-    float       vtx_offset; // Start offset in vertex buffer
-    float       idx_offset; // Start offset in index buffer
-    float       elem_count; // Number of indices
+    gb_vec4_t   clip_rect;      // Clip rectangle
+    float       texid;          // Texture id
+    float       vtx_offset;     // Start offset in vertex buffer
+    float       idx_offset;     // Start offset in index buffer
+    float       elem_count;     // Number of indices
 } gb_draw_cmd_t;
 
-// Draw list
+// List of draw commands and indices/vertices buffers
 typedef struct gb_draw_list {
 	gb_draw_cmd_t*  bufCmd;     // Draw command buffer
     int             cmd_count;  // Total number of commands

@@ -15,18 +15,21 @@ type Vec4 struct {
 	W float32
 }
 
+// drawCmd specifies a single graphics backend draw command
+// All fields are 'float32' to facilitate the transfer to C function
 type drawCmd struct {
-	clipRect  Vec4
-	textId    float32
-	vtxOffset float32
-	idxOffset float32
-	elemCount float32
+	clipRect  Vec4    // Clip rectangle
+	textId    float32 // Texture Id (integer value)
+	vtxOffset float32 // Vertex offset in 'bufVtx' (integer value)
+	idxOffset float32 // Index offset in 'bufIdx' (integer value)
+	elemCount float32 // Number of elements (integer value)
 }
 
+// DrawList contains a list of commands for the graphics backend
 type DrawList struct {
-	bufCmd []drawCmd // List of draw commands
-	bufIdx []uint32  // List of vertices indices
-	bufVtx []float32 // List of vertices positions
+	bufCmd []drawCmd // Draw commands buffer
+	bufIdx []uint32  // Vertices indices buffer
+	bufVtx []float32 // Vertices positions buffer
 }
 
 func NewDrawList() *DrawList {
@@ -45,6 +48,7 @@ func (dl *DrawList) AddCmd(clipRect Vec4, texId uint, vtxOffset uint, idxOffset 
 	dl.bufVtx = append(dl.bufVtx, 1.0) // just for test
 }
 
+// Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory
 func (dl *DrawList) Clear() {
 
 	dl.bufCmd = dl.bufCmd[:0]
@@ -84,10 +88,13 @@ func (w *Window) RenderFrame(dl *DrawList) {
 		return
 	}
 
-	C.gb_window_render_frame(w.c,
-		(*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0])),
-		C.int(len(dl.bufCmd)),
-		(*C.int)(unsafe.Pointer(&dl.bufIdx[0])),
-		(*C.float)(unsafe.Pointer(&dl.bufVtx[0])),
-	)
+	// Builds C draw list struct and calls backend render
+	var cdl C.gb_draw_list_t
+	cdl.bufCmd = (*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0]))
+	cdl.cmd_count = C.int(len(dl.bufCmd))
+	cdl.bufIdx = (*C.int)(unsafe.Pointer(&dl.bufIdx[0]))
+	cdl.idx_count = C.int(len(dl.bufIdx))
+	cdl.bufVtx = (*C.float)(unsafe.Pointer(&dl.bufVtx[0]))
+	cdl.vtx_count = C.int(len(dl.bufVtx))
+	C.gb_window_render_frame(w.c, cdl)
 }

@@ -19,7 +19,7 @@ typedef struct {
 // Forward declarations of internal functions
 static bool _gb_init(const char* glsl_version);
 static void _gb_set_state();
-static void _gb_render(window_state_t* s, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx);
+static void _gb_render(window_state_t* s, gb_draw_list_t dl);
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -116,21 +116,21 @@ bool gb_window_start_frame(gb_window_t bw, double timeout) {
 
 
 // Renders the frame
-void gb_window_render_frame(gb_window_t bw, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
+//void gb_window_render_frame(gb_window_t bw, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
+void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 
     // Sets the OpenGL viewport
     window_state_t* s = (window_state_t*)(bw);
     int display_w, display_h;
     glfwGetFramebufferSize(s->w, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
-    printf("viewport:%d/%d/%d/%d\n", 0, 0, display_w, display_h);
 
     // Clears the framebuffer
     glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render commands and swap buffers
-    _gb_render(s, cmds, cmd_count, buf_idx, buf_vtx);
+    _gb_render(s, dl);
     glfwSwapBuffers(s->w);
 }
 
@@ -172,18 +172,20 @@ static bool _gb_createDeviceObjects() {
 }
 
 // Render commands
-static void _gb_render(window_state_t* s, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
+static void _gb_render(window_state_t* s, gb_draw_list_t dl)  {
 
-    for (int i = 0; i < cmd_count; i++) {
-        int texid = cmds[i].texid;
-        int idx_offset = cmds[i].idx_offset;
-        int vtx_offset = cmds[i].vtx_offset;
-        int elem_count = cmds[i].elem_count;
+    //printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    for (int i = 0; i < dl.cmd_count; i++) {
 
-        printf("x:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
-            cmds[i].clip_rect.x, cmds[i].clip_rect.y, cmds[i].clip_rect.z, cmds[i].clip_rect.w,
-            texid, vtx_offset, idx_offset, elem_count);
+        gb_draw_cmd_t cmd = dl.bufCmd[i];
+        int texid = cmd.texid;
+        int idx_offset = cmd.idx_offset;
+        int vtx_offset = cmd.vtx_offset;
+        int elem_count = cmd.elem_count;
+
+        //printf("x:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
+        //    cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
+        //    texid, vtx_offset, idx_offset, elem_count);
     }
-    printf("\n");
 }
 

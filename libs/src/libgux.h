@@ -21,6 +21,7 @@ typedef struct gb_vec4 {
     float x; float y; float z; float w;
 } gb_vec4_t;
 
+// Single draw command
 typedef struct gb_draw_cmd {
     gb_vec4_t   clip_rect;  // Clip rectangle
     float       texid;      // Texture id
@@ -29,17 +30,21 @@ typedef struct gb_draw_cmd {
     float       elem_count; // Number of indices
 } gb_draw_cmd_t;
 
+// Draw list
 typedef struct gb_draw_list {
-
-
-
+	gb_draw_cmd_t*  bufCmd;     // Draw command buffer
+    int             cmd_count;  // Total number of commands
+	int*            bufIdx;     // Indices buffer
+    int             idx_count;  // Total number of indices
+	float*          bufVtx;     // Vertices buffer
+    int             vtx_count;  // Total number of vertices
 } gb_draw_list_t;
 
 
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
 bool gb_window_start_frame(gb_window_t bw, double timeout);
-void gb_window_render_frame(gb_window_t win, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx);
+void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
 
 
 

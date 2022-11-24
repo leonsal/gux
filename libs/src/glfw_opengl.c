@@ -5,6 +5,7 @@
 #include "libgux.h"
 
 
+// Internal state
 typedef struct {
     GLFWwindow* w;
     struct {
@@ -15,10 +16,13 @@ typedef struct {
 } window_state_t;
 
 
-static bool _gl_init(const char* glsl_version);
-static void _gb_render(gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx);
+// Forward declarations of internal functions
+static bool _gb_init(const char* glsl_version);
+static void _gb_set_state();
+static void _gb_render(window_state_t* s, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx);
 
-gl_window_t gl_create_window(const char* title, int width, int height, gl_config_t* cfg) {
+// Creates Graphics Backend window
+gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
 
 	if (glfwInit() == 0) {
         return NULL;
@@ -63,10 +67,10 @@ gl_window_t gl_create_window(const char* title, int width, int height, gl_config
     glfwMakeContextCurrent(win);
     glfwSwapInterval(1); // Enable vsync
 
-    // Load OpenGL functions
-    int res = gl3wInit();
-    if (res != 0) {
-        fprintf(stderr, "GL3W error");
+    // Initialize OpenGL
+    bool res = _gb_init(NULL);
+    if (!res) {
+        fprintf(stderr, "OpenGL initialization error");
         return NULL;
     }
     
@@ -84,7 +88,7 @@ gl_window_t gl_create_window(const char* title, int width, int height, gl_config
 }
 
 // Destroy the specified window
-void gl_window_destroy(gl_window_t bw) {
+void gb_window_destroy(gb_window_t bw) {
 
     window_state_t* s = (window_state_t*)(bw);
     glfwDestroyWindow(s->w);
@@ -93,7 +97,7 @@ void gl_window_destroy(gl_window_t bw) {
 }
 
 // Starts the frame or returns false if the window should be closed
-bool gl_window_start_frame(gl_window_t bw, double timeout) {
+bool gb_window_start_frame(gb_window_t bw, double timeout) {
 
     window_state_t* s = (window_state_t*)(bw);
     // Checks if user requested window close
@@ -112,24 +116,26 @@ bool gl_window_start_frame(gl_window_t bw, double timeout) {
 
 
 // Renders the frame
-void gl_window_render_frame(gl_window_t bw, gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
+void gb_window_render_frame(gb_window_t bw, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
 
+    // Sets the OpenGL viewport
     window_state_t* s = (window_state_t*)(bw);
     int display_w, display_h;
     glfwGetFramebufferSize(s->w, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
+    printf("viewport:%d/%d/%d/%d\n", 0, 0, display_w, display_h);
+
+    // Clears the framebuffer
     glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Renders data here
-    _gb_render(cmds, cmd_count, buf_idx, buf_vtx);
+    // Render commands and swap buffers
+    _gb_render(s, cmds, cmd_count, buf_idx, buf_vtx);
     glfwSwapBuffers(s->w);
 }
 
-
-
-
-bool _gl_init(const char* glsl_version) {
+// Load OpenGL functions and initialize its state
+static bool _gb_init(const char* glsl_version) {
 
     // Load OpenGL functions
     int res = gl3wInit();
@@ -138,14 +144,18 @@ bool _gl_init(const char* glsl_version) {
         return false;
     }
 
-
-
+    // Sets initial state and checks fo error
+    _gb_set_state();
+    int err = glGetError();
+    if (err != GL_NO_ERROR) {
+        fprintf(stderr, "OpenGL returned error:%d", err);
+        return false;
+    }
     return true;
 }
 
-
-
-void _gl_set_state() {
+// Sets desired OpenGL state
+static void _gb_set_state() {
 
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
@@ -153,24 +163,26 @@ void _gl_set_state() {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
-    glEnable(GL_SCISSOR_TEST);
+    // glEnable(GL_SCISSOR_TEST); // DOES NOT CLEAR COMPLETE FRAMEBUFFER
 }
 
-bool _gl_createDeviceObjects() {
-
-
-
-
+static bool _gb_createDeviceObjects() {
 
 
 }
 
-static void _gb_render(gl_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
+// Render commands
+static void _gb_render(window_state_t* s, gb_draw_cmd_t* cmds, int cmd_count, int* buf_idx, float* buf_vtx) {
 
     for (int i = 0; i < cmd_count; i++) {
-        printf("x:%f, y:%f, z:%f, w:%f, texid:%f, vtx_offset:%f, idx_offset:%f, elem_count:%f\n",
+        int texid = cmds[i].texid;
+        int idx_offset = cmds[i].idx_offset;
+        int vtx_offset = cmds[i].vtx_offset;
+        int elem_count = cmds[i].elem_count;
+
+        printf("x:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
             cmds[i].clip_rect.x, cmds[i].clip_rect.y, cmds[i].clip_rect.z, cmds[i].clip_rect.w,
-            cmds[i].texid, cmds[i].vtx_offset, cmds[i].idx_offset, cmds[i].elem_count);
+            texid, vtx_offset, idx_offset, elem_count);
     }
     printf("\n");
 }

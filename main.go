@@ -15,7 +15,6 @@ func main() {
 	}
 
 	drawList := gb.NewDrawList()
-
 	for win.StartFrame(0) {
 
 		drawList.AddCmd(gb.Vec4{1, 2, 3, 4}, 5, 6, 7, 8)

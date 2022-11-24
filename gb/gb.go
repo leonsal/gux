@@ -53,7 +53,7 @@ func (dl *DrawList) Clear() {
 }
 
 type Window struct {
-	c C.gl_window_t
+	c C.gb_window_t
 }
 
 func CreateWindow(title string, width, height int) (*Window, error) {
@@ -61,7 +61,7 @@ func CreateWindow(title string, width, height int) (*Window, error) {
 	ctitle := C.CString(title)
 	defer C.free(unsafe.Pointer(ctitle))
 
-	cw := C.gl_create_window(ctitle, C.int(width), C.int(height), nil)
+	cw := C.gb_create_window(ctitle, C.int(width), C.int(height), nil)
 	if cw == nil {
 		return nil, errors.New("error creating window")
 	}
@@ -70,12 +70,12 @@ func CreateWindow(title string, width, height int) (*Window, error) {
 
 func (w *Window) Destroy() {
 
-	C.gl_window_destroy(w.c)
+	C.gb_window_destroy(w.c)
 }
 
 func (w *Window) StartFrame(timeout float64) bool {
 
-	return bool(C.gl_window_start_frame(w.c, C.double(timeout)))
+	return bool(C.gb_window_start_frame(w.c, C.double(timeout)))
 }
 
 func (w *Window) RenderFrame(dl *DrawList) {
@@ -84,8 +84,8 @@ func (w *Window) RenderFrame(dl *DrawList) {
 		return
 	}
 
-	C.gl_window_render_frame(w.c,
-		(*C.gl_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0])),
+	C.gb_window_render_frame(w.c,
+		(*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0])),
 		C.int(len(dl.bufCmd)),
 		(*C.int)(unsafe.Pointer(&dl.bufIdx[0])),
 		(*C.float)(unsafe.Pointer(&dl.bufVtx[0])),

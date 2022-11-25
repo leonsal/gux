@@ -5,6 +5,15 @@
 #include <GLFW/glfw3.h>
 #include "libgux.h"
 
+// Uncomment next line to enable error checking after each OpenGL call.
+//#define GUX_GB_DEBUG
+#ifdef GUX_GB_DEBUG
+#include <stdio.h>
+#define GL_CALL(_CALL) do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
+#else
+#define GL_CALL(_CALL) _CALL   // Call without error check
+#endif
+
 
 // Internal state
 typedef struct {
@@ -131,12 +140,12 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     gb_state_t* s = (gb_state_t*)(bw);
     int width, height;
     glfwGetFramebufferSize(s->w, &width, &height);
-    glViewport(0, 0, width, height);
+    GL_CALL(glViewport(0, 0, width, height));
 
     // Clears the framebuffer
-    glScissor(0, 0, width, height);
-    glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL_CALL(glScissor(0, 0, width, height));
+    GL_CALL(glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a));
+    GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 
     // Render commands and swap buffers
     _gb_render(s, dl);
@@ -185,13 +194,13 @@ static bool _gb_init(gb_state_t* s, const char* glsl_version) {
 // Sets required OpenGL state
 static void _gb_set_state(gb_state_t* s) {
 
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_STENCIL_TEST);
-    glEnable(GL_SCISSOR_TEST);
+    GL_CALL(glEnable(GL_BLEND));
+    GL_CALL(glBlendEquation(GL_FUNC_ADD));
+    GL_CALL(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    GL_CALL(glDisable(GL_CULL_FACE));
+    GL_CALL(glDisable(GL_DEPTH_TEST));
+    GL_CALL(glDisable(GL_STENCIL_TEST));
+    GL_CALL(glEnable(GL_SCISSOR_TEST));
 }
 
 static bool _gb_create_objects(gb_state_t* s) {
@@ -253,34 +262,34 @@ static bool _gb_create_objects(gb_state_t* s) {
 
     // Create vertex shader
     GLuint vert_handle = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_handle, 1, &vertex_shader, NULL);
-    glCompileShader(vert_handle);
+    GL_CALL(glShaderSource(vert_handle, 1, &vertex_shader, NULL));
+    GL_CALL(glCompileShader(vert_handle));
     if (!_gb_check_shader(vert_handle, "vertex_shader", vertex_shader)) {
         return false;
     }
 
     // Create fragment shader
     GLuint frag_handle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_handle, 1, &fragment_shader, NULL);
-    glCompileShader(frag_handle);
+    GL_CALL(glShaderSource(frag_handle, 1, &fragment_shader, NULL));
+    GL_CALL(glCompileShader(frag_handle));
     if (!_gb_check_shader(frag_handle, "fragment shader", fragment_shader)) {
         return false;
     }
 
     // Create program
     s->shaderHandle = glCreateProgram();
-    glAttachShader(s->shaderHandle, vert_handle);
-    glAttachShader(s->shaderHandle, frag_handle);
-    glLinkProgram(s->shaderHandle);
+    GL_CALL(glAttachShader(s->shaderHandle, vert_handle));
+    GL_CALL(glAttachShader(s->shaderHandle, frag_handle));
+    GL_CALL(glLinkProgram(s->shaderHandle));
     if (!_gb_check_program(s->shaderHandle, "shader program")) {
         return false;
     }
 
     // Discard shaders
-    glDetachShader(s->shaderHandle, vert_handle);
-    glDetachShader(s->shaderHandle, frag_handle);
-    glDeleteShader(vert_handle);
-    glDeleteShader(frag_handle);
+    GL_CALL(glDetachShader(s->shaderHandle, vert_handle));
+    GL_CALL(glDetachShader(s->shaderHandle, frag_handle));
+    GL_CALL(glDeleteShader(vert_handle));
+    GL_CALL(glDeleteShader(frag_handle));
 
     // Get uniform locations from shader progrm
     s->locTex = glGetUniformLocation(s->shaderHandle, "Texture");
@@ -291,8 +300,8 @@ static bool _gb_create_objects(gb_state_t* s) {
     printf("LOCS: %d/%d/%d/%d/%d\n", s->locTex, s->locProjMtx, s->locVtxPos, s->locVtxUV, s->locVtxColor);
 
     // Create buffers
-    glGenBuffers(1, &s->vboHandle);
-    glGenBuffers(1, &s->elementsHandle);
+    GL_CALL(glGenBuffers(1, &s->vboHandle));
+    GL_CALL(glGenBuffers(1, &s->elementsHandle));
     return true;
 }
 
@@ -300,15 +309,15 @@ static bool _gb_create_objects(gb_state_t* s) {
 static void _gb_destroy_objects(gb_state_t* s) {
 
     if (s->vboHandle) {
-        glDeleteBuffers(1, &s->vboHandle);
+        GL_CALL(glDeleteBuffers(1, &s->vboHandle));
         s->vboHandle = 0;
     }
     if (s->elementsHandle) {
-        glDeleteBuffers(1, &s->elementsHandle);
+        GL_CALL(glDeleteBuffers(1, &s->elementsHandle));
         s->elementsHandle = 0;
     }
     if (s->shaderHandle) {
-        glDeleteProgram(s->shaderHandle);
+        GL_CALL(glDeleteProgram(s->shaderHandle));
         s->shaderHandle = 0;
     }
 }
@@ -316,8 +325,8 @@ static void _gb_destroy_objects(gb_state_t* s) {
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {
 
     GLint status = 0, log_length = 0;
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
-    glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length);
+    GL_CALL(glGetShaderiv(handle, GL_COMPILE_STATUS, &status));
+    GL_CALL(glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length));
     if (status == GL_FALSE || log_length > 0) {
         fprintf(stderr, "ERROR: gb/_gb_check_shader: error compiling %s\n", desc);
         fprintf(stderr, "%s\n", src);
@@ -335,8 +344,8 @@ static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {
 static bool _gb_check_program(GLuint handle, const char* desc) {
 
     GLint status = 0, log_length = 0;
-    glGetProgramiv(handle, GL_LINK_STATUS, &status);
-    glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length);
+    GL_CALL(glGetProgramiv(handle, GL_LINK_STATUS, &status));
+    GL_CALL(glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length));
     if (status == GL_FALSE || log_length > 0) {
         fprintf(stderr, "ERROR: gb/_gb_check_program: error linking %s\n", desc);
         if (log_length > 0) {

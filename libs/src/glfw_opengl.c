@@ -169,18 +169,13 @@ static bool _gb_createDeviceObjects() {
 // Render commands
 static void _gb_render(window_state_t* s, gb_draw_list_t dl)  {
 
-    printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    //printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
-        // Convert float fields to int
-        int texid = cmd.texid;
-        int idx_offset = cmd.idx_offset;
-        int vtx_offset = cmd.vtx_offset;
-        int elem_count = cmd.elem_count;
 
         //printf("x:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
         //    cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
-        //    texid, vtx_offset, idx_offset, elem_count);
+        //    cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
 }
 

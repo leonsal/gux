@@ -128,11 +128,12 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 
     // Sets the OpenGL viewport from the framebuffer size
     gb_state_t* s = (gb_state_t*)(bw);
-    int display_w, display_h;
-    glfwGetFramebufferSize(s->w, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
+    int width, height;
+    glfwGetFramebufferSize(s->w, &width, &height);
+    glViewport(0, 0, width, height);
 
     // Clears the framebuffer
+    glScissor(0, 0, width, height);
     glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -152,6 +153,7 @@ static void _gc_render(gb_state_t* s, gb_draw_list_t dl)  {
         //    cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
         //    cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
+
 }
 
 // Load OpenGL functions and initialize its state
@@ -187,7 +189,7 @@ static void _gc_set_state(gb_state_t* s) {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
-    // glEnable(GL_SCISSOR_TEST); // DOES NOT CLEAR COMPLETE FRAMEBUFFER
+    glEnable(GL_SCISSOR_TEST);
 }
 
 static bool _gc_create_objects(gb_state_t* s) {

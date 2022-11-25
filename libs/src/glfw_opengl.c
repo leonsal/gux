@@ -24,13 +24,14 @@ typedef struct {
 
 
 // Forward declarations of internal functions
-static void _gc_render(gb_state_t* s, gb_draw_list_t dl);
-static bool _gc_init(gb_state_t* s, const char* glsl_version);
-static void _gc_set_state(gb_state_t* s);
-static bool _gc_create_objects(gb_state_t* s);
-static void _gc_destroy_objects(gb_state_t* s);
-static bool _gc_check_shader(GLuint handle, const char* desc, const char* src);
-static bool _gc_check_program(GLuint handle, const char* desc);
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
+static bool _gb_init(gb_state_t* s, const char* glsl_version);
+static void _gb_set_state(gb_state_t* s);
+static bool _gb_create_objects(gb_state_t* s);
+static void _gb_destroy_objects(gb_state_t* s);
+static bool _gb_check_shader(GLuint handle, const char* desc, const char* src);
+static bool _gb_check_program(GLuint handle, const char* desc);
+static void _gb_print_draw_list(gb_draw_list_t dl);
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -86,7 +87,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     memset(s, 0, sizeof(gb_state_t));
 
     // Initialize OpenGL
-    bool res = _gc_init(s, NULL);
+    bool res = _gb_init(s, NULL);
     if (!res) {
         fprintf(stderr, "OpenGL initialization error");
         return NULL;
@@ -138,44 +139,27 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render commands and swap buffers
-    _gc_render(s, dl);
+    _gb_render(s, dl);
     glfwSwapBuffers(s->w);
 }
 
 // Executes draw commands
-static void _gc_render(gb_state_t* s, gb_draw_list_t dl)  {
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
     // Upload vertices and indices buffers
     // glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW));
     //        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW));
+    //
+    _gb_print_draw_list(dl);
 
-    printf("RENDER:idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
-
-    printf("Indices:");
-    for (int i = 0; i < dl.idx_count; i++) {
-        printf("%d,", dl.bufIdx[i]);
-    }
-    printf("\n");
-
-    printf("Vertices:\n");
-    for (int i = 0; i < dl.vtx_count; i++) {
-        gb_vertex_t v = dl.bufVtx[i];
-        printf("\tx:%f, y:%f u:%f v:%f col:%06X\n", v.pos.x, v.pos.y, v.uv.x, v.uv.y, v.col);
-    }
-
-    printf("Commands:\n");
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
-        printf("\tx:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
-            cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
-            cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
-    printf("\n");
 
 }
 
 // Load OpenGL functions and initialize its state
-static bool _gc_init(gb_state_t* s, const char* glsl_version) {
+static bool _gb_init(gb_state_t* s, const char* glsl_version) {
 
     // Load OpenGL functions
     int res = gl3wInit();
@@ -184,12 +168,12 @@ static bool _gc_init(gb_state_t* s, const char* glsl_version) {
         return false;
     }
 
-    if (!_gc_create_objects(s)) {
+    if (!_gb_create_objects(s)) {
         return false;
     }
 
     // Sets initial state and checks fo error
-    _gc_set_state(s);
+    _gb_set_state(s);
     int err = glGetError();
     if (err != GL_NO_ERROR) {
         fprintf(stderr, "OpenGL returned error:%d", err);
@@ -199,7 +183,7 @@ static bool _gc_init(gb_state_t* s, const char* glsl_version) {
 }
 
 // Sets required OpenGL state
-static void _gc_set_state(gb_state_t* s) {
+static void _gb_set_state(gb_state_t* s) {
 
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
@@ -210,7 +194,7 @@ static void _gc_set_state(gb_state_t* s) {
     glEnable(GL_SCISSOR_TEST);
 }
 
-static bool _gc_create_objects(gb_state_t* s) {
+static bool _gb_create_objects(gb_state_t* s) {
 
 //    const GLchar* vertex_shader_glsl_300_es =
 //        "precision highp float;\n"
@@ -271,7 +255,7 @@ static bool _gc_create_objects(gb_state_t* s) {
     GLuint vert_handle = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vert_handle, 1, &vertex_shader, NULL);
     glCompileShader(vert_handle);
-    if (!_gc_check_shader(vert_handle, "vertex_shader", vertex_shader)) {
+    if (!_gb_check_shader(vert_handle, "vertex_shader", vertex_shader)) {
         return false;
     }
 
@@ -279,7 +263,7 @@ static bool _gc_create_objects(gb_state_t* s) {
     GLuint frag_handle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(frag_handle, 1, &fragment_shader, NULL);
     glCompileShader(frag_handle);
-    if (!_gc_check_shader(frag_handle, "fragment shader", fragment_shader)) {
+    if (!_gb_check_shader(frag_handle, "fragment shader", fragment_shader)) {
         return false;
     }
 
@@ -288,7 +272,7 @@ static bool _gc_create_objects(gb_state_t* s) {
     glAttachShader(s->shaderHandle, vert_handle);
     glAttachShader(s->shaderHandle, frag_handle);
     glLinkProgram(s->shaderHandle);
-    if (!_gc_check_program(s->shaderHandle, "shader program")) {
+    if (!_gb_check_program(s->shaderHandle, "shader program")) {
         return false;
     }
 
@@ -313,7 +297,7 @@ static bool _gc_create_objects(gb_state_t* s) {
 }
 
 
-static void _gc_destroy_objects(gb_state_t* s) {
+static void _gb_destroy_objects(gb_state_t* s) {
 
     if (s->vboHandle) {
         glDeleteBuffers(1, &s->vboHandle);
@@ -329,13 +313,13 @@ static void _gc_destroy_objects(gb_state_t* s) {
     }
 }
 
-static bool _gc_check_shader(GLuint handle, const char* desc, const char* src) {
+static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {
 
     GLint status = 0, log_length = 0;
     glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
     glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length);
     if (status == GL_FALSE || log_length > 0) {
-        fprintf(stderr, "ERROR: gb/_gc_check_shader: error compiling %s\n", desc);
+        fprintf(stderr, "ERROR: gb/_gb_check_shader: error compiling %s\n", desc);
         fprintf(stderr, "%s\n", src);
         if (log_length > 0) {
             GLchar* buf = malloc(log_length + 1);
@@ -348,13 +332,13 @@ static bool _gc_check_shader(GLuint handle, const char* desc, const char* src) {
     return true;
 }
 
-static bool _gc_check_program(GLuint handle, const char* desc) {
+static bool _gb_check_program(GLuint handle, const char* desc) {
 
     GLint status = 0, log_length = 0;
     glGetProgramiv(handle, GL_LINK_STATUS, &status);
     glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length);
     if (status == GL_FALSE || log_length > 0) {
-        fprintf(stderr, "ERROR: gb/_gc_check_program: error linking %s\n", desc);
+        fprintf(stderr, "ERROR: gb/_gb_check_program: error linking %s\n", desc);
         if (log_length > 0) {
             GLchar* buf = malloc(log_length + 1);
             glGetProgramInfoLog(handle, log_length, NULL, buf);
@@ -365,4 +349,30 @@ static bool _gc_check_program(GLuint handle, const char* desc) {
     }
     return true;
 }
+
+static void _gb_print_draw_list(gb_draw_list_t dl) {
+
+    printf("DrawList: idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    printf("Indices :");
+    for (int i = 0; i < dl.idx_count; i++) {
+        printf("%d,", dl.bufIdx[i]);
+    }
+    printf("\n");
+
+    printf("Vertices:\n");
+    for (int i = 0; i < dl.vtx_count; i++) {
+        gb_vertex_t v = dl.bufVtx[i];
+        printf("\tx:%f, y:%f u:%f v:%f col:%06X\n", v.pos.x, v.pos.y, v.uv.x, v.uv.y, v.col);
+    }
+
+    printf("Commands:\n");
+    for (int i = 0; i < dl.cmd_count; i++) {
+        gb_draw_cmd_t cmd = dl.bufCmd[i];
+        printf("\tx:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
+            cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
+            cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
+    }
+    printf("\n");
+}
+
 

@@ -50,9 +50,9 @@ typedef struct gb_draw_cmd {
 typedef struct gb_draw_list {
 	gb_draw_cmd_t*  bufCmd;     // Draw command buffer
     int             cmd_count;  // Total number of commands
-	int*            bufIdx;     // Indices buffer
+	int*            buf_idx;    // Indices buffer
     int             idx_count;  // Total number of indices
-	gb_vertex_t*    bufVtx;     // Vertices info buffer
+	gb_vertex_t*    buf_vtx;    // Vertices info buffer
     int             vtx_count;  // Total number of vertices
 } gb_draw_list_t;
 

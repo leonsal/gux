@@ -22,14 +22,14 @@ typedef struct {
     struct {
         float r; float g; float b; float a;
     } clearColor;
-    GLuint  shaderHandle;
-    GLint   locTex;
-    GLint   locProjMtx;
-    GLint   locVtxPos;
-    GLint   locVtxUV;
-    GLint   locVtxColor;
-    unsigned int vboHandle;
-    unsigned int elementsHandle;
+    GLuint  handle_shader;      // Handle of compiled shader program
+    GLint   uniTex;             // Location of texture id uniform
+    GLint   uni_projmtx;        // Location of projection matrix uniform
+    GLint   attrib_vtx_pos;     // Location of vertex position attribute in the shader
+    GLint   attrib_vtx_uv;      // Location of vertex uv attribute in the shader
+    GLint   attrib_vtx_color;   // Location of vertex color attribute in the shader
+    unsigned int handle_vbo;    // Handle of vertex buffer object
+    unsigned int handle_elems;  // Handle of vertex elements object
 } gb_state_t;
 
 
@@ -153,17 +153,30 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     glfwSwapBuffers(s->w);
 }
 
+//-----------------------------------------------------------------------------
+// Internal functions
+//-----------------------------------------------------------------------------
+
 // Executes draw commands
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
     // Upload vertices and indices buffers
-    // glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW));
-    //        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW));
-    //
+    const GLsizeiptr vtx_buffer_size = (GLsizeiptr)dl.vtx_count * (int)sizeof(gb_vertex_t);
+    const GLsizeiptr idx_buffer_size = (GLsizeiptr)dl.idx_count * (int)sizeof(int);
+    //printf("buffer sizes:%ld/%ld\n",  vtx_buffer_size, idx_buffer_size);
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
+
     _gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
+        // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
+        //GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
+
+        // Bind texture, Draw
+        //GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)cmd.t->GetTexID()));
+        //GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx))));
     }
 
 }
@@ -198,8 +211,8 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glDisable(GL_STENCIL_TEST));
     GL_CALL(glEnable(GL_SCISSOR_TEST));
 
-    GL_CALL(glUseProgram(s->shaderHandle));
-    GL_CALL(glUniform1i(s->locTex, 0));
+    GL_CALL(glUseProgram(s->handle_shader));
+    GL_CALL(glUniform1i(s->uniTex, 0));
     //glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
     GL_CALL(glBindSampler(0, 0));
@@ -207,14 +220,14 @@ static void _gb_set_state(gb_state_t* s) {
     //glBindVertexArray(vertex_array_object);
 
     // Bind vertex/index buffers and setup attributes for ImDrawVert
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, s->vboHandle));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s->elementsHandle));
-    GL_CALL(glEnableVertexAttribArray(s->locVtxPos));
-    GL_CALL(glEnableVertexAttribArray(s->locVtxUV));
-    GL_CALL(glEnableVertexAttribArray(s->locVtxColor));
-    GL_CALL(glVertexAttribPointer(s->locVtxPos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
-    GL_CALL(glVertexAttribPointer(s->locVtxUV,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
-    GL_CALL(glVertexAttribPointer(s->locVtxColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, s->handle_vbo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s->handle_elems));
+    GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_pos));
+    GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_uv));
+    GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_color));
+    GL_CALL(glVertexAttribPointer(s->attrib_vtx_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
+    GL_CALL(glVertexAttribPointer(s->attrib_vtx_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
+    GL_CALL(glVertexAttribPointer(s->attrib_vtx_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
 }
 
 static bool _gb_create_objects(gb_state_t* s) {
@@ -291,48 +304,48 @@ static bool _gb_create_objects(gb_state_t* s) {
     }
 
     // Create program
-    s->shaderHandle = glCreateProgram();
-    GL_CALL(glAttachShader(s->shaderHandle, vert_handle));
-    GL_CALL(glAttachShader(s->shaderHandle, frag_handle));
-    GL_CALL(glLinkProgram(s->shaderHandle));
-    if (!_gb_check_program(s->shaderHandle, "shader program")) {
+    s->handle_shader = glCreateProgram();
+    GL_CALL(glAttachShader(s->handle_shader, vert_handle));
+    GL_CALL(glAttachShader(s->handle_shader, frag_handle));
+    GL_CALL(glLinkProgram(s->handle_shader));
+    if (!_gb_check_program(s->handle_shader, "shader program")) {
         return false;
     }
 
     // Discard shaders
-    GL_CALL(glDetachShader(s->shaderHandle, vert_handle));
-    GL_CALL(glDetachShader(s->shaderHandle, frag_handle));
+    GL_CALL(glDetachShader(s->handle_shader, vert_handle));
+    GL_CALL(glDetachShader(s->handle_shader, frag_handle));
     GL_CALL(glDeleteShader(vert_handle));
     GL_CALL(glDeleteShader(frag_handle));
 
     // Get uniform locations from shader progrm
-    s->locTex = glGetUniformLocation(s->shaderHandle, "Texture");
-    s->locProjMtx = glGetUniformLocation(s->shaderHandle, "ProjMtx");
-    s->locVtxPos = (GLuint)glGetAttribLocation(s->shaderHandle, "Position");
-    s->locVtxUV = (GLuint)glGetAttribLocation(s->shaderHandle, "UV");
-    s->locVtxColor = (GLuint)glGetAttribLocation(s->shaderHandle, "Color");
-    printf("LOCS: %d/%d/%d/%d/%d\n", s->locTex, s->locProjMtx, s->locVtxPos, s->locVtxUV, s->locVtxColor);
+    s->uniTex = glGetUniformLocation(s->handle_shader, "Texture");
+    s->uni_projmtx = glGetUniformLocation(s->handle_shader, "ProjMtx");
+    s->attrib_vtx_pos = (GLuint)glGetAttribLocation(s->handle_shader, "Position");
+    s->attrib_vtx_uv = (GLuint)glGetAttribLocation(s->handle_shader, "UV");
+    s->attrib_vtx_color = (GLuint)glGetAttribLocation(s->handle_shader, "Color");
+    printf("LOCS: %d/%d/%d/%d/%d\n", s->uniTex, s->uni_projmtx, s->attrib_vtx_pos, s->attrib_vtx_uv, s->attrib_vtx_color);
 
     // Create buffers
-    GL_CALL(glGenBuffers(1, &s->vboHandle));
-    GL_CALL(glGenBuffers(1, &s->elementsHandle));
+    GL_CALL(glGenBuffers(1, &s->handle_vbo));
+    GL_CALL(glGenBuffers(1, &s->handle_elems));
     return true;
 }
 
 
 static void _gb_destroy_objects(gb_state_t* s) {
 
-    if (s->vboHandle) {
-        GL_CALL(glDeleteBuffers(1, &s->vboHandle));
-        s->vboHandle = 0;
+    if (s->handle_vbo) {
+        GL_CALL(glDeleteBuffers(1, &s->handle_vbo));
+        s->handle_vbo = 0;
     }
-    if (s->elementsHandle) {
-        GL_CALL(glDeleteBuffers(1, &s->elementsHandle));
-        s->elementsHandle = 0;
+    if (s->handle_elems) {
+        GL_CALL(glDeleteBuffers(1, &s->handle_elems));
+        s->handle_elems = 0;
     }
-    if (s->shaderHandle) {
-        GL_CALL(glDeleteProgram(s->shaderHandle));
-        s->shaderHandle = 0;
+    if (s->handle_shader) {
+        GL_CALL(glDeleteProgram(s->handle_shader));
+        s->handle_shader = 0;
     }
 }
 
@@ -373,18 +386,19 @@ static bool _gb_check_program(GLuint handle, const char* desc) {
     return true;
 }
 
+// Prints the specifid draw list for debugging
 static void _gb_print_draw_list(gb_draw_list_t dl) {
 
     printf("DrawList: idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
     printf("Indices :");
     for (int i = 0; i < dl.idx_count; i++) {
-        printf("%d,", dl.bufIdx[i]);
+        printf("%d,", dl.buf_idx[i]);
     }
     printf("\n");
 
     printf("Vertices:\n");
     for (int i = 0; i < dl.vtx_count; i++) {
-        gb_vertex_t v = dl.bufVtx[i];
+        gb_vertex_t v = dl.buf_vtx[i];
         printf("\tx:%f, y:%f u:%f v:%f col:%06X\n", v.pos.x, v.pos.y, v.uv.x, v.uv.y, v.col);
     }
 

@@ -17,8 +17,8 @@ func main() {
 	drawList := gb.NewDrawList()
 	for win.StartFrame(0) {
 
-		drawList.AddCmd(gb.Vec4{1, 2, 3, 4}, 10, []uint32{4, 5, 6}, []float32{10, 20, 30})
-		drawList.AddCmd(gb.Vec4{5, 6, 7, 8}, 20, []uint32{7, 8, 9, 10}, []float32{30, 40, 50, 60})
+		drawList.AddCmd(gb.DrawCmd{gb.Vec4{1, 2, 3, 4}, 10, []uint32{4, 5, 6}, []float32{10, 20, 30}})
+		drawList.AddCmd(gb.DrawCmd{gb.Vec4{5, 6, 7, 8}, 20, []uint32{7, 8, 9, 10}, []float32{30, 40, 50, 60}})
 		win.RenderFrame(drawList)
 		drawList.Clear()
 	}

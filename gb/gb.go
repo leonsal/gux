@@ -15,6 +15,14 @@ type Vec4 struct {
 	W float32
 }
 
+// DrawCmd specifies a single draw command
+type DrawCmd struct {
+	ClipRect Vec4      // Clip rectangle
+	TexId    int       // Texture ID
+	Indices  []uint32  // Array of vertices indices
+	Vertices []float32 // Array of vertices positions
+}
+
 // DrawList contains a list of commands for the graphics backend
 type DrawList struct {
 	bufCmd []C.gb_draw_cmd_t // Buffer of draw commands
@@ -30,18 +38,18 @@ func NewDrawList() *DrawList {
 }
 
 // AddCmd appends a new command to the Draw List
-func (dl *DrawList) AddCmd(clipRect Vec4, texId int, indices []uint32, vertices []float32) {
+func (dl *DrawList) AddCmd(cmd DrawCmd) {
 
-	cmd := C.gb_draw_cmd_t{
-		clip_rect:  C.gb_vec4_t{C.float(clipRect.X), C.float(clipRect.Y), C.float(clipRect.Z), C.float(clipRect.W)},
-		texid:      C.int(texId),
+	cc := C.gb_draw_cmd_t{
+		clip_rect:  C.gb_vec4_t{C.float(cmd.ClipRect.X), C.float(cmd.ClipRect.Y), C.float(cmd.ClipRect.Z), C.float(cmd.ClipRect.W)},
+		texid:      C.int(cmd.TexId),
 		idx_offset: C.int(len(dl.bufIdx)),
 		vtx_offset: C.int(len(dl.bufVtx)),
-		elem_count: C.int(len(indices)),
+		elem_count: C.int(len(cmd.Indices)),
 	}
-	dl.bufCmd = append(dl.bufCmd, cmd)
-	dl.bufVtx = append(dl.bufVtx, vertices...)
-	dl.bufIdx = append(dl.bufIdx, indices...)
+	dl.bufCmd = append(dl.bufCmd, cc)
+	dl.bufIdx = append(dl.bufIdx, cmd.Indices...)
+	dl.bufVtx = append(dl.bufVtx, cmd.Vertices...)
 }
 
 // Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory

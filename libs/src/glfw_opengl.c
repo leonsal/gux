@@ -145,6 +145,10 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 // Executes draw commands
 static void _gc_render(gb_state_t* s, gb_draw_list_t dl)  {
 
+    // Upload vertices and indices buffers
+    // glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW));
+    //        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW));
+
     //printf("RENDER:idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];

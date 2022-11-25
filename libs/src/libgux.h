@@ -15,9 +15,27 @@ typedef struct gb_config {
 // Opaque backend window pointer
 typedef void* gb_window_t;
 
+typedef struct gb_vec2 {
+    float x; float y;
+} gb_vec2_t;
+
+typedef struct gb_vec3 {
+    float x; float y; float z;
+} gb_vec3_t;
+
 typedef struct gb_vec4 {
     float x; float y; float z; float w;
 } gb_vec4_t;
+
+// Packed color
+typedef int gb_col32_t;
+
+// Vertex info
+typedef struct gb_vertex {
+    gb_vec2_t  pos;             // Vertex position in screen coordinates
+    gb_vec2_t  uv;              // Texture coordinates
+    gb_col32_t col;             // Color as an int32
+} gb_vertex_t;
 
 // Single draw command
 typedef struct gb_draw_cmd {
@@ -34,7 +52,7 @@ typedef struct gb_draw_list {
     int             cmd_count;  // Total number of commands
 	int*            bufIdx;     // Indices buffer
     int             idx_count;  // Total number of indices
-	float*          bufVtx;     // Vertices buffer
+	float*          bufVtx;     // Vertices info buffer
     int             vtx_count;  // Total number of vertices
 } gb_draw_list_t;
 

@@ -8,6 +8,16 @@ import (
 	"unsafe"
 )
 
+type Vec2 struct {
+	X float32
+	Y float32
+}
+
+type Vec3 struct {
+	X float32
+	Y float32
+	Z float32
+}
 type Vec4 struct {
 	X float32
 	Y float32
@@ -15,19 +25,29 @@ type Vec4 struct {
 	W float32
 }
 
+// Packed RGBA color from LSB to MSB
+type RGBA32 int32
+
+// Vertex specifies information about a single vertex
+type Vertex struct {
+	Pos Vec2   // Position in screen? coordinates
+	UV  Vec2   // Texture coordinates
+	Col RGBA32 // RGBA packed color
+}
+
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
-	ClipRect Vec4      // Clip rectangle
-	TexId    int       // Texture ID
-	Indices  []uint32  // Array of vertices indices
-	Vertices []float32 // Array of vertices positions
+	ClipRect Vec4     // Clip rectangle
+	TexId    int      // Texture ID
+	Indices  []uint32 // Array of vertices indices
+	Vertices []Vertex // Array of vertices info
 }
 
 // DrawList contains a list of commands for the graphics backend
 type DrawList struct {
 	bufCmd []C.gb_draw_cmd_t // Buffer of draw commands
 	bufIdx []uint32          // Buffer of vertices indices
-	bufVtx []float32         // Buffer of vertices positions
+	bufVtx []C.gb_vertex_t   // Buffer of vertices info
 }
 
 // NewDrawList creates and returns an empty DrawList
@@ -40,6 +60,7 @@ func NewDrawList() *DrawList {
 // AddCmd appends a new command to the Draw List
 func (dl *DrawList) AddCmd(cmd DrawCmd) {
 
+	// Convert command to C struct and appends to commands buffer
 	cc := C.gb_draw_cmd_t{
 		clip_rect:  C.gb_vec4_t{C.float(cmd.ClipRect.X), C.float(cmd.ClipRect.Y), C.float(cmd.ClipRect.Z), C.float(cmd.ClipRect.W)},
 		texid:      C.int(cmd.TexId),
@@ -48,8 +69,19 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 		elem_count: C.int(len(cmd.Indices)),
 	}
 	dl.bufCmd = append(dl.bufCmd, cc)
+
+	// Appends command indices to indices buffer
 	dl.bufIdx = append(dl.bufIdx, cmd.Indices...)
-	dl.bufVtx = append(dl.bufVtx, cmd.Vertices...)
+
+	// Convert vertex info to C struct and appends to vertices buffer
+	for i := range cmd.Vertices {
+		v := &cmd.Vertices[i]
+		dl.bufVtx = append(dl.bufVtx, C.gb_vertex_t{
+			C.gb_vec2_t{C.float(v.Pos.X), C.float(v.Pos.Y)},
+			C.gb_vec2_t{C.float(v.UV.X), C.float(v.UV.Y)},
+			C.int(v.Col),
+		})
+	}
 }
 
 // Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory
@@ -98,7 +130,7 @@ func (w *Window) RenderFrame(dl *DrawList) {
 	cdl.cmd_count = C.int(len(dl.bufCmd))
 	cdl.bufIdx = (*C.int)(unsafe.Pointer(&dl.bufIdx[0]))
 	cdl.idx_count = C.int(len(dl.bufIdx))
-	cdl.bufVtx = (*C.float)(unsafe.Pointer(&dl.bufVtx[0]))
+	cdl.bufVtx = (*C.gb_vertex_t)(unsafe.Pointer(&dl.bufVtx[0]))
 	cdl.vtx_count = C.int(len(dl.bufVtx))
 	C.gb_window_render_frame(w.c, cdl)
 }

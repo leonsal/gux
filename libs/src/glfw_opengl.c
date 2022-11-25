@@ -149,14 +149,28 @@ static void _gc_render(gb_state_t* s, gb_draw_list_t dl)  {
     // glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW));
     //        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW));
 
-    //printf("RENDER:idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    printf("RENDER:idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+
+    printf("Indices:");
+    for (int i = 0; i < dl.idx_count; i++) {
+        printf("%d,", dl.bufIdx[i]);
+    }
+    printf("\n");
+
+    printf("Vertices:\n");
+    for (int i = 0; i < dl.vtx_count; i++) {
+        gb_vertex_t v = dl.bufVtx[i];
+        printf("\tx:%f, y:%f u:%f v:%f col:%06X\n", v.pos.x, v.pos.y, v.uv.x, v.uv.y, v.col);
+    }
+
+    printf("Commands:\n");
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
-
-        //printf("x:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
-        //    cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
-        //    cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
+        printf("\tx:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
+            cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
+            cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
+    printf("\n");
 
 }
 

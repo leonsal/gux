@@ -168,7 +168,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     //_gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
-        gb_draw_cmd_t cmd = dl.bufCmd[i];
+        gb_draw_cmd_t cmd = dl.buf_cmd[i];
         // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
         //GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
@@ -223,6 +223,10 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_pos));
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_uv));
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_color));
+
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
@@ -402,7 +406,7 @@ static void _gb_print_draw_list(gb_draw_list_t dl) {
 
     printf("Commands:\n");
     for (int i = 0; i < dl.cmd_count; i++) {
-        gb_draw_cmd_t cmd = dl.bufCmd[i];
+        gb_draw_cmd_t cmd = dl.buf_cmd[i];
         printf("\tx:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
             cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
             cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);

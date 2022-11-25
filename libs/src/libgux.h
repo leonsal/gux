@@ -48,7 +48,7 @@ typedef struct gb_draw_cmd {
 
 // List of draw commands and buffers of vertices indices/positions
 typedef struct gb_draw_list {
-	gb_draw_cmd_t*  bufCmd;     // Draw command buffer
+	gb_draw_cmd_t*  buf_cmd;    // Draw command buffer
     int             cmd_count;  // Total number of commands
 	int*            buf_idx;    // Indices buffer
     int             idx_count;  // Total number of indices

@@ -12,13 +12,13 @@ ifeq ($(OS),Windows_NT)
 endif
 
 #
-# default target: gcc release
+# default target: gcc release (DEBUG during DEV!!!)
 #
 all: build
 	cmake --build build -- $(JOBS)
 
 build:
-	cmake $(GEN) -Bbuild $(GCC) $(RELEASE)
+	cmake $(GEN) -Bbuild $(GCC) $(DEBUG)
 
 
 #

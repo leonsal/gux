@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include "GL/gl3w.h"
 #include <GLFW/glfw3.h>
 #include "libgux.h"
 
 // Uncomment next line to enable error checking after each OpenGL call.
-//#define GUX_GB_DEBUG
+#define GUX_GB_DEBUG
 #ifdef GUX_GB_DEBUG
 #include <stdio.h>
 #define GL_CALL(_CALL) do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
@@ -181,13 +182,8 @@ static bool _gb_init(gb_state_t* s, const char* glsl_version) {
         return false;
     }
 
-    // Sets initial state and checks fo error
+    // Sets initial state
     _gb_set_state(s);
-    int err = glGetError();
-    if (err != GL_NO_ERROR) {
-        fprintf(stderr, "OpenGL returned error:%d", err);
-        return false;
-    }
     return true;
 }
 
@@ -201,6 +197,24 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glDisable(GL_DEPTH_TEST));
     GL_CALL(glDisable(GL_STENCIL_TEST));
     GL_CALL(glEnable(GL_SCISSOR_TEST));
+
+    GL_CALL(glUseProgram(s->shaderHandle));
+    GL_CALL(glUniform1i(s->locTex, 0));
+    //glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
+
+    GL_CALL(glBindSampler(0, 0));
+    //(void)vertex_array_object;
+    //glBindVertexArray(vertex_array_object);
+
+    // Bind vertex/index buffers and setup attributes for ImDrawVert
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, s->vboHandle));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s->elementsHandle));
+    GL_CALL(glEnableVertexAttribArray(s->locVtxPos));
+    GL_CALL(glEnableVertexAttribArray(s->locVtxUV));
+    GL_CALL(glEnableVertexAttribArray(s->locVtxColor));
+    GL_CALL(glVertexAttribPointer(s->locVtxPos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
+    GL_CALL(glVertexAttribPointer(s->locVtxUV,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
+    GL_CALL(glVertexAttribPointer(s->locVtxColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
 }
 
 static bool _gb_create_objects(gb_state_t* s) {

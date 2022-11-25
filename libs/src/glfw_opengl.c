@@ -169,7 +169,7 @@ static bool _gb_createDeviceObjects() {
 // Render commands
 static void _gb_render(window_state_t* s, gb_draw_list_t dl)  {
 
-    printf("idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
+    printf("RENDER:idx_count:%d, vtx_count:%d\n", dl.idx_count, dl.vtx_count);
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
 

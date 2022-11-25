@@ -1,7 +1,0 @@
-#!/bin/sh
-cd libs;make
-cd ..
-rm -f /home/leonel/go/bin/gux
-go install
-
-

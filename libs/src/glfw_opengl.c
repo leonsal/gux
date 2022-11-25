@@ -18,18 +18,16 @@
 
 // Internal state
 typedef struct {
-    GLFWwindow* w;
-    struct {
-        float r; float g; float b; float a;
-    } clearColor;
-    GLuint  handle_shader;      // Handle of compiled shader program
-    GLint   uniTex;             // Location of texture id uniform
-    GLint   uni_projmtx;        // Location of projection matrix uniform
-    GLint   attrib_vtx_pos;     // Location of vertex position attribute in the shader
-    GLint   attrib_vtx_uv;      // Location of vertex uv attribute in the shader
-    GLint   attrib_vtx_color;   // Location of vertex color attribute in the shader
-    unsigned int handle_vbo;    // Handle of vertex buffer object
-    unsigned int handle_elems;  // Handle of vertex elements object
+    GLFWwindow* w;                  // GLFW window pointer
+    gb_vec4_t   clear_color;        // Current color to clear color buffer before rendering
+    GLuint      handle_shader;      // Handle of compiled shader program
+    GLint       uni_tex;            // Location of texture id uniform in the shader
+    GLint       uni_projmtx;        // Location of projection matrix uniform the shader
+    GLint       attrib_vtx_pos;     // Location of vertex position attribute in the shader
+    GLint       attrib_vtx_uv;      // Location of vertex uv attribute in the shader
+    GLint       attrib_vtx_color;   // Location of vertex color attribute in the shader
+    unsigned int handle_vbo;        // Handle of vertex buffer object
+    unsigned int handle_elems;      // Handle of vertex elements object
 } gb_state_t;
 
 
@@ -104,10 +102,10 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     }
 
     s->w = win;
-    s->clearColor.r = 0.5;
-    s->clearColor.g = 0.5;
-    s->clearColor.b = 0.5;
-    s->clearColor.a = 1.0;
+    s->clear_color.x = 0.5;
+    s->clear_color.y = 0.5;
+    s->clear_color.z = 0.5;
+    s->clear_color.w = 1.0;
     return s;
 }
 
@@ -145,7 +143,7 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 
     // Clears the framebuffer
     GL_CALL(glScissor(0, 0, width, height));
-    GL_CALL(glClearColor(s->clearColor.r, s->clearColor.g, s->clearColor.b, s->clearColor.a));
+    GL_CALL(glClearColor(s->clear_color.x, s->clear_color.y, s->clear_color.z, s->clear_color.w));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 
     // Render commands and swap buffers
@@ -167,7 +165,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 
-    _gb_print_draw_list(dl);
+    //_gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.bufCmd[i];
@@ -212,7 +210,7 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glEnable(GL_SCISSOR_TEST));
 
     GL_CALL(glUseProgram(s->handle_shader));
-    GL_CALL(glUniform1i(s->uniTex, 0));
+    GL_CALL(glUniform1i(s->uni_tex, 0));
     //glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
     GL_CALL(glBindSampler(0, 0));
@@ -319,12 +317,12 @@ static bool _gb_create_objects(gb_state_t* s) {
     GL_CALL(glDeleteShader(frag_handle));
 
     // Get uniform locations from shader progrm
-    s->uniTex = glGetUniformLocation(s->handle_shader, "Texture");
+    s->uni_tex = glGetUniformLocation(s->handle_shader, "Texture");
     s->uni_projmtx = glGetUniformLocation(s->handle_shader, "ProjMtx");
     s->attrib_vtx_pos = (GLuint)glGetAttribLocation(s->handle_shader, "Position");
     s->attrib_vtx_uv = (GLuint)glGetAttribLocation(s->handle_shader, "UV");
     s->attrib_vtx_color = (GLuint)glGetAttribLocation(s->handle_shader, "Color");
-    printf("LOCS: %d/%d/%d/%d/%d\n", s->uniTex, s->uni_projmtx, s->attrib_vtx_pos, s->attrib_vtx_uv, s->attrib_vtx_color);
+    printf("LOCS: %d/%d/%d/%d/%d\n", s->uni_tex, s->uni_projmtx, s->attrib_vtx_pos, s->attrib_vtx_uv, s->attrib_vtx_color);
 
     // Create buffers
     GL_CALL(glGenBuffers(1, &s->handle_vbo));

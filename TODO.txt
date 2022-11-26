@@ -1,4 +1,10 @@
+- DrawList
+    - use C types
+    - AddDrawList
+        - adjust offsets and indices
+
 - canvas
+    - Contains DrawList
     - AddTriangleFilled
     - AddRectFilled
     ...

@@ -56,11 +56,6 @@ typedef struct gb_draw_list {
     int             vtx_count;  // Total number of vertices
 } gb_draw_list_t;
 
-typedef struct gb_draw_data {
-    gb_draw_list_t  buf_list;
-    int             list_count;
-} gb_draw_data_t;
-
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
 bool gb_window_start_frame(gb_window_t bw, double timeout);

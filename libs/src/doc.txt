@@ -1,3 +1,46 @@
+OpenGL Normalized device coordinates
+------------------------------------
+
+ x:[-1,1], y:[-1,1], z:[0,1]
+ 
+ (-1,1)                                 (1,1)
+    +--------------------------------------+
+    ^                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+ Y  |                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+    +------------------------------------->+
+  (-1,-1)            X                   (1,-1)
+
+
+Transforming coordinate from screen space to NDC
+------------------------------------------------
+
+    Screen/window/canvas coordinates
+
+  (0,0)                              (width,0)
+    +------------------------------------->+
+    |                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+ Y  |                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+    |                                      |
+    +--------------------------------------+
+  (0,height)                         (width,height)
+
+
+
+
+
 // All draw data to render a Dear ImGui frame
 // (NB: the style and the naming convention here is a little inconsistent, we currently preserve them for backward compatibility purpose,
 // as this is one of the oldest structure exposed by the library! Basically, ImDrawList == CmdList)

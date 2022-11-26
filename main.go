@@ -22,12 +22,24 @@ func main() {
 			TexId:    0,
 			Indices:  []uint32{0, 1, 2},
 			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{-0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
-				{Pos: gb.Vec2{0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_FF_00},
-				{Pos: gb.Vec2{0.0, 0.5}, UV: gb.Vec2{0, 0}, Col: 0xFF_FF_00_00},
+				{Pos: gb.Vec2{400, 500}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+				{Pos: gb.Vec2{600, 500}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_FF_00},
+				{Pos: gb.Vec2{500, 250}, UV: gb.Vec2{0, 0}, Col: 0xFF_FF_00_00},
 			},
 		}
 		drawList.AddCmd(cmd1)
+
+		cmd2 := gb.DrawCmd{
+			ClipRect: gb.Vec4{1, 2, 3, 4},
+			TexId:    0,
+			Indices:  []uint32{0, 1, 2},
+			Vertices: []gb.Vertex{
+				{Pos: gb.Vec2{0, 0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+				{Pos: gb.Vec2{100, 0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+				{Pos: gb.Vec2{100, 200}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+			},
+		}
+		drawList.AddCmd(cmd2)
 
 		//cmd2 := gb.DrawCmd{
 		//	ClipRect: gb.Vec4{10, 20, 30, 40},

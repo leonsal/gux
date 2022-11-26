@@ -71,7 +71,11 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 	dl.bufCmd = append(dl.bufCmd, cc)
 
 	// Appends command indices to indices buffer
-	dl.bufIdx = append(dl.bufIdx, cmd.Indices...)
+	startOffset := uint32(len(dl.bufIdx))
+	for i := range cmd.Indices {
+		idx := cmd.Indices[i]
+		dl.bufIdx = append(dl.bufIdx, startOffset+idx)
+	}
 
 	// Convert vertex info to C struct and appends to vertices buffer
 	for i := range cmd.Vertices {

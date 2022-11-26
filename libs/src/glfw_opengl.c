@@ -33,7 +33,7 @@ typedef struct {
 
 
 // Forward declarations of internal functions
-static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
+static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl);
 static bool _gb_init(gb_state_t* s, const char* glsl_version);
 static void _gb_set_state(gb_state_t* s);
 static bool _gb_create_objects(gb_state_t* s);
@@ -149,7 +149,9 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 
     // Render commands and swap buffers
-    _gb_render(s, dl);
+    gb_vec2_t disp_pos = {0,0};
+    gb_vec2_t disp_size = {width, height};
+    _gb_render(s, disp_pos, disp_size, dl);
     glfwSwapBuffers(s->w);
 }
 
@@ -158,7 +160,14 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 //-----------------------------------------------------------------------------
 
 // Executes draw commands
-static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
+static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
+
+    // Do not render when minimized
+    int fb_width = (int)disp_size.x;
+    int fb_height = (int)disp_size.y;
+    if (fb_width <= 0 || fb_height <= 0) {
+        return;
+    }
 
     // Upload vertices and indices buffers
     const GLsizeiptr vtx_buffer_size = (GLsizeiptr)dl.vtx_count * (int)sizeof(gb_vertex_t);
@@ -167,7 +176,20 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 
-    //_gb_print_draw_list(dl);
+    // Sets orthogonal projection
+    float L = disp_pos.x;
+    float R = disp_pos.x + disp_size.x;
+    float T = disp_pos.y;
+    float B = disp_pos.y + disp_size.y;
+    const float ortho_projection[4][4] = {
+        { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
+        { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
+        { 0.0f,         0.0f,        -1.0f,   0.0f },
+        { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
+    };
+    glUniformMatrix4fv(s->uni_projmtx, 1, GL_FALSE, &ortho_projection[0][0]);
+
+    _gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];
@@ -212,7 +234,6 @@ static void _gb_set_state(gb_state_t* s) {
 
     GL_CALL(glUseProgram(s->handle_shader));
     GL_CALL(glUniform1i(s->uni_tex, 0));
-    //glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     
     GL_CALL(glBindSampler(0, 0));
     GL_CALL(glBindVertexArray(s->vao));
@@ -272,8 +293,8 @@ static bool _gb_create_objects(gb_state_t* s) {
         "{\n"
         "    Frag_UV = UV;\n"
         "    Frag_Color = Color;\n"
-        "    //gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "    gl_Position = vec4(Position.xy,0,1);\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "    //gl_Position = vec4(Position.xy,0,1);\n"
         "}\n";
 
     const GLchar* fragment_shader_glsl_330_core =

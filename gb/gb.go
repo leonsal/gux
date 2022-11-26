@@ -30,8 +30,8 @@ type RGBA32 uint32
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
-	Pos Vec2   // Position in screen? coordinates
-	UV  Vec2   // Texture coordinates
+	Pos Vec2   // Position in screen coordinates
+	UV  Vec2   // Texture coordinates (only relevant if texture used)
 	Col RGBA32 // RGBA packed color
 }
 
@@ -41,6 +41,14 @@ type DrawCmd struct {
 	TexId    int      // Texture ID
 	Indices  []uint32 // Array of vertices indices
 	Vertices []Vertex // Array of vertices info
+}
+
+func (cmd DrawCmd) AddIndices(indices ...uint32) {
+
+}
+
+func (cmd DrawCmd) AddVertices(vertices ...Vertex) {
+
 }
 
 // DrawList contains a list of commands for the graphics backend

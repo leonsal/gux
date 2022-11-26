@@ -38,6 +38,7 @@ static bool _gb_init(gb_state_t* s, const char* glsl_version);
 static void _gb_set_state(gb_state_t* s);
 static bool _gb_create_objects(gb_state_t* s);
 static void _gb_destroy_objects(gb_state_t* s);
+static void _gb_create_default_texture();
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src);
 static bool _gb_check_program(GLuint handle, const char* desc);
 static void _gb_print_draw_list(gb_draw_list_t dl);
@@ -166,7 +167,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 
-    _gb_print_draw_list(dl);
+    //_gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];
@@ -223,9 +224,9 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_uv));
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_color));
 
-    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
-    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
-    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
+    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
@@ -283,8 +284,7 @@ static bool _gb_create_objects(gb_state_t* s) {
         "layout (location = 0) out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-        "    //Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-        "    Out_Color = vec4(1,0,0,1);\n"
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
         "}\n";
 
     const GLchar* vertex_shader = vertex_shader_glsl_330_core;
@@ -335,6 +335,8 @@ static bool _gb_create_objects(gb_state_t* s) {
 
     // Create VAO
     GL_CALL(glGenVertexArrays(1, &s->vao));
+
+    _gb_create_default_texture();
     return true;
 }
 
@@ -353,6 +355,24 @@ static void _gb_destroy_objects(gb_state_t* s) {
         GL_CALL(glDeleteProgram(s->handle_shader));
         s->handle_shader = 0;
     }
+}
+
+// Creates default 1x1 pixel WHITE texture (ID=0) which is used when draw command texid == 0.
+static void _gb_create_default_texture() {
+
+    // Used ID = 0 for default texture
+    GLuint texid = 0;
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, texid));
+
+    // Setup filtering parameters for display
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // Transfer texture
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, texid));
+    GL_CALL(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
+    const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF};
+    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
 }
 
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {

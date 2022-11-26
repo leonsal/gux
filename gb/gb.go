@@ -26,7 +26,7 @@ type Vec4 struct {
 }
 
 // Packed RGBA color from LSB to MSB
-type RGBA32 int32
+type RGBA32 uint32
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
@@ -126,11 +126,11 @@ func (w *Window) RenderFrame(dl *DrawList) {
 
 	// Builds C draw list struct and calls backend render
 	var cdl C.gb_draw_list_t
-	cdl.bufCmd = (*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0]))
+	cdl.buf_cmd = (*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0]))
 	cdl.cmd_count = C.int(len(dl.bufCmd))
-	cdl.bufIdx = (*C.int)(unsafe.Pointer(&dl.bufIdx[0]))
+	cdl.buf_idx = (*C.uint)(unsafe.Pointer(&dl.bufIdx[0]))
 	cdl.idx_count = C.int(len(dl.bufIdx))
-	cdl.bufVtx = (*C.gb_vertex_t)(unsafe.Pointer(&dl.bufVtx[0]))
+	cdl.buf_vtx = (*C.gb_vertex_t)(unsafe.Pointer(&dl.bufVtx[0]))
 	cdl.vtx_count = C.int(len(dl.bufVtx))
 	C.gb_window_render_frame(w.c, cdl)
 }

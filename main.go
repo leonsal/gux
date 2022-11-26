@@ -22,9 +22,9 @@ func main() {
 			TexId:    0,
 			Indices:  []uint32{0, 1, 2},
 			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{-0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFFFFFF},
-				{Pos: gb.Vec2{0.5, 0.0}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFF},
-				{Pos: gb.Vec2{0.0, 0.5}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFFF},
+				{Pos: gb.Vec2{-0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+				{Pos: gb.Vec2{0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_FF_00},
+				{Pos: gb.Vec2{0.0, 0.5}, UV: gb.Vec2{0, 0}, Col: 0xFF_FF_00_00},
 			},
 		}
 		drawList.AddCmd(cmd1)

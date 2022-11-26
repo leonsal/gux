@@ -24,7 +24,7 @@ func main() {
 			Vertices: []gb.Vertex{
 				{Pos: gb.Vec2{-0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFFFFFF},
 				{Pos: gb.Vec2{0.5, 0.0}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFF},
-				{Pos: gb.Vec2{0.0, -0.5}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFFF},
+				{Pos: gb.Vec2{0.0, 0.5}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFFF},
 			},
 		}
 		drawList.AddCmd(cmd1)

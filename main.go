@@ -20,24 +20,25 @@ func main() {
 		cmd1 := gb.DrawCmd{
 			ClipRect: gb.Vec4{1, 2, 3, 4},
 			TexId:    0,
-			Indices:  []uint32{4, 5, 6},
+			Indices:  []uint32{0, 1, 2},
 			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{7, 8}, UV: gb.Vec2{9, 10}, Col: 11},
-				{Pos: gb.Vec2{12, 13}, UV: gb.Vec2{14, 15}, Col: 16},
+				{Pos: gb.Vec2{-0.5, 0.0}, UV: gb.Vec2{0, 0}, Col: 0xFFFFFF},
+				{Pos: gb.Vec2{0.5, 0.0}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFF},
+				{Pos: gb.Vec2{0.0, -0.5}, UV: gb.Vec2{1, 1}, Col: 0xFFFFFFF},
 			},
 		}
 		drawList.AddCmd(cmd1)
 
-		cmd2 := gb.DrawCmd{
-			ClipRect: gb.Vec4{10, 20, 30, 40},
-			TexId:    1,
-			Indices:  []uint32{50, 60, 70},
-			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{80, 90}, UV: gb.Vec2{100, 110}, Col: 120},
-				{Pos: gb.Vec2{130, 140}, UV: gb.Vec2{150, 160}, Col: 170},
-			},
-		}
-		drawList.AddCmd(cmd2)
+		//cmd2 := gb.DrawCmd{
+		//	ClipRect: gb.Vec4{10, 20, 30, 40},
+		//	TexId:    1,
+		//	Indices:  []uint32{50, 60, 70},
+		//	Vertices: []gb.Vertex{
+		//		{Pos: gb.Vec2{80, 90}, UV: gb.Vec2{100, 110}, Col: 120},
+		//		{Pos: gb.Vec2{130, 140}, UV: gb.Vec2{150, 160}, Col: 170},
+		//	},
+		//}
+		//drawList.AddCmd(cmd2)
 
 		//type DrawCmd struct {
 		//	ClipRect Vec4     // Clip rectangle

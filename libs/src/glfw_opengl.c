@@ -28,6 +28,7 @@ typedef struct {
     GLint       attrib_vtx_color;   // Location of vertex color attribute in the shader
     unsigned int handle_vbo;        // Handle of vertex buffer object
     unsigned int handle_elems;      // Handle of vertex elements object
+    GLint       vao;
 } gb_state_t;
 
 
@@ -165,16 +166,15 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 
-    //_gb_print_draw_list(dl);
+    _gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];
         // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
         //GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
-        // Bind texture, Draw
-        //GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)cmd.t->GetTexID()));
-        //GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx))));
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(cmd.texid)));
+        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)cmd.elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(cmd.idx_offset * sizeof(cmd.idx_offset))));
     }
 
 }
@@ -212,10 +212,9 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glUseProgram(s->handle_shader));
     GL_CALL(glUniform1i(s->uni_tex, 0));
     //glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-
+    
     GL_CALL(glBindSampler(0, 0));
-    //(void)vertex_array_object;
-    //glBindVertexArray(vertex_array_object);
+    GL_CALL(glBindVertexArray(s->vao));
 
     // Bind vertex/index buffers and setup attributes for ImDrawVert
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, s->handle_vbo));
@@ -224,9 +223,9 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_uv));
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_color));
 
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
@@ -272,7 +271,8 @@ static bool _gb_create_objects(gb_state_t* s) {
         "{\n"
         "    Frag_UV = UV;\n"
         "    Frag_Color = Color;\n"
-        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "    //gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "    gl_Position = vec4(Position.xy,0,1);\n"
         "}\n";
 
     const GLchar* fragment_shader_glsl_330_core =
@@ -283,7 +283,8 @@ static bool _gb_create_objects(gb_state_t* s) {
         "layout (location = 0) out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "    //Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "    Out_Color = vec4(1,0,0,1);\n"
         "}\n";
 
     const GLchar* vertex_shader = vertex_shader_glsl_330_core;
@@ -331,6 +332,9 @@ static bool _gb_create_objects(gb_state_t* s) {
     // Create buffers
     GL_CALL(glGenBuffers(1, &s->handle_vbo));
     GL_CALL(glGenBuffers(1, &s->handle_elems));
+
+    // Create VAO
+    GL_CALL(glGenVertexArrays(1, &s->vao));
     return true;
 }
 

@@ -1,3 +1,19 @@
+- DrawList
+    - use C types
+    - AddDrawList
+        - adjust offsets and indices
+
+- canvas
+    - Contains DrawList
+    - AddTriangleFilled
+    - AddRectFilled
+    ...
+    ...
+
+- gmath
+
+
+
 OpenGL Normalized device coordinates
 ------------------------------------
 
@@ -177,3 +193,4 @@ struct ImDrawCmd
     // Since 1.83: returns ImTextureID associated with this draw call. Warning: DO NOT assume this is always same as 'TextureId' (we will change this function for an upcoming feature)
     inline ImTextureID GetTexID() const { return TextureId; }
 };
+    

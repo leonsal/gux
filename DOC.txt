@@ -54,7 +54,46 @@ Transforming coordinate from screen space to NDC
   (0,height)                         (width,height)
 
 
+Rendering Data Structures
+-------------------------
 
+Draw Command
+------------
+    gb_vec4_t   clip_rect;      // Clip rectangle
+    int         texid;          // Texture id
+    int         idx_offset;     // Start offset in index buffer
+    int         vtx_offset;     // Start offset in vertex buffer
+    int         elem_count;     // Number of indices
+
+Draw List
+----------
+	gb_draw_cmd_t*  buf_cmd;    // Draw command buffer
+    int             cmd_count;  // Total number of commands
+	unsigned int*   buf_idx;    // Indices buffer
+    int             idx_count;  // Total number of indices
+	gb_vertex_t*    buf_vtx;    // Vertices info buffer
+    int             vtx_count;  // Total number of vertices
+
+
+
+Draw List2
+----------
+    int             cmd_count;              // Total number of commands
+    int             idx_count;              // Total number of indices
+    int             vtx_count;              // Total number of vertices
+    gb_draw_cmd_t   buf_cmd[cmd_count];     // Draw command buffer
+    unsigned int    buf_idx[idx_count];     // Indices buffer
+    gb_vertex_t     buf_vtx[vtx_count];     // Vertices info buffer
+
+
+typedef struct gb_draw_list2 {
+    int             cmd_count;  // Total number of commands
+    int             idx_count;  // Total number of indices
+    int             vtx_count;  // Total number of vertices
+	gb_draw_cmd_t   buf_cmd[1]; // Draw command buffer
+	unsigned int    buf_idx[1];    // Indices buffer
+	gb_vertex_t     buf_vtx[1];    // Vertices info buffer
+} gb_draw_list_t;
 
 
 // All draw data to render a Dear ImGui frame

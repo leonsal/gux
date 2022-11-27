@@ -98,11 +98,7 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 }
 
 // AddList appends the specified DrawList to this one
-func (dl *DrawList) AddList(list DrawList) {
-
-	//	for _, cmd := range list {
-	//		dl.AddCmd(cmd)
-	//	}
+func (dl *DrawList) AddList(src DrawList) {
 }
 
 // Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory

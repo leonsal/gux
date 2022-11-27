@@ -14,54 +14,28 @@ func main() {
 		panic(err)
 	}
 
-	drawList := gb.NewDrawList()
+	drawList := gb.DrawList{}
+
+	cmd1 := gb.DrawCmd{}
+	cmd1.AddIndices(0, 1, 2)
+	cmd1.AddVertices(
+		gb.Vertex{Pos: gb.Vec2{400, 500}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{600, 500}, Col: 0xFF_00_FF_00},
+		gb.Vertex{Pos: gb.Vec2{500, 250}, Col: 0xFF_FF_00_00},
+	)
+	drawList.AddCmd(cmd1)
+
+	cmd2 := gb.DrawCmd{}
+	cmd2.AddIndices(0, 1, 2)
+	cmd2.AddVertices(
+		gb.Vertex{Pos: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{100, 0}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{100, 200}, Col: 0xFF_00_00_FF},
+	)
+	drawList.AddCmd(cmd2)
+
 	for win.StartFrame(0) {
-
-		cmd1 := gb.DrawCmd{
-			ClipRect: gb.Vec4{1, 2, 3, 4},
-			TexId:    0,
-			Indices:  []uint32{0, 1, 2},
-			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{400, 500}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
-				{Pos: gb.Vec2{600, 500}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_FF_00},
-				{Pos: gb.Vec2{500, 250}, UV: gb.Vec2{0, 0}, Col: 0xFF_FF_00_00},
-			},
-		}
-		drawList.AddCmd(cmd1)
-
-		cmd2 := gb.DrawCmd{
-			ClipRect: gb.Vec4{1, 2, 3, 4},
-			TexId:    0,
-			Indices:  []uint32{0, 1, 2},
-			Vertices: []gb.Vertex{
-				{Pos: gb.Vec2{0, 0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
-				{Pos: gb.Vec2{100, 0}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
-				{Pos: gb.Vec2{100, 200}, UV: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF},
-			},
-		}
-		drawList.AddCmd(cmd2)
-
-		//cmd2 := gb.DrawCmd{
-		//	ClipRect: gb.Vec4{10, 20, 30, 40},
-		//	TexId:    1,
-		//	Indices:  []uint32{50, 60, 70},
-		//	Vertices: []gb.Vertex{
-		//		{Pos: gb.Vec2{80, 90}, UV: gb.Vec2{100, 110}, Col: 120},
-		//		{Pos: gb.Vec2{130, 140}, UV: gb.Vec2{150, 160}, Col: 170},
-		//	},
-		//}
-		//drawList.AddCmd(cmd2)
-
-		//type DrawCmd struct {
-		//	ClipRect Vec4     // Clip rectangle
-		//	TexId    int      // Texture ID
-		//	Indices  []uint32 // Array of vertices indices
-		//	Vertices []Vertex // Array of vertices info
-		//}
-
-		//		drawList.AddCmd(gb.DrawCmd{gb.Vec4{5, 6, 7, 8}, 20, []uint32{7, 8, 9, 10}, []float32{30, 40, 50, 60}})
-		win.RenderFrame(drawList)
-		drawList.Clear()
+		win.RenderFrame(&drawList)
 	}
 	win.Destroy()
 }

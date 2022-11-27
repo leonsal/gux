@@ -1,5 +1,7 @@
 - DrawList
-    - use C types
+    - Use Go types
+    - Consolidate
+        - convert types
     - AddDrawList
         - adjust offsets and indices
 

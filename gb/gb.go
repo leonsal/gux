@@ -26,13 +26,16 @@ type Vec4 struct {
 }
 
 // Packed RGBA color from LSB to MSB
-type RGBA32 uint32
+type Color uint32
+
+// Mask for Color alpha
+const ColorMaskA uint32 = 0xFF_00_00_00
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
-	Pos Vec2   // Position in screen coordinates
-	UV  Vec2   // Texture coordinates (only relevant if texture used)
-	Col RGBA32 // RGBA packed color
+	Pos Vec2  // Position in screen coordinates
+	UV  Vec2  // Texture coordinates (only relevant if texture used)
+	Col Color // RGBA packed color
 }
 
 // DrawCmd specifies a single draw command

@@ -111,6 +111,7 @@ func (dl *DrawList) AddList(src DrawList) {
 		cmd := &src.bufCmd[i]
 		cmd.idx_offset += C.uint(idxOffset)
 		cmd.vtx_offset += C.uint(vtxOffset)
+		dl.bufCmd = append(dl.bufCmd, *cmd)
 	}
 }
 

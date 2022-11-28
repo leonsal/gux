@@ -59,7 +59,7 @@ func (cmd *DrawCmd) AddVertices(vertices ...Vertex) {
 	}
 }
 
-// DrawList contains a list of commands for the graphics backend
+// DrawList contains lists of commands and buffers for the graphics backend
 type DrawList struct {
 	bufCmd []C.gb_draw_cmd_t // Buffer of draw commands
 	bufIdx []C.uint          // Buffer of vertices indices
@@ -73,17 +73,17 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 	cc := C.gb_draw_cmd_t{
 		clip_rect:  C.gb_vec4_t{C.float(cmd.ClipRect.X), C.float(cmd.ClipRect.Y), C.float(cmd.ClipRect.Z), C.float(cmd.ClipRect.W)},
 		texid:      C.int(cmd.TexId),
-		idx_offset: C.int(len(dl.bufIdx)),
-		vtx_offset: C.int(len(dl.bufVtx)),
-		elem_count: C.int(len(cmd.Indices)),
+		idx_offset: C.uint(len(dl.bufIdx)),
+		vtx_offset: C.uint(len(dl.bufVtx)),
+		elem_count: C.uint(len(cmd.Indices)),
 	}
 	dl.bufCmd = append(dl.bufCmd, cc)
 
 	// Appends command indices to indices buffer
-	idxOffset := uint32(len(dl.bufIdx))
+	vtxOffset := uint32(len(dl.bufVtx))
 	for i := range cmd.Indices {
 		idx := cmd.Indices[i]
-		dl.bufIdx = append(dl.bufIdx, C.uint(idxOffset+idx))
+		dl.bufIdx = append(dl.bufIdx, C.uint(vtxOffset+idx))
 	}
 
 	// Convert vertex info to C struct and appends to vertices buffer
@@ -99,6 +99,19 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 
 // AddList appends the specified DrawList to this one
 func (dl *DrawList) AddList(src DrawList) {
+
+	// Append indices
+	idxOffset := len(dl.bufIdx)
+	vtxOffset := len(dl.bufVtx)
+	dl.bufIdx = append(dl.bufIdx, src.bufIdx...)
+	dl.bufVtx = append(dl.bufVtx, src.bufVtx...)
+
+	// Append commands
+	for i := 0; i < len(src.bufCmd); i++ {
+		cmd := &src.bufCmd[i]
+		cmd.idx_offset += C.uint(idxOffset)
+		cmd.vtx_offset += C.uint(vtxOffset)
+	}
 }
 
 // Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory
@@ -141,11 +154,11 @@ func (w *Window) RenderFrame(dl *DrawList) {
 	var cdl C.gb_draw_list_t
 	if len(dl.bufCmd) > 0 {
 		cdl.buf_cmd = &dl.bufCmd[0]
-		cdl.cmd_count = C.int(len(dl.bufCmd))
+		cdl.cmd_count = C.uint(len(dl.bufCmd))
 		cdl.buf_idx = &dl.bufIdx[0]
-		cdl.idx_count = C.int(len(dl.bufIdx))
+		cdl.idx_count = C.uint(len(dl.bufIdx))
 		cdl.buf_vtx = &dl.bufVtx[0]
-		cdl.vtx_count = C.int(len(dl.bufVtx))
+		cdl.vtx_count = C.uint(len(dl.bufVtx))
 	}
 	C.gb_window_render_frame(w.c, cdl)
 }

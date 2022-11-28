@@ -32,28 +32,28 @@ typedef int gb_col32_t;
 
 // Vertex info
 typedef struct gb_vertex {
-    gb_vec2_t  pos;             // Vertex position in screen coordinates
-    gb_vec2_t  uv;              // Texture coordinates
-    gb_col32_t col;             // Color as an int32
+    gb_vec2_t  pos;                 // Vertex position in screen coordinates
+    gb_vec2_t  uv;                  // Texture coordinates
+    gb_col32_t col;                 // Color as an int32
 } gb_vertex_t;
 
 // Single draw command
 typedef struct gb_draw_cmd {
-    gb_vec4_t   clip_rect;      // Clip rectangle
-    int         texid;          // Texture id
-    int         idx_offset;     // Start offset in index buffer
-    int         vtx_offset;     // Start offset in vertex buffer
-    int         elem_count;     // Number of indices
+    gb_vec4_t       clip_rect;      // Clip rectangle
+    int             texid;          // Texture id
+    unsigned int    idx_offset;     // Start offset in index buffer
+    unsigned int    vtx_offset;     // Start offset in vertex buffer
+    unsigned int    elem_count;     // Number of indices
 } gb_draw_cmd_t;
 
 // List of draw commands and buffers of vertices indices/positions
 typedef struct gb_draw_list {
-	gb_draw_cmd_t*  buf_cmd;    // Draw command buffer
-    int             cmd_count;  // Total number of commands
-	unsigned int*   buf_idx;    // Indices buffer
-    int             idx_count;  // Total number of indices
-	gb_vertex_t*    buf_vtx;    // Vertices info buffer
-    int             vtx_count;  // Total number of vertices
+	gb_draw_cmd_t*  buf_cmd;        // Draw command buffer
+    unsigned int    cmd_count;      // Total number of commands
+	unsigned int*   buf_idx;        // Indices buffer
+    unsigned int    idx_count;      // Total number of indices
+	gb_vertex_t*    buf_vtx;        // Vertices info buffer
+    unsigned int    vtx_count;      // Total number of vertices
 } gb_draw_list_t;
 
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);

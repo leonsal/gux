@@ -62,7 +62,7 @@ func (cmd *DrawCmd) AddVertices(vertices ...Vertex) {
 // DrawList contains a list of commands for the graphics backend
 type DrawList struct {
 	bufCmd []C.gb_draw_cmd_t // Buffer of draw commands
-	bufIdx []uint32          // Buffer of vertices indices
+	bufIdx []C.uint          // Buffer of vertices indices
 	bufVtx []C.gb_vertex_t   // Buffer of vertices info
 }
 
@@ -83,7 +83,7 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 	idxOffset := uint32(len(dl.bufIdx))
 	for i := range cmd.Indices {
 		idx := cmd.Indices[i]
-		dl.bufIdx = append(dl.bufIdx, idxOffset+idx)
+		dl.bufIdx = append(dl.bufIdx, C.uint(idxOffset+idx))
 	}
 
 	// Convert vertex info to C struct and appends to vertices buffer
@@ -140,11 +140,11 @@ func (w *Window) RenderFrame(dl *DrawList) {
 	// Builds C draw list struct and calls backend render
 	var cdl C.gb_draw_list_t
 	if len(dl.bufCmd) > 0 {
-		cdl.buf_cmd = (*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0]))
+		cdl.buf_cmd = &dl.bufCmd[0]
 		cdl.cmd_count = C.int(len(dl.bufCmd))
-		cdl.buf_idx = (*C.uint)(unsafe.Pointer(&dl.bufIdx[0]))
+		cdl.buf_idx = &dl.bufIdx[0]
 		cdl.idx_count = C.int(len(dl.bufIdx))
-		cdl.buf_vtx = (*C.gb_vertex_t)(unsafe.Pointer(&dl.bufVtx[0]))
+		cdl.buf_vtx = &dl.bufVtx[0]
 		cdl.vtx_count = C.int(len(dl.bufVtx))
 	}
 	C.gb_window_render_frame(w.c, cdl)

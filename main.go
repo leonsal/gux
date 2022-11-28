@@ -26,15 +26,15 @@ func main() {
 	)
 	drawList1.AddCmd(cmd1)
 
-	//cmd2 := gb.DrawCmd{}
-	//cmd2.AddIndices(0, 1, 2, 2, 3, 0)
-	//cmd2.AddVertices(
-	//	gb.Vertex{Pos: gb.Vec2{500, 0}, Col: 0xFF_00_00_FF},
-	//	gb.Vertex{Pos: gb.Vec2{500, 250}, Col: 0xFF_00_00_FF},
-	//	gb.Vertex{Pos: gb.Vec2{750, 250}, Col: 0xFF_00_00_FF},
-	//	gb.Vertex{Pos: gb.Vec2{750, 0}, Col: 0xFF_00_00_FF},
-	//)
-	//drawList1.AddCmd(cmd2)
+	cmd2 := gb.DrawCmd{}
+	cmd2.AddIndices(0, 1, 2, 2, 3, 0)
+	cmd2.AddVertices(
+		gb.Vertex{Pos: gb.Vec2{500, 0}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{500, 250}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{750, 250}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{750, 0}, Col: 0xFF_00_00_FF},
+	)
+	drawList1.AddCmd(cmd2)
 
 	drawList2 := gb.DrawList{}
 	cmd3 := gb.DrawCmd{}
@@ -46,14 +46,14 @@ func main() {
 	)
 	drawList2.AddCmd(cmd3)
 
-	//cmd4 := gb.DrawCmd{}
-	//cmd4.AddIndices(0, 1, 2)
-	//cmd4.AddVertices(
-	//	gb.Vertex{Pos: gb.Vec2{700, 800}, Col: 0xFF_00_00_FF},
-	//	gb.Vertex{Pos: gb.Vec2{900, 800}, Col: 0xFF_00_FF_00},
-	//	gb.Vertex{Pos: gb.Vec2{800, 500}, Col: 0xFF_FF_00_00},
-	//)
-	//drawList2.AddCmd(cmd4)
+	cmd4 := gb.DrawCmd{}
+	cmd4.AddIndices(0, 1, 2)
+	cmd4.AddVertices(
+		gb.Vertex{Pos: gb.Vec2{700, 800}, Col: 0xFF_00_00_FF},
+		gb.Vertex{Pos: gb.Vec2{900, 800}, Col: 0xFF_00_FF_00},
+		gb.Vertex{Pos: gb.Vec2{800, 500}, Col: 0xFF_FF_00_00},
+	)
+	drawList2.AddCmd(cmd4)
 
 	drawList := gb.DrawList{}
 	drawList.AddList(drawList1)

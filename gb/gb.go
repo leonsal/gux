@@ -100,13 +100,17 @@ func (dl *DrawList) AddCmd(cmd DrawCmd) {
 // AddList appends the specified DrawList to this one
 func (dl *DrawList) AddList(src DrawList) {
 
-	// Append indices
-	idxOffset := len(dl.bufIdx)
-	vtxOffset := len(dl.bufVtx)
-	dl.bufIdx = append(dl.bufIdx, src.bufIdx...)
+	// Append vertices
+	vtxOffset := C.uint(len(dl.bufVtx))
 	dl.bufVtx = append(dl.bufVtx, src.bufVtx...)
 
-	// Append commands
+	// Append indices adjusting offset
+	idxOffset := len(dl.bufIdx)
+	for _, idx := range src.bufIdx {
+		dl.bufIdx = append(dl.bufIdx, idx+vtxOffset)
+	}
+
+	// Append commands adjusting offsets
 	for i := 0; i < len(src.bufCmd); i++ {
 		cmd := &src.bufCmd[i]
 		cmd.idx_offset += C.uint(idxOffset)

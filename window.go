@@ -24,6 +24,7 @@ func NewWindow(title string, width, height int) (*Window, error) {
 
 func (w *Window) StartFrame(timeout float64) bool {
 
+	w.dl.Clear()
 	return w.gbw.StartFrame(timeout)
 }
 
@@ -31,4 +32,9 @@ func (w *Window) RenderFrame(widget IWidget) {
 
 	widget.Render(w)
 	w.gbw.RenderFrame(&w.dl)
+}
+
+func (w *Window) AddList(src gb.DrawList) {
+
+	w.dl.AddList(src)
 }

@@ -11,12 +11,15 @@ func (c *Canvas) AddPolyLine(points []gb.Vec2, col gb.Color, thickness float32) 
 	c.polyLineBasic(points, col, thickness)
 }
 
-func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, thickness float32) {
+func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
 	// Anti-aliased stroke
 	//const AA_SIZE = 1.0
 	//colTrans := uint32(col) & ^gb.ColorMaskA
-
+	//var closed bool
+	//if (flags & Flag_Closed) != 0 {
+	//	closed = true
+	//}
 }
 
 func (c *Canvas) polyLineBasic(points []gb.Vec2, col gb.Color, thickness float32) {

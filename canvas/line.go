@@ -30,6 +30,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		closed = true
 	}
 
+	// Adjusts line thickness
 	if thickness < 1.0 {
 		thickness = 1.0
 	}
@@ -37,16 +38,17 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	fracThickness := float32(frac)
 
 	// Number of line segments to draw
-	count := len(points) - 1
+	pointCount := len(points) - 1
+	segCount := pointCount - 1
 	if closed {
-		count = len(points)
+		segCount = pointCount
 	}
 
 	// Calculate normals for each line segment: 2 points for each line point.
-	bufNormals := c.ReserveVec2(len(points) * 2)
-	for i1 := 0; i1 < count; i1++ {
+	bufNormals := c.ReserveVec2(pointCount * 2)
+	for i1 := 0; i1 < segCount; i1++ {
 		i2 := i1 + 1
-		if i2 >= len(points) {
+		if i2 > pointCount {
 			i2 = 0
 		}
 		dx := points[i2].X - points[i1].X
@@ -55,14 +57,44 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		bufNormals[i1].Y = -dx
 	}
 	if closed {
-		bufNormals[len(points)-1] = bufNormals[len(points)-2]
+		bufNormals[pointCount-1] = bufNormals[pointCount-2]
 	}
 
 	// Generates
-	bufPoints := c.ReserveVec2(len(points))
+	bufPoints := c.ReserveVec2(pointCount)
 	halfDrawSize := (thickness * 0.5) + 1
+	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
 	if !closed {
-		bufPoints[0] = points[0] + bufNormals[0]
+		bufPoints[0] = *points[0].Add(bufNormals[0].MultScalar(halfDrawSize))
+		bufPoints[1] = *points[0].Sub(bufNormals[0].MultScalar(halfDrawSize))
+		bufPoints[pointCount-1] = *points[0].Add(bufNormals[pointCount-1].MultScalar(halfDrawSize))
+		bufPoints[pointCount] = *points[0].Sub(bufNormals[pointCount-1].MultScalar(halfDrawSize))
+
+	}
+
+	// Generate the indices to form a number of triangles for each line segment, and the vertices for the line edges
+	// This takes points n and n+1 and writes into n+1, with the first point in a closed line being generated from the final one (as n+1 wraps)
+	for i1 := 0; i1 < pointCount; i1++ {
+
+		// Calculates the index of the next point in the segment
+		i2 := i1 + 1
+		if i2 > pointCount {
+			i2 = 0
+		}
+
+		// Average normals
+		dmX := (bufNormals[i1].X + bufNormals[i2].X) * 0.5
+		dmY := (bufNormals[i1].Y + bufNormals[i2].Y) * 0.5
+		dmX, dmY = fixNormal2f(dmX, dmY)
+
+		// Add temporary vertexes for the outer edges
+		outVtx := i2 * 2
+		bufPoints[outVtx].X = points[i2].X + dmX
+		bufPoints[outVtx].Y = points[i2].X + dmY
+		bufPoints[outVtx+1].X = points[i2].X - dmY
+		bufPoints[outVtx+1].Y = points[i2].Y - dmY
+
+		// Add indices for two triangles
 
 	}
 
@@ -145,6 +177,30 @@ func normalize2f(vx, vy float32) (float32, float32) {
 	if d2 > 0 {
 		invLen := 1.0 / math.Sqrt(float64(d2))
 		return vx * float32(invLen), vy * float32(invLen)
+	}
+	return vx, vy
+}
+
+// #define IM_FIXNORMAL2F(VX,VY)
+// float d2 = VX*VX + VY*VY;
+//
+//	if (d2 > 0.000001f) {
+//	   float inv_len2 = 1.0f / d2;
+//	      if (inv_len2 > IM_FIXNORMAL2F_MAX_INVLEN2) {
+//	         inv_len2 = IM_FIXNORMAL2F_MAX_INVLEN2;
+//	      }
+//	      VX *= inv_len2; VY *= inv_len2;
+//	}
+func fixNormal2f(vx, vy float32) (float32, float32) {
+
+	d2 := vx*vx + vy*vy
+	if d2 > 0.000001 {
+		invLen2 := 1.0 / d2
+		const maxINVLEN2 = float32(100.0) / float32(500.0)
+		if invLen2 > maxINVLEN2 {
+			invLen2 = maxINVLEN2
+		}
+		return vx * invLen2, vy * invLen2
 	}
 	return vx, vy
 }

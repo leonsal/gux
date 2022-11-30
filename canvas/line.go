@@ -6,9 +6,9 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-func (c *Canvas) AddPolyLine(points []gb.Vec2, col gb.Color, thickness float32) {
+func (c *Canvas) AddPolyLine(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
-	c.polyLineBasic(points, col, thickness)
+	c.polyLineBasic(points, col, flags, thickness)
 }
 
 func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
@@ -22,7 +22,53 @@ func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags
 	//}
 }
 
-func (c *Canvas) polyLineBasic(points []gb.Vec2, col gb.Color, thickness float32) {
+func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+
+	// Checks if 'flags' specifies closed line path (last point == first point)
+	var closed bool
+	if (flags & Flag_Closed) != 0 {
+		closed = true
+	}
+
+	if thickness < 1.0 {
+		thickness = 1.0
+	}
+	_, frac := math.Modf(float64(thickness))
+	fracThickness := float32(frac)
+
+	// Number of line segments to draw
+	count := len(points) - 1
+	if closed {
+		count = len(points)
+	}
+
+	// Calculate normals for each line segment: 2 points for each line point.
+	bufNormals := c.ReserveVec2(len(points) * 2)
+	for i1 := 0; i1 < count; i1++ {
+		i2 := i1 + 1
+		if i2 >= len(points) {
+			i2 = 0
+		}
+		dx := points[i2].X - points[i1].X
+		dy := points[i2].Y - points[i1].Y
+		bufNormals[i1].X = dy
+		bufNormals[i1].Y = -dx
+	}
+	if closed {
+		bufNormals[len(points)-1] = bufNormals[len(points)-2]
+	}
+
+	// Generates
+	bufPoints := c.ReserveVec2(len(points))
+	halfDrawSize := (thickness * 0.5) + 1
+	if !closed {
+		bufPoints[0] = points[0] + bufNormals[0]
+
+	}
+
+}
+
+func (c *Canvas) polyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
 	count := len(points) - 1 // Number of segments
 	indices := make([]uint32, len(points)*6)
@@ -103,13 +149,27 @@ func normalize2f(vx, vy float32) (float32, float32) {
 	return vx, vy
 }
 
+//// On AddPolyline() and AddConvexPolyFilled() we intentionally avoid using ImVec2 and superfluous function calls to optimize debug/non-inlined builds.
+//// - Those macros expects l-values and need to be used as their own statement.
+//// - Those macros are intentionally not surrounded by the 'do {} while (0)' idiom because even that translates to runtime with debug compilers.
+//#define IM_NORMALIZE2F_OVER_ZERO(VX,VY)     { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImRsqrt(d2); VX *= inv_len; VY *= inv_len; } } (void)0
+//#define IM_FIXNORMAL2F_MAX_INVLEN2          100.0f // 500.0f (see #4053, #3366)
+//#define IM_FIXNORMAL2F(VX,VY)               { float d2 = VX*VX + VY*VY; if (d2 > 0.000001f) { float inv_len2 = 1.0f / d2; if (inv_len2 > IM_FIXNORMAL2F_MAX_INVLEN2) inv_len2 = IM_FIXNORMAL2F_MAX_INVLEN2; VX *= inv_len2; VY *= inv_len2; } } (void)0
 //
+//// TODO: Thickness anti-aliased lines cap are missing their AA fringe.
+//// We avoid using the ImVec2 math operators here to reduce cost to a minimum for debug/non-inlined builds.
+//void ImDrawList::AddPolyline(const ImVec2* points, const int points_count, ImU32 col, ImDrawFlags flags, float thickness)
+//{
+//    if (points_count < 2)
+//        return;
 //
 //    const bool closed = (flags & ImDrawFlags_Closed) != 0;
 //    const ImVec2 opaque_uv = _Data->TexUvWhitePixel;
 //    const int count = closed ? points_count : points_count - 1; // The number of line segments we need to draw
 //    const bool thick_line = (thickness > _FringeScale);
 //
+//    if (Flags & ImDrawListFlags_AntiAliasedLines)
+//    {
 //        // Anti-aliased stroke
 //        const float AA_SIZE = _FringeScale;
 //        const ImU32 col_trans = col & ~IM_COL32_A_MASK;
@@ -320,4 +380,36 @@ func normalize2f(vx, vy float32) (float32, float32) {
 //            }
 //        }
 //        _VtxCurrentIdx += (ImDrawIdx)vtx_count;
+//    }
+//    else
+//    {
+//        // [PATH 4] Non texture-based, Non anti-aliased lines
+//        const int idx_count = count * 6;
+//        const int vtx_count = count * 4;    // FIXME-OPT: Not sharing edges
+//        PrimReserve(idx_count, vtx_count);
 //
+//        for (int i1 = 0; i1 < count; i1++)
+//        {
+//            const int i2 = (i1 + 1) == points_count ? 0 : i1 + 1;
+//            const ImVec2& p1 = points[i1];
+//            const ImVec2& p2 = points[i2];
+//
+//            float dx = p2.x - p1.x;
+//            float dy = p2.y - p1.y;
+//            IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+//            dx *= (thickness * 0.5f);
+//            dy *= (thickness * 0.5f);
+//
+//            _VtxWritePtr[0].pos.x = p1.x + dy; _VtxWritePtr[0].pos.y = p1.y - dx; _VtxWritePtr[0].uv = opaque_uv; _VtxWritePtr[0].col = col;
+//            _VtxWritePtr[1].pos.x = p2.x + dy; _VtxWritePtr[1].pos.y = p2.y - dx; _VtxWritePtr[1].uv = opaque_uv; _VtxWritePtr[1].col = col;
+//            _VtxWritePtr[2].pos.x = p2.x - dy; _VtxWritePtr[2].pos.y = p2.y + dx; _VtxWritePtr[2].uv = opaque_uv; _VtxWritePtr[2].col = col;
+//            _VtxWritePtr[3].pos.x = p1.x - dy; _VtxWritePtr[3].pos.y = p1.y + dx; _VtxWritePtr[3].uv = opaque_uv; _VtxWritePtr[3].col = col;
+//            _VtxWritePtr += 4;
+//
+//            _IdxWritePtr[0] = (ImDrawIdx)(_VtxCurrentIdx); _IdxWritePtr[1] = (ImDrawIdx)(_VtxCurrentIdx + 1); _IdxWritePtr[2] = (ImDrawIdx)(_VtxCurrentIdx + 2);
+//            _IdxWritePtr[3] = (ImDrawIdx)(_VtxCurrentIdx); _IdxWritePtr[4] = (ImDrawIdx)(_VtxCurrentIdx + 2); _IdxWritePtr[5] = (ImDrawIdx)(_VtxCurrentIdx + 3);
+//            _IdxWritePtr += 6;
+//            _VtxCurrentIdx += 4;
+//        }
+//    }
+//}

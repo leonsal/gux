@@ -28,9 +28,9 @@ func (w *Window) StartFrame(timeout float64) bool {
 	return w.gbw.StartFrame(timeout)
 }
 
-func (w *Window) RenderFrame(widget IWidget) {
+func (w *Window) RenderFrame(view IView) {
 
-	widget.Render(w)
+	view.Render(w)
 	w.gbw.RenderFrame(&w.dl)
 }
 

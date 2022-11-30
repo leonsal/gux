@@ -16,46 +16,43 @@ func Test1(t *testing.T) {
 
 	// DrawList 1
 	drawList1 := DrawList{}
-
-	cmd1 := DrawCmd{}
-	cmd1.AddIndices(0, 1, 2, 2, 3, 0)
-	cmd1.AddVertices(
-		Vertex{Pos: Vec2{10, 10}, Col: 0xFF_FF_00_00},
-		Vertex{Pos: Vec2{10, 100}, Col: 0xFF_FF_00_00},
-		Vertex{Pos: Vec2{200, 100}, Col: 0xFF_FF_00_00},
-		Vertex{Pos: Vec2{200, 10}, Col: 0xFF_FF_00_00},
+	drawList1.AddCmd(Vec4{}, 0,
+		[]uint32{0, 1, 2, 2, 3, 0},
+		[]Vertex{
+			Vertex{Pos: Vec2{10, 10}, Col: 0xFF_FF_00_00},
+			Vertex{Pos: Vec2{10, 100}, Col: 0xFF_FF_00_00},
+			Vertex{Pos: Vec2{200, 100}, Col: 0xFF_FF_00_00},
+			Vertex{Pos: Vec2{200, 10}, Col: 0xFF_FF_00_00},
+		},
 	)
-	drawList1.AddCmd(cmd1)
-
-	cmd2 := DrawCmd{}
-	cmd2.AddIndices(0, 1, 2, 2, 3, 0)
-	cmd2.AddVertices(
-		Vertex{Pos: Vec2{500, 0}, Col: 0xFF_00_00_FF},
-		Vertex{Pos: Vec2{500, 250}, Col: 0xFF_00_00_FF},
-		Vertex{Pos: Vec2{750, 250}, Col: 0xFF_00_00_FF},
-		Vertex{Pos: Vec2{750, 0}, Col: 0xFF_00_00_FF},
+	drawList1.AddCmd(Vec4{}, 0,
+		[]uint32{0, 1, 2, 2, 3, 0},
+		[]Vertex{
+			Vertex{Pos: Vec2{500, 0}, Col: 0xFF_00_00_FF},
+			Vertex{Pos: Vec2{500, 250}, Col: 0xFF_00_00_FF},
+			Vertex{Pos: Vec2{750, 250}, Col: 0xFF_00_00_FF},
+			Vertex{Pos: Vec2{750, 0}, Col: 0xFF_00_00_FF},
+		},
 	)
-	drawList1.AddCmd(cmd2)
 
 	// DrawList 2
 	drawList2 := DrawList{}
-	cmd3 := DrawCmd{}
-	cmd3.AddIndices(0, 1, 2)
-	cmd3.AddVertices(
-		Vertex{Pos: Vec2{200, 800}, Col: 0xFF_00_00_FF},
-		Vertex{Pos: Vec2{400, 800}, Col: 0xFF_00_FF_00},
-		Vertex{Pos: Vec2{300, 600}, Col: 0xFF_FF_00_00},
+	drawList2.AddCmd(Vec4{}, 0,
+		[]uint32{0, 1, 2},
+		[]Vertex{
+			Vertex{Pos: Vec2{200, 800}, Col: 0xFF_00_00_FF},
+			Vertex{Pos: Vec2{400, 800}, Col: 0xFF_00_FF_00},
+			Vertex{Pos: Vec2{300, 600}, Col: 0xFF_FF_00_00},
+		},
 	)
-	drawList2.AddCmd(cmd3)
-
-	cmd4 := DrawCmd{}
-	cmd4.AddIndices(0, 1, 2)
-	cmd4.AddVertices(
-		Vertex{Pos: Vec2{700, 800}, Col: 0xFF_00_00_FF},
-		Vertex{Pos: Vec2{900, 800}, Col: 0xFF_00_FF_00},
-		Vertex{Pos: Vec2{800, 500}, Col: 0xFF_FF_00_00},
+	drawList2.AddCmd(Vec4{}, 0,
+		[]uint32{0, 1, 2},
+		[]Vertex{
+			Vertex{Pos: Vec2{700, 800}, Col: 0xFF_00_00_FF},
+			Vertex{Pos: Vec2{900, 800}, Col: 0xFF_00_FF_00},
+			Vertex{Pos: Vec2{800, 500}, Col: 0xFF_FF_00_00},
+		},
 	)
-	drawList2.AddCmd(cmd4)
 
 	// Create new DrawList from concatenation of DrawList1 and 2
 	drawList := DrawList{}

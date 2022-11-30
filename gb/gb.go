@@ -40,89 +40,93 @@ type Vertex struct {
 
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
-	ClipRect Vec4     // Clip rectangle
-	TexId    int      // Texture ID
-	Indices  []uint32 // Array of vertices indices
-	Vertices []Vertex // Array of vertices info
-}
-
-// AddIndices adds the specified indices elements to the draw command
-func (cmd *DrawCmd) AddIndices(indices ...uint32) {
-
-	for _, idx := range indices {
-		cmd.Indices = append(cmd.Indices, idx)
-	}
-}
-
-// AddVertices adds the specified vertices to the draw command
-func (cmd *DrawCmd) AddVertices(vertices ...Vertex) {
-
-	for _, vtx := range vertices {
-		cmd.Vertices = append(cmd.Vertices, vtx)
-	}
+	ClipRect  Vec4   // Clip rectangle
+	TexId     uint32 // Texture ID
+	idxOffset uint32 // Start offset in index buffer
+	vtxOffset uint32 // Start offset in vertex buffer
+	elemCount uint32 // Number of indices
 }
 
 // DrawList contains lists of commands and buffers for the graphics backend
 type DrawList struct {
-	bufCmd []C.gb_draw_cmd_t // Buffer of draw commands
-	bufIdx []C.uint          // Buffer of vertices indices
-	bufVtx []C.gb_vertex_t   // Buffer of vertices info
+	bufCmd []DrawCmd // Buffer with draw commands
+	bufIdx []uint32  // Buffer with vertices indices
+	bufVtx []Vertex  // Buffer with vertices info
+}
+
+// ReserveCmd creates and appends a DrawCmd into the DrawList
+// reserving space for the specified number of indices and vertices.
+// Returns pointer to the command and slices for direct access to the indices and vertices.
+// After the indices were set (starting from 0) 'AdjustIdx()' must be called to adjust
+// the indices considering the command idx offset.
+func (dl *DrawList) ReserveCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Vertex) {
+
+	// Reserve space for indices
+	idxOffset := len(dl.bufIdx)
+	for i := 0; i < idxCount; i++ {
+		dl.bufIdx = append(dl.bufIdx, 0)
+	}
+
+	// Reserve space for vertices
+	vtxOffset := len(dl.bufVtx)
+	for i := 0; i < vtxCount; i++ {
+		dl.bufVtx = append(dl.bufVtx, Vertex{})
+	}
+
+	// Reserve command
+	cmd := DrawCmd{
+		ClipRect:  Vec4{},
+		TexId:     0,
+		idxOffset: uint32(idxOffset),
+		vtxOffset: uint32(vtxOffset),
+		elemCount: uint32(idxCount),
+	}
+	dl.bufCmd = append(dl.bufCmd, cmd)
+	return &dl.bufCmd[len(dl.bufCmd)-1], dl.bufIdx[idxOffset : idxOffset+idxCount], dl.bufVtx[vtxOffset : vtxOffset+vtxCount]
+}
+
+// AdjustIdx must be called with the DrawCmd pointer returned by ReserveCmd() to adjust the indices buffers
+func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
+
+	for i := 0; i < int(cmd.elemCount); i++ {
+		dl.bufIdx[i+int(cmd.idxOffset)] += cmd.vtxOffset
+	}
 }
 
 // AddCmd appends a new command to the Draw List
-func (dl *DrawList) AddCmd(cmd DrawCmd) {
+func (dl *DrawList) AddCmd(clipRect Vec4, texId uint32, indices []uint32, vertices []Vertex) {
 
-	// Convert command to C struct and appends to commands buffer
-	cc := C.gb_draw_cmd_t{
-		clip_rect:  C.gb_vec4_t{C.float(cmd.ClipRect.X), C.float(cmd.ClipRect.Y), C.float(cmd.ClipRect.Z), C.float(cmd.ClipRect.W)},
-		texid:      C.int(cmd.TexId),
-		idx_offset: C.uint(len(dl.bufIdx)),
-		vtx_offset: C.uint(len(dl.bufVtx)),
-		elem_count: C.uint(len(cmd.Indices)),
-	}
-	dl.bufCmd = append(dl.bufCmd, cc)
-
-	// Appends command indices to indices buffer
-	vtxOffset := uint32(len(dl.bufVtx))
-	for i := range cmd.Indices {
-		idx := cmd.Indices[i]
-		dl.bufIdx = append(dl.bufIdx, C.uint(vtxOffset+idx))
-	}
-
-	// Convert vertex info to C struct and appends to vertices buffer
-	for i := range cmd.Vertices {
-		v := &cmd.Vertices[i]
-		dl.bufVtx = append(dl.bufVtx, C.gb_vertex_t{
-			C.gb_vec2_t{C.float(v.Pos.X), C.float(v.Pos.Y)},
-			C.gb_vec2_t{C.float(v.UV.X), C.float(v.UV.Y)},
-			C.int(v.Col),
-		})
-	}
+	cmd, idx, vtx := dl.ReserveCmd(len(indices), len(vertices))
+	copy(idx, indices)
+	copy(vtx, vertices)
+	cmd.ClipRect = clipRect
+	cmd.TexId = texId
+	dl.AdjustIdx(cmd)
 }
 
 // AddList appends the specified DrawList to this one
 func (dl *DrawList) AddList(src DrawList) {
 
 	// Append vertices
-	vtxOffset := C.uint(len(dl.bufVtx))
+	vtxOffset := len(dl.bufVtx)
 	dl.bufVtx = append(dl.bufVtx, src.bufVtx...)
 
 	// Append indices adjusting offset
 	idxOffset := len(dl.bufIdx)
 	for _, idx := range src.bufIdx {
-		dl.bufIdx = append(dl.bufIdx, idx+vtxOffset)
+		dl.bufIdx = append(dl.bufIdx, idx+uint32(vtxOffset))
 	}
 
 	// Append commands adjusting offsets
 	for i := 0; i < len(src.bufCmd); i++ {
 		cmd := &src.bufCmd[i]
-		cmd.idx_offset += C.uint(idxOffset)
-		cmd.vtx_offset += C.uint(vtxOffset)
+		cmd.idxOffset += uint32(idxOffset)
+		cmd.vtxOffset += uint32(vtxOffset)
 		dl.bufCmd = append(dl.bufCmd, *cmd)
 	}
 }
 
-// Clear clears the DrawList commands, indices and vertices buffer withou deallocating memory
+// Clear clears the DrawList commands, indices and vertices buffer without deallocating memory
 func (dl *DrawList) Clear() {
 
 	dl.bufCmd = dl.bufCmd[:0]
@@ -161,11 +165,11 @@ func (w *Window) RenderFrame(dl *DrawList) {
 	// Builds C draw list struct and calls backend render
 	var cdl C.gb_draw_list_t
 	if len(dl.bufCmd) > 0 {
-		cdl.buf_cmd = &dl.bufCmd[0]
+		cdl.buf_cmd = (*C.gb_draw_cmd_t)(unsafe.Pointer(&dl.bufCmd[0]))
 		cdl.cmd_count = C.uint(len(dl.bufCmd))
-		cdl.buf_idx = &dl.bufIdx[0]
+		cdl.buf_idx = (*C.uint)(unsafe.Pointer(&dl.bufIdx[0]))
 		cdl.idx_count = C.uint(len(dl.bufIdx))
-		cdl.buf_vtx = &dl.bufVtx[0]
+		cdl.buf_vtx = (*C.gb_vertex_t)(unsafe.Pointer(&dl.bufVtx[0]))
 		cdl.vtx_count = C.uint(len(dl.bufVtx))
 	}
 	C.gb_window_render_frame(w.c, cdl)

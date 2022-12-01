@@ -16,8 +16,8 @@ func TestLine(t *testing.T) {
 	}
 
 	c := New()
-	points := []gb.Vec2{{0, 500}, {500, 500}, {900, 900}}
-	c.AddPolyLine(points, 0xFF_00_00_00, 50)
+	points := []gb.Vec2{{100, 500}, {500, 500}, {900, 900}}
+	c.AddPolyLineBasic(points, 0xFF_00_00_00, 0, 50)
 	for win.StartFrame(0) {
 		win.RenderFrame(&c.DrawList)
 	}

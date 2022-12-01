@@ -8,7 +8,7 @@ import (
 
 func (c *Canvas) AddPolyLine(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
-	c.polyLineBasic(points, col, flags, thickness)
+	//c.polyLineBasic(points, col, flags, thickness)
 }
 
 func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
@@ -24,56 +24,100 @@ func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags
 
 func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
-	// Checks if 'flags' specifies closed line path (last point == first point)
-	var closed bool
-	if (flags & Flag_Closed) != 0 {
-		closed = true
-	}
+	//	// Checks if 'flags' specifies closed line path (last point == first point)
+	//	var closed bool
+	//	if (flags & Flag_Closed) != 0 {
+	//		closed = true
+	//	}
+	//
+	//	// Adjusts line thickness
+	//	if thickness < 1.0 {
+	//		thickness = 1.0
+	//	}
+	//	_, frac := math.Modf(float64(thickness))
+	//	fracThickness := float32(frac)
+	//
+	//	// Number of line segments to draw
+	//	pointCount := len(points) - 1
+	//	segCount := pointCount - 1
+	//	if closed {
+	//		segCount = pointCount
+	//	}
+	//
+	//	// Calculates the number of indices and vertices needed and reserve command
+	//	idxCount := segCount * 6
+	//	vtxCount := pointCount * 2
+	//	_, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
+	//
+	//	// Calculate normals for each line segment: 2 points for each line point.
+	//	bufNormals := c.ReserveVec2(pointCount * 2)
+	//	for i1 := 0; i1 < segCount; i1++ {
+	//
+	//		// Calculates the index of the next point in the segment
+	//		i2 := i1 + 1
+	//		if i2 > pointCount {
+	//			i2 = 0
+	//		}
+	//
+	//		dx := points[i2].X - points[i1].X
+	//		dy := points[i2].Y - points[i1].Y
+	//		bufNormals[i1].X = dy
+	//		bufNormals[i1].Y = -dx
+	//	}
+	//	if closed {
+	//		bufNormals[pointCount-1] = bufNormals[pointCount-2]
+	//	}
+	//
+	//	// Generates
+	//	bufPoints := c.ReserveVec2(pointCount)
+	//	halfDrawSize := (thickness * 0.5) + 1
+	//	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
+	//	if !closed {
+	//		bufPoints[0] = *points[0].Add(bufNormals[0].MultScalar(halfDrawSize))
+	//		bufPoints[1] = *points[0].Sub(bufNormals[0].MultScalar(halfDrawSize))
+	//		bufPoints[pointCount-1] = *points[0].Add(bufNormals[pointCount-1].MultScalar(halfDrawSize))
+	//		bufPoints[pointCount] = *points[0].Sub(bufNormals[pointCount-1].MultScalar(halfDrawSize))
+	//
+	//	}
+	//
+	//	// Generate the indices to form a number of triangles for each line segment, and the vertices for the line edges
+	//	// This takes points n and n+1 and writes into n+1, with the first point in a closed line being generated from the final one (as n+1 wraps)
+	//	for i1 := 0; i1 < pointCount; i1++ {
+	//
+	//		// Calculates the index of the next point in the segment
+	//		i2 := i1 + 1
+	//		if i2 > pointCount {
+	//			i2 = 0
+	//		}
+	//
+	//		// Average normals
+	//		dmX := (bufNormals[i1].X + bufNormals[i2].X) * 0.5
+	//		dmY := (bufNormals[i1].Y + bufNormals[i2].Y) * 0.5
+	//		dmX, dmY = fixNormal2f(dmX, dmY)
+	//
+	//		// Add temporary vertexes for the outer edges
+	//		outVtx := i2 * 2
+	//		bufPoints[outVtx].X = points[i2].X + dmX
+	//		bufPoints[outVtx].Y = points[i2].X + dmY
+	//		bufPoints[outVtx+1].X = points[i2].X - dmY
+	//		bufPoints[outVtx+1].Y = points[i2].Y - dmY
+	//
+	//		// Add indices for two triangles
+	//		bufIdx[0] = 0
+	//
+	//	}
 
-	// Adjusts line thickness
-	if thickness < 1.0 {
-		thickness = 1.0
-	}
-	_, frac := math.Modf(float64(thickness))
-	fracThickness := float32(frac)
+}
 
-	// Number of line segments to draw
+func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+
 	pointCount := len(points) - 1
-	segCount := pointCount - 1
-	if closed {
-		segCount = pointCount
-	}
+	cmd, indices, vertices := c.DrawList.ReserveCmd(pointCount*6, pointCount*4)
+	uv := gb.Vec2{0, 0}
 
-	// Calculate normals for each line segment: 2 points for each line point.
-	bufNormals := c.ReserveVec2(pointCount * 2)
-	for i1 := 0; i1 < segCount; i1++ {
-		i2 := i1 + 1
-		if i2 > pointCount {
-			i2 = 0
-		}
-		dx := points[i2].X - points[i1].X
-		dy := points[i2].Y - points[i1].Y
-		bufNormals[i1].X = dy
-		bufNormals[i1].Y = -dx
-	}
-	if closed {
-		bufNormals[pointCount-1] = bufNormals[pointCount-2]
-	}
-
-	// Generates
-	bufPoints := c.ReserveVec2(pointCount)
-	halfDrawSize := (thickness * 0.5) + 1
-	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
-	if !closed {
-		bufPoints[0] = *points[0].Add(bufNormals[0].MultScalar(halfDrawSize))
-		bufPoints[1] = *points[0].Sub(bufNormals[0].MultScalar(halfDrawSize))
-		bufPoints[pointCount-1] = *points[0].Add(bufNormals[pointCount-1].MultScalar(halfDrawSize))
-		bufPoints[pointCount] = *points[0].Sub(bufNormals[pointCount-1].MultScalar(halfDrawSize))
-
-	}
-
-	// Generate the indices to form a number of triangles for each line segment, and the vertices for the line edges
-	// This takes points n and n+1 and writes into n+1, with the first point in a closed line being generated from the final one (as n+1 wraps)
+	vtxCurrent := uint32(0)
+	vtx := 0
+	idx := 0
 	for i1 := 0; i1 < pointCount; i1++ {
 
 		// Calculates the index of the next point in the segment
@@ -82,41 +126,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 			i2 = 0
 		}
 
-		// Average normals
-		dmX := (bufNormals[i1].X + bufNormals[i2].X) * 0.5
-		dmY := (bufNormals[i1].Y + bufNormals[i2].Y) * 0.5
-		dmX, dmY = fixNormal2f(dmX, dmY)
-
-		// Add temporary vertexes for the outer edges
-		outVtx := i2 * 2
-		bufPoints[outVtx].X = points[i2].X + dmX
-		bufPoints[outVtx].Y = points[i2].X + dmY
-		bufPoints[outVtx+1].X = points[i2].X - dmY
-		bufPoints[outVtx+1].Y = points[i2].Y - dmY
-
-		// Add indices for two triangles
-
-	}
-
-}
-
-func (c *Canvas) polyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
-
-	count := len(points) - 1 // Number of segments
-	indices := make([]uint32, len(points)*6)
-	vertices := make([]gb.Vertex, len(points)*4)
-	uv := gb.Vec2{0, 0}
-
-	vtxCurrent := uint32(0)
-	vtx := uint32(0)
-	idx := 0
-	for i1 := 0; i1 < count; i1++ {
-
-		i2 := i1 + 1
-		if i2 >= len(points) {
-			i2 = 0
-		}
-
+		// Calculate normals
 		p1 := points[i1]
 		p2 := points[i2]
 		dx := p2.X - p1.X
@@ -164,10 +174,7 @@ func (c *Canvas) polyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thic
 
 		vtxCurrent += 4
 	}
-	cmd := gb.DrawCmd{}
-	cmd.AddVertices(vertices...)
-	cmd.AddIndices(indices...)
-	c.DrawList.AddCmd(cmd)
+	c.DrawList.AdjustIdx(cmd)
 }
 
 // #define IM_NORMALIZE2F_OVER_ZERO(VX,VY)     { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImRsqrt(d2); VX *= inv_len; VY *= inv_len; } } (void)0

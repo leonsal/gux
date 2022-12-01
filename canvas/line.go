@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/leonsal/gux/gb"
@@ -38,11 +39,12 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	//fracThickness := float32(frac)
 
 	// Number of line segments to draw
-	pointCount := len(points) - 1
+	pointCount := len(points)
 	segCount := pointCount - 1
 	if closed {
 		segCount = pointCount
 	}
+	fmt.Println("pointCount:", pointCount, "segCount:", segCount, "closed:", closed)
 
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
@@ -50,35 +52,37 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	_, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
-	tempNormals := c.ReserveVec2(pointCount * 2)
+	tempNormals := c.ReserveVec2(pointCount)
 	for i1 := 0; i1 < segCount; i1++ {
 
 		// Calculates the index of the next point in the segment
 		i2 := i1 + 1
-		if i2 > pointCount {
+		if i2 == pointCount {
 			i2 = 0
 		}
 
+		// Calculates the normal vector for segment point i1
 		dx := points[i2].X - points[i1].X
 		dy := points[i2].Y - points[i1].Y
+		dx, dy = normalize2f(dx, dy)
 		tempNormals[i1].X = dy
 		tempNormals[i1].Y = -dx
 	}
-	if closed {
+	if !closed {
 		tempNormals[pointCount-1] = tempNormals[pointCount-2]
 	}
+	fmt.Println("tempNormals:", tempNormals)
 
 	// Generates
 	tempPoints := c.ReserveVec2(pointCount)
-	halfDrawSize := (thickness * 0.5) + 1
-	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
-	if !closed {
-		tempPoints[0] = *points[0].Add(tempNormals[0].MultScalar(halfDrawSize))
-		tempPoints[1] = *points[0].Sub(tempNormals[0].MultScalar(halfDrawSize))
-		tempPoints[pointCount-1] = *points[0].Add(tempNormals[pointCount-1].MultScalar(halfDrawSize))
-		tempPoints[pointCount] = *points[0].Sub(tempNormals[pointCount-1].MultScalar(halfDrawSize))
-
-	}
+	//halfDrawSize := (thickness * 0.5) + 1
+	//// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
+	//if !closed {
+	//	tempPoints[0] = *points[0].Add(tempNormals[0].MultScalar(halfDrawSize))
+	//	tempPoints[1] = *points[0].Sub(tempNormals[0].MultScalar(halfDrawSize))
+	//	tempPoints[pointCount-1] = *points[0].Add(tempNormals[pointCount-1].MultScalar(halfDrawSize))
+	//	tempPoints[pointCount-1] = *points[0].Sub(tempNormals[pointCount-1].MultScalar(halfDrawSize))
+	//}
 
 	// Generate the indices to form 2 triangles for each line segment, and the vertices for the line edges
 	// This takes points n and n+1 and writes into n+1, with the first point in a closed line being generated from the final one (as n+1 wraps)
@@ -124,6 +128,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 
 	// Add vertexes for each point on the line
 	vtxPos := 0
+
 	for i := 0; i < pointCount; i++ {
 		bufVtx[vtxPos+0].Pos = tempPoints[i*2+0]
 		bufVtx[vtxPos+0].Col = col

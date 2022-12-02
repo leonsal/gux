@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/leonsal/gux/gb"
@@ -41,7 +42,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		segCount = pointCount
 	}
 
-	// Calculates the number of indices and vertices needed and reserve command
+	// Calculates the number of indices and vertices needed and reserve draw command
 	var idxCount int
 	var vtxCount int
 	if thickLine {
@@ -106,11 +107,9 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 			}
 
 			// Calculates vertex index for end of segment
-			idx2 := idx1 + 1
+			idx2 := idx1 + 3
 			if i1+1 == pointCount {
 				idx2 = 0
-			} else {
-				idx2 = idx1 + 2
 			}
 
 			// Average normals
@@ -160,7 +159,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 	}
 
 	/*
-		Non texture-based lines (thick):
+		Non texture-based thick lines:
 		- 4 vertices per point
 		- 8 triangles per segment
 		- 18 indices per segment
@@ -179,6 +178,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 
 	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
 	halfInnerThickness := (thickness - AA_SIZE) * 0.5
+	fmt.Println("halfInnerThickness:", halfInnerThickness)
 	pointLast := pointCount - 1
 	if !closed {
 		tempPoints[0] = gb.Vec2Add(points[0], gb.Vec2MultScalar(tempNormals[0], halfInnerThickness+AA_SIZE))
@@ -270,9 +270,20 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 	c.DrawList.AdjustIdx(cmd)
 }
 
-/* TO AVOID CHANGE
-
 func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+
+	/*
+		- 2 vertices per point
+		- 4 triangles per segment
+		- 6 indices per segment
+		+-------------------------------------+
+		|                                     |
+		|                                     |
+		X-------------------------------------X Line segment
+		|                                     |
+		|                                     |
+		+-------------------------------------+
+	*/
 
 	// Checks if 'flags' specifies closed line path (last point == first point)
 	var closed bool
@@ -344,11 +355,9 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 		}
 
 		// Calculates vertex index for end of segment
-		idx2 := idx1 + 1
+		idx2 := idx1 + 2
 		if i1+1 == pointCount {
 			idx2 = 0
-		} else {
-			idx2 = idx1 + 2
 		}
 
 		// Average normals
@@ -456,15 +465,7 @@ func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, t
 	}
 	c.DrawList.AdjustIdx(cmd)
 }
-*/
 
-//	#define IM_NORMALIZE2F_OVER_ZERO(VX,VY) {
-//		   float d2 = VX*VX + VY*VY;
-//		   if (d2 > 0.0f) {
-//		      float inv_len = ImRsqrt(d2);
-//		      VX *= inv_len; VY *= inv_len;
-//		   }
-//	} (void)0
 func normalize2f(vx, vy float32) (float32, float32) {
 
 	d2 := vx*vx + vy*vy
@@ -475,16 +476,6 @@ func normalize2f(vx, vy float32) (float32, float32) {
 	return vx, vy
 }
 
-// #define IM_FIXNORMAL2F(VX,VY)
-// float d2 = VX*VX + VY*VY;
-//
-//	if (d2 > 0.000001f) {
-//	   float inv_len2 = 1.0f / d2;
-//	      if (inv_len2 > IM_FIXNORMAL2F_MAX_INVLEN2) {
-//	         inv_len2 = IM_FIXNORMAL2F_MAX_INVLEN2;
-//	      }
-//	      VX *= inv_len2; VY *= inv_len2;
-//	}
 func fixNormal2f(vx, vy float32) (float32, float32) {
 
 	d2 := vx*vx + vy*vy

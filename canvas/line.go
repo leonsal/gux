@@ -1,7 +1,6 @@
 package canvas
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/leonsal/gux/gb"
@@ -23,7 +22,7 @@ func (c *Canvas) polyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags
 	//}
 }
 
-func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
 	// Checks if 'flags' specifies closed line path (last point == first point)
 	var closed bool
@@ -44,7 +43,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	if closed {
 		segCount = pointCount
 	}
-	fmt.Println("pointCount:", pointCount, "segCount:", segCount, "closed:", closed)
 
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
@@ -71,7 +69,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	if !closed {
 		tempNormals[pointCount-1] = tempNormals[pointCount-2]
 	}
-	fmt.Println("tempNormals:", tempNormals)
 
 	// Generates
 	tempPoints := c.ReserveVec2(pointCount * 2)
@@ -83,9 +80,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		tempPoints[(pointCount-1)*2] = gb.Vec2Add(points[pointCount-1], gb.Vec2MultScalar(tempNormals[pointCount-1], halfDrawSize))
 		tempPoints[(pointCount-1)*2+1] = gb.Vec2Sub(points[pointCount-1], gb.Vec2MultScalar(tempNormals[pointCount-1], halfDrawSize))
 	}
-	fmt.Println("tempNormals:", tempNormals)
-	fmt.Println("Points     :", points)
-	fmt.Println("tempPoints :", tempPoints)
 
 	// Generate the indices to form 2 triangles for each line segment, and the vertices for the line edges
 	// This takes points n and n+1 and writes into n+1, with the first point in a closed line being generated from the final one (as n+1 wraps)
@@ -106,14 +100,11 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		} else {
 			idx2 = idx1 + 2
 		}
-		fmt.Println("i1:", i1, "i2:", i2, "idx1:", idx1, "idx2:", idx2, "idxPos:", idxPos)
 
 		// Average normals
 		dmX := (tempNormals[i1].X + tempNormals[i2].X) * 0.5
 		dmY := (tempNormals[i1].Y + tempNormals[i2].Y) * 0.5
-		fmt.Println("dmx", dmX, "dmy", dmY, "halfDrawSize:", halfDrawSize)
 		dmX, dmY = fixNormal2f(dmX, dmY)
-		fmt.Println("dmx", dmX, "dmy", dmY, "halfDrawSize:", halfDrawSize)
 		dmX *= halfDrawSize
 		dmY *= halfDrawSize
 
@@ -123,7 +114,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		tempPoints[outVtx].Y = points[i2].Y + dmY
 		tempPoints[outVtx+1].X = points[i2].X - dmX
 		tempPoints[outVtx+1].Y = points[i2].Y - dmY
-		//fmt.Println("dmx", dmX, "dmy", dmY)
 
 		// Add indices for two triangles
 		bufIdx[idxPos] = idx2 // Right triangle
@@ -135,7 +125,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		idxPos += 6
 		idx1 = idx2
 	}
-	fmt.Println("bufIdx:", bufIdx)
 
 	// Add vertexes for each point on the line
 	vtxPos := 0
@@ -147,12 +136,6 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		bufVtx[vtxPos+1].Col = col
 		vtxPos += 2
 	}
-	fmt.Println("tempPoints:", tempPoints)
-	fmt.Printf("bufVtx:")
-	for _, v := range bufVtx {
-		fmt.Printf("%+v ", v.Pos)
-	}
-	fmt.Println()
 	c.DrawList.AdjustIdx(cmd)
 }
 

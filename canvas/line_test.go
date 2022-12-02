@@ -16,20 +16,11 @@ func TestLine(t *testing.T) {
 	}
 
 	c := New()
-	//points := []gb.Vec2{{100, 500}, {500, 500}, {500, 900}}
-	points := []gb.Vec2{{100, 500}, {500, 500}}
-	c.polyLineTextured(points, 0xFF_00_00_00, 0, 50)
+	points := []gb.Vec2{{100, 500}, {500, 500}, {500, 900}}
+	//points := []gb.Vec2{{100, 500}, {500, 500}}
+	c.polyLineTextured(points, 0xFF_00_00_00, 0, 10)
 	for win.StartFrame(0) {
 		win.RenderFrame(&c.DrawList)
 	}
 	win.Destroy()
-
-	//c := New()
-	//points := []gb.Vec2{{100, 500}, {500, 500}, {900, 900}}
-	//c.AddPolyLineBasic(points, 0xFF_00_00_00, 0, 50)
-	//for win.StartFrame(0) {
-	//	win.RenderFrame(&c.DrawList)
-	//}
-	//win.Destroy()
-
 }

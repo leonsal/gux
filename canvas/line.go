@@ -49,7 +49,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
 	vtxCount := pointCount * 2
-	_, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := c.ReserveVec2(pointCount)
@@ -111,7 +111,9 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		// Average normals
 		dmX := (tempNormals[i1].X + tempNormals[i2].X) * 0.5
 		dmY := (tempNormals[i1].Y + tempNormals[i2].Y) * 0.5
+		fmt.Println("dmx", dmX, "dmy", dmY, "halfDrawSize:", halfDrawSize)
 		dmX, dmY = fixNormal2f(dmX, dmY)
+		fmt.Println("dmx", dmX, "dmy", dmY, "halfDrawSize:", halfDrawSize)
 		dmX *= halfDrawSize
 		dmY *= halfDrawSize
 
@@ -121,6 +123,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		tempPoints[outVtx].Y = points[i2].Y + dmY
 		tempPoints[outVtx+1].X = points[i2].X - dmX
 		tempPoints[outVtx+1].Y = points[i2].Y - dmY
+		//fmt.Println("dmx", dmX, "dmy", dmY)
 
 		// Add indices for two triangles
 		bufIdx[idxPos] = idx2 // Right triangle
@@ -150,6 +153,7 @@ func (c *Canvas) polyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, t
 		fmt.Printf("%+v ", v.Pos)
 	}
 	fmt.Println()
+	c.DrawList.AdjustIdx(cmd)
 }
 
 func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
@@ -220,7 +224,13 @@ func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, t
 	c.DrawList.AdjustIdx(cmd)
 }
 
-// #define IM_NORMALIZE2F_OVER_ZERO(VX,VY)     { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImRsqrt(d2); VX *= inv_len; VY *= inv_len; } } (void)0
+//	#define IM_NORMALIZE2F_OVER_ZERO(VX,VY) {
+//		   float d2 = VX*VX + VY*VY;
+//		   if (d2 > 0.0f) {
+//		      float inv_len = ImRsqrt(d2);
+//		      VX *= inv_len; VY *= inv_len;
+//		   }
+//	} (void)0
 func normalize2f(vx, vy float32) (float32, float32) {
 
 	d2 := vx*vx + vy*vy
@@ -246,7 +256,7 @@ func fixNormal2f(vx, vy float32) (float32, float32) {
 	d2 := vx*vx + vy*vy
 	if d2 > 0.000001 {
 		invLen2 := 1.0 / d2
-		const maxINVLEN2 = float32(100.0) / float32(500.0)
+		const maxINVLEN2 = 100.0
 		if invLen2 > maxINVLEN2 {
 			invLen2 = maxINVLEN2
 		}

@@ -2,9 +2,30 @@ package gb
 
 import "math"
 
+// Vec2Add sums vectors v1 with v2 returning the resulting vector.
+// Vectors v1 and v2 are not changed.
+func Vec2Add(v1, v2 Vec2) Vec2 {
+
+	return Vec2{v1.X + v2.X, v1.Y + v2.Y}
+}
+
+// Vec2Sub subtracts vector v2 from vector v1 returning the resulting vector.
+// Vectors v1 and v2 are not changed.
+func Vec2Sub(v1, v2 Vec2) Vec2 {
+
+	return Vec2{v1.X - v2.X, v1.Y - v2.Y}
+}
+
+// Vec2MultScalar multiplies each component of vector v with the scalar s returning the resulting vector.
+// Vector v is not changed.
+func Vec2MultScalar(v Vec2, s float32) Vec2 {
+
+	return Vec2{v.X * s, v.Y * s}
+}
+
 // Add adds other vector to this one.
 // Returns the pointer to this updated vector.
-func (v *Vec2) Add(other *Vec2) *Vec2 {
+func (v *Vec2) Add(other Vec2) *Vec2 {
 
 	v.X += other.X
 	v.Y += other.Y
@@ -22,7 +43,7 @@ func (v *Vec2) AddScalar(s float32) *Vec2 {
 
 // Sub subtracts other vector from this one.
 // Returns the pointer to this updated vector.
-func (v *Vec2) Sub(other *Vec2) *Vec2 {
+func (v *Vec2) Sub(other Vec2) *Vec2 {
 
 	v.X -= other.X
 	v.Y -= other.Y
@@ -74,7 +95,7 @@ func (v *Vec2) Negate() *Vec2 {
 
 // Dot returns the dot product of this vector with other.
 // None of the vectors are changed.
-func (v *Vec2) Dot(other *Vec2) float32 {
+func (v *Vec2) Dot(other Vec2) float32 {
 
 	return v.X*other.X + v.Y*other.Y
 }
@@ -101,7 +122,7 @@ func (v *Vec2) Normalize() *Vec2 {
 
 // Min sets this vector components to the minimum values of itself and other vector.
 // Returns the pointer to this updated vector.
-func (v *Vec2) Min(other *Vec2) *Vec2 {
+func (v *Vec2) Min(other Vec2) *Vec2 {
 
 	if v.X > other.X {
 		v.X = other.X
@@ -114,7 +135,7 @@ func (v *Vec2) Min(other *Vec2) *Vec2 {
 
 // Max sets this vector components to the maximum value of itself and other vector.
 // Returns the pointer to this updated vector.
-func (v *Vec2) Max(other *Vec2) *Vec2 {
+func (v *Vec2) Max(other Vec2) *Vec2 {
 
 	if v.X < other.X {
 		v.X = other.X
@@ -129,7 +150,7 @@ func (v *Vec2) Max(other *Vec2) *Vec2 {
 // and not greater than the corresponding components of max.
 // Assumes min < max, if this assumption isn't true it will not operate correctly.
 // Returns the pointer to this updated vector.
-func (v *Vec2) Clamp(min, max *Vec2) *Vec2 {
+func (v *Vec2) Clamp(min, max Vec2) *Vec2 {
 
 	if v.X < min.X {
 		v.X = min.X

@@ -1,7 +1,6 @@
 package canvas
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/leonsal/gux/gb"
@@ -22,6 +21,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		closed = true
 	}
 
+	// Checks if the line is thick or not
 	const FringeScale = 1.0
 	thickLine := false
 	if thickness > FringeScale {
@@ -35,7 +35,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 	//_, frac := math.Modf(float64(thickness))
 	//fracThickness := float32(frac)
 
-	// Number of line segments to draw
+	// Number of points and line segments to draw
 	pointCount := len(points)
 	segCount := pointCount - 1
 	if closed {
@@ -84,6 +84,20 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 
 	// One pixel wide line
 	if !thickLine {
+
+		/*
+			One pixel AA line
+			- 3 vertices per point
+			- 4 triangles per segment
+			- 12 indices per segment
+			+-------------------------------------+
+			|                                     |	AA fringe
+			|                                     |
+			X-------------------------------------X Line segment
+			|                                     |
+			|                                     | AA fringe
+			+-------------------------------------+
+		*/
 
 		halfDrawSize := float32(AA_SIZE)
 		// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
@@ -178,7 +192,6 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 
 	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
 	halfInnerThickness := (thickness - AA_SIZE) * 0.5
-	fmt.Println("halfInnerThickness:", halfInnerThickness)
 	pointLast := pointCount - 1
 	if !closed {
 		tempPoints[0] = gb.Vec2Add(points[0], gb.Vec2MultScalar(tempNormals[0], halfInnerThickness+AA_SIZE))
@@ -387,7 +400,6 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 
 	// Add vertexes for each point on the line
 	vtxPos := 0
-
 	for i := 0; i < pointCount; i++ {
 		bufVtx[vtxPos+0].Pos = tempPoints[i*2+0]
 		bufVtx[vtxPos+0].Col = col

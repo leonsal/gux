@@ -287,7 +287,7 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 
 	/*
 		- 2 vertices per point
-		- 4 triangles per segment
+		- 2 triangles per segment
 		- 6 indices per segment
 		+-------------------------------------+
 		|                                     |

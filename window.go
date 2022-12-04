@@ -6,13 +6,14 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-//const TexLinesWidthMax = 63
+const TexLinesWidthMax = 63
 
-const TexLinesWidthMax = 9
+//const TexLinesWidthMax = 9
 
 type Window struct {
 	gbw        *gb.Window                    // Graphics backend native window reference
 	dl         gb.DrawList                   // Draw list to render
+	texId      gb.TextureId                  // Texture for lines
 	texUvLines [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 }
 
@@ -108,6 +109,11 @@ func (w *Window) buildRenderLinesTexData() {
 		//w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
 		w.texUvLines[n] = gb.Vec4{uv0.X, uv0.Y, uv1.X, uv1.Y}
 	}
+
+	// Creates and transfer texture
+	w.texId = w.gbw.CreateTexture()
+	w.gbw.TransferTexture(w.texId, width, height, &rect[0])
+	fmt.Println("texture id", w.texId)
 
 	// Print image data
 	for n := 0; n < height; n++ {

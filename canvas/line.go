@@ -21,6 +21,11 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		closed = true
 	}
 
+	// Adjusts line thickness
+	if thickness < 1.0 {
+		thickness = 1.0
+	}
+
 	// Checks if the line is thick or not
 	const FringeScale = 1.0
 	thickLine := false
@@ -28,10 +33,6 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		thickLine = true
 	}
 
-	// Adjusts line thickness
-	if thickness < 1.0 {
-		thickness = 1.0
-	}
 	//_, frac := math.Modf(float64(thickness))
 	//fracThickness := float32(frac)
 
@@ -217,11 +218,9 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		}
 
 		// Calculates vertex index for end of segment
-		idx2 := idx1 + 1
+		idx2 := idx1 + 4
 		if i1+1 == pointCount {
 			idx2 = 0
-		} else {
-			idx2 = idx1 + 4
 		}
 
 		// Average normals
@@ -244,7 +243,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		tempPoints[outVtx+3].X = points[i2].X - dmOutX
 		tempPoints[outVtx+3].Y = points[i2].Y - dmOutY
 
-		// Add indices for four triangles:
+		// Add indices for 8 triangles:
 		bufIdx[idxPos+0] = idx2 + 1
 		bufIdx[idxPos+1] = idx1 + 1
 		bufIdx[idxPos+2] = idx1 + 2
@@ -257,7 +256,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		bufIdx[idxPos+9] = idx1
 		bufIdx[idxPos+10] = idx2
 		bufIdx[idxPos+11] = idx2 + 1
-		bufIdx[idxPos+12] = idx2
+		bufIdx[idxPos+12] = idx2 + 2
 		bufIdx[idxPos+13] = idx1 + 2
 		bufIdx[idxPos+14] = idx1 + 3
 		bufIdx[idxPos+15] = idx1 + 3

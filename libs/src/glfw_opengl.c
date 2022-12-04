@@ -195,6 +195,8 @@ void gb_transfer_texture(gb_texid_t texid, int width, int height, const void* da
 // Executes draw commands
 static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
 
+    //printf("render-> cmd_count:%d idx_count:%d vtx_count:%d\n", dl.cmd_count, dl.idx_count, dl.vtx_count);
+
     // Do not render when minimized
     int fb_width = (int)disp_size.x;
     int fb_height = (int)disp_size.y;

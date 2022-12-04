@@ -53,7 +53,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		idxCount = segCount * 12
 		vtxCount = pointCount * 3
 	}
-	cmd, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := c.ReserveVec2(pointCount)
@@ -169,7 +169,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 			bufVtx[vtxPos+2].Col = colTrans
 			vtxPos += 3
 		}
-		c.DrawList.AdjustIdx(cmd)
+		c.dl.AdjustIdx(cmd)
 		return
 	}
 
@@ -279,7 +279,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		bufVtx[vtxPos+3].Col = colTrans
 		vtxPos += 4
 	}
-	c.DrawList.AdjustIdx(cmd)
+	c.dl.AdjustIdx(cmd)
 }
 
 func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
@@ -320,7 +320,7 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
 	vtxCount := pointCount * 2
-	cmd, bufIdx, bufVtx := c.DrawList.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := c.ReserveVec2(pointCount)
@@ -406,13 +406,13 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 		bufVtx[vtxPos+1].Col = col
 		vtxPos += 2
 	}
-	c.DrawList.AdjustIdx(cmd)
+	c.dl.AdjustIdx(cmd)
 }
 
 func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
 
 	pointCount := len(points) - 1
-	cmd, indices, vertices := c.DrawList.ReserveCmd(pointCount*6, pointCount*4)
+	cmd, indices, vertices := c.dl.ReserveCmd(pointCount*6, pointCount*4)
 	uv := gb.Vec2{0, 0}
 
 	vtxCurrent := uint32(0)
@@ -474,7 +474,7 @@ func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, t
 
 		vtxCurrent += 4
 	}
-	c.DrawList.AdjustIdx(cmd)
+	c.dl.AdjustIdx(cmd)
 }
 
 func normalize2f(vx, vy float32) (float32, float32) {

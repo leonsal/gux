@@ -1,8 +1,6 @@
 package gux
 
 import (
-	"fmt"
-
 	"github.com/leonsal/gux/gb"
 )
 
@@ -42,16 +40,21 @@ func (w *Window) RenderFrame(view IView) {
 	w.gbw.RenderFrame(&w.dl)
 }
 
+// Adds specified draw list to this Window's draw list
 func (w *Window) AddList(src gb.DrawList) {
 
 	w.dl.AddList(src)
+}
+
+func (w *Window) Destroy() {
+
+	w.gbw.Destroy()
 }
 
 // buildRenderLinesTexData generates a texture with a triangular shape with various line widths
 // stacked on top of each other to allow interpolation between them.
 func (w *Window) buildRenderLinesTexData() {
 
-	fmt.Println("buildrenderLines--------------------------------------------------")
 	width := TexLinesWidthMax + 1
 	height := TexLinesWidthMax + 1
 	rect := make([]gb.Color, width*height)
@@ -80,13 +83,14 @@ func (w *Window) buildRenderLinesTexData() {
 		w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
 	}
 
-	// Print image data
-	for n := 0; n < height; n++ {
-		for c := 0; c < width; c++ {
-			fmt.Printf("%d ", rect[c])
-		}
-		fmt.Println()
-	}
+	// // Print image data
+	//
+	//	for n := 0; n < height; n++ {
+	//		for c := 0; c < width; c++ {
+	//			fmt.Printf("%d ", rect[c])
+	//		}
+	//		fmt.Println()
+	//	}
 }
 
 //static void ImFontAtlasBuildRenderLinesTexData(ImFontAtlas* atlas)

@@ -54,6 +54,11 @@ type DrawList struct {
 	bufVtx []Vertex  // Buffer with vertices info
 }
 
+func MakeColor(r, g, b, a byte) Color {
+
+	return Color(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))
+}
+
 // ReserveCmd creates and appends a DrawCmd into the DrawList
 // reserving space for the specified number of indices and vertices.
 // Returns pointer to the command and slices for direct access to the indices and vertices.

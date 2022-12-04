@@ -36,7 +36,7 @@ func TestLine(t *testing.T) {
 	scale(points1, 12)
 	translate(points1, gb.Vec2{10, 10})
 	for width := 1; width < 60; width += 8 {
-		c.AddPolyLineAntiAliased(points1, 0xFF_00_00_00, 0, float32(width))
+		c.AddPolyLineAntiAliased(points1, gb.MakeColor(0, 0, 0, 255), 0, float32(width))
 		translate(points1, gb.Vec2{0, 120})
 	}
 
@@ -45,7 +45,7 @@ func TestLine(t *testing.T) {
 	scale(points2, 12)
 	translate(points2, gb.Vec2{800, 10})
 	for width := 1; width < 60; width += 8 {
-		c.AddPolyLineTextured(points2, 0xFF_00_00_00, 0, float32(width))
+		c.AddPolyLineTextured(points2, gb.MakeColor(0, 0, 0, 255), 0, float32(width))
 		translate(points2, gb.Vec2{0, 120})
 	}
 

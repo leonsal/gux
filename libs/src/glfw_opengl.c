@@ -155,9 +155,42 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     glfwSwapBuffers(s->w);
 }
 
+// Creates and returns an OpenGL texture idenfifier
+gb_texid_t gb_create_textureD() {
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return (intptr_t)image_texture;
+}
+
+// Deletes previously created texture
+void gb_delete_texture(gb_texid_t texid) {
+
+    GLuint tex = (GLuint)texid;
+    glDeleteTextures(1, &tex); 
+}
+
+// Transfer data for the specified texture
+void gb_transfer_texture(gb_texid_t texid, int width, int height, const void* data) {
+
+    GLuint tex = (GLuint)(texid);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+}
+
+
 //-----------------------------------------------------------------------------
 // Internal functions
 //-----------------------------------------------------------------------------
+
 
 // Executes draw commands
 static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {

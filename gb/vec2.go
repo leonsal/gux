@@ -16,6 +16,14 @@ func Vec2Sub(v1, v2 Vec2) Vec2 {
 	return Vec2{v1.X - v2.X, v1.Y - v2.Y}
 }
 
+// Vec2Mult multiplies each component of v1 with the corresponding component of v2 returning a new vector.
+// Vectors v1 and v2 are not changed.
+func Vec2Mult(v1, v2 Vec2) Vec2 {
+
+	return Vec2{v1.X * v2.X, v1.Y * v2.Y}
+
+}
+
 // Vec2MultScalar multiplies each component of vector v with the scalar s returning the resulting vector.
 // Vector v is not changed.
 func Vec2MultScalar(v Vec2, s float32) Vec2 {

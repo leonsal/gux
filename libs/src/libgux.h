@@ -29,7 +29,7 @@ typedef struct gb_vec4 {
 } gb_vec4_t;
 
 // Packed color
-typedef int gb_col32_t;
+typedef unsigned int gb_color_t;
 
 // Texture id
 typedef intptr_t gb_texid_t;
@@ -38,7 +38,7 @@ typedef intptr_t gb_texid_t;
 typedef struct gb_vertex {
     gb_vec2_t  pos;                 // Vertex position in screen coordinates
     gb_vec2_t  uv;                  // Texture coordinates
-    gb_col32_t col;                 // Color as an int32
+    gb_color_t col;                 // Color as an uint32
 } gb_vertex_t;
 
 // Single draw command
@@ -64,8 +64,8 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t win);
 bool gb_window_start_frame(gb_window_t bw, double timeout);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
-gb_texid_t gb_create_textureD();
+gb_texid_t gb_create_texture();
 void gb_delete_texture(gb_texid_t texid);
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const void* data);
+void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_color_t* data);
 
 

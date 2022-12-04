@@ -28,6 +28,8 @@ type Vec4 struct {
 // Packed RGBA color from LSB to MSB
 type Color uint32
 
+type TextureId uintptr
+
 // Mask for Color alpha
 const ColorMaskA uint32 = 0xFF_00_00_00
 
@@ -40,11 +42,11 @@ type Vertex struct {
 
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
-	ClipRect  Vec4    // Clip rectangle
-	TexId     uintptr // Texture ID
-	idxOffset uint32  // Start offset in index buffer
-	vtxOffset uint32  // Start offset in vertex buffer
-	elemCount uint32  // Number of indices
+	ClipRect  Vec4      // Clip rectangle
+	TexId     TextureId // Texture ID
+	idxOffset uint32    // Start offset in index buffer
+	vtxOffset uint32    // Start offset in vertex buffer
+	elemCount uint32    // Number of indices
 }
 
 // DrawList contains lists of commands and buffers for the graphics backend
@@ -99,7 +101,7 @@ func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
 }
 
 // AddCmd appends a new command to the Draw List
-func (dl *DrawList) AddCmd(clipRect Vec4, texId uintptr, indices []uint32, vertices []Vertex) {
+func (dl *DrawList) AddCmd(clipRect Vec4, texId TextureId, indices []uint32, vertices []Vertex) {
 
 	cmd, idx, vtx := dl.ReserveCmd(len(indices), len(vertices))
 	copy(idx, indices)
@@ -178,4 +180,22 @@ func (w *Window) RenderFrame(dl *DrawList) {
 		cdl.vtx_count = C.uint(len(dl.bufVtx))
 	}
 	C.gb_window_render_frame(w.c, cdl)
+}
+
+// CreateTexture creates an empty texture and returns its ID
+func (w *Window) CreateTexture() TextureId {
+
+	return TextureId(C.gb_create_texture())
+}
+
+// DeleteTexture deletes the specified texture
+func (w *Window) DeleteTexture(texid TextureId) {
+
+	C.gb_delete_texture(C.gb_texid_t(texid))
+}
+
+// TransferTexture transfers data to the texture
+func (w *Window) TransferTexture(texid TextureId, width, height int, data *Color) {
+
+	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_color_t)(data))
 }

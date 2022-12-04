@@ -1,10 +1,14 @@
 package gux
 
 import (
+	"fmt"
+
 	"github.com/leonsal/gux/gb"
 )
 
-const TexLinesWidthMax = 63
+//const TexLinesWidthMax = 63
+
+const TexLinesWidthMax = 9
 
 type Window struct {
 	gbw        *gb.Window                    // Graphics backend native window reference
@@ -55,42 +59,69 @@ func (w *Window) Destroy() {
 // stacked on top of each other to allow interpolation between them.
 func (w *Window) buildRenderLinesTexData() {
 
-	width := TexLinesWidthMax + 1
+	/*
+		Example for TexLinesWidthMax = 9
+		T - transparent white
+		O - opaque white
+
+		Line Width		Texels
+		0				TTTTTTTTTTT
+		1               TTTTTOTTTTT
+		2               TTTTOOTTTTT
+		3               TTTTOOOTTTT
+		4               TTTOOOOOTTT
+		5               TTTOOOOOTTT
+		6               TTOOOOOOTTT
+		7               TTOOOOOOOTT
+		8               TOOOOOOOOTT
+		9               TOOOOOOOOOT
+		...
+	*/
+
+	width := TexLinesWidthMax + 2
 	height := TexLinesWidthMax + 1
 	rect := make([]gb.Color, width*height)
-
+	uvScale := gb.Vec2{1 / float32(width), 1 / float32(height)}
 	for n := 0; n < height; n++ {
 
-		// Each line consists of at least two empty pixels at the ends, with a line of solid pixels in the middle
+		// Each line consists of at least one transparent pixel at each side, with a line of solid pixels in the middle
 		lineWidth := n
 		padLeft := (width - lineWidth) / 2
 		padRight := width - (padLeft + lineWidth)
+		fmt.Println("lineWidth", lineWidth, "padLeft", padLeft, "padRight", padRight)
+		pos := n * width
 
 		for i := 0; i < padLeft; i++ {
-			rect[i*n] = gb.MakeColor(255, 255, 255, 0)
+			rect[pos+i] = gb.MakeColor(255, 255, 255, 0)
 		}
 		for i := 0; i < lineWidth; i++ {
-			rect[n*(padLeft+1)] = gb.MakeColor(255, 255, 255, 255)
+			rect[pos+padLeft+i] = gb.MakeColor(255, 255, 255, 255)
 		}
 		for i := 0; i < padRight; i++ {
-			rect[n*(padLeft+lineWidth+1)] = gb.MakeColor(255, 255, 255, 0)
+			rect[pos+padLeft+lineWidth+i] = gb.MakeColor(255, 255, 255, 0)
 		}
 
 		// Calculate UVs for this line
-		uv0 := gb.Vec2{float32(padLeft - 1), float32(n)}                 // * atlas->TexUvScale;
-		uv1 := gb.Vec2{float32(padLeft + lineWidth + 1), float32(n + 1)} //* atlas->TexUvScale;
-		halfV := (uv0.Y + uv1.Y) * 0.5                                   // Calculate a constant V in the middle of the row to avoid sampling artifacts
-		w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
+		uv0 := gb.Vec2Mult(gb.Vec2{float32(padLeft - 1), float32(n)}, uvScale)
+		uv1 := gb.Vec2Mult(gb.Vec2{float32(padLeft + lineWidth + 1), float32(n + 1)}, uvScale)
+		//halfV := (uv0.Y + uv1.Y) * 0.5 // Calculate a constant V in the middle of the row to avoid sampling artifacts
+		//w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
+		w.texUvLines[n] = gb.Vec4{uv0.X, uv0.Y, uv1.X, uv1.Y}
 	}
 
-	// // Print image data
-	//
-	//	for n := 0; n < height; n++ {
-	//		for c := 0; c < width; c++ {
-	//			fmt.Printf("%d ", rect[c])
-	//		}
-	//		fmt.Println()
-	//	}
+	// Print image data
+	for n := 0; n < height; n++ {
+		pos := n * width
+		for c := 0; c < width; c++ {
+			fmt.Printf("%d ", rect[pos+c])
+		}
+		fmt.Println()
+	}
+
+	// Print UVs
+	for n := 0; n < height; n++ {
+		fmt.Println(w.texUvLines[n])
+	}
 }
 
 //static void ImFontAtlasBuildRenderLinesTexData(ImFontAtlas* atlas)

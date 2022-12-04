@@ -1,5 +1,6 @@
 #pragma once
-#include <stdbool.h>
+#include <stdbool.h>    
+#include <stdint.h> // intptr_t
 
 // Graphics backend configuration 
 typedef struct gb_config {
@@ -43,7 +44,7 @@ typedef struct gb_vertex {
 // Single draw command
 typedef struct gb_draw_cmd {
     gb_vec4_t       clip_rect;      // Clip rectangle
-    int             texid;          // Texture id
+    gb_texid_t      texid;          // Texture id
     unsigned int    idx_offset;     // Start offset in index buffer
     unsigned int    vtx_offset;     // Start offset in vertex buffer
     unsigned int    elem_count;     // Number of indices

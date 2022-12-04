@@ -156,7 +156,7 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 }
 
 // Creates and returns an OpenGL texture idenfifier
-gb_texid_t gb_create_textureD() {
+gb_texid_t gb_create_texture() {
 
     // Create a OpenGL texture identifier
     GLuint image_texture;
@@ -485,7 +485,7 @@ static void _gb_print_draw_list(gb_draw_list_t dl) {
     printf("Commands:\n");
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];
-        printf("\tx:%f, y:%f, z:%f, w:%f, texid:%d, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
+        printf("\tx:%f, y:%f, z:%f, w:%f, texid:%lu, vtx_offset:%d, idx_offset:%d, elem_count:%d\n",
             cmd.clip_rect.x, cmd.clip_rect.y, cmd.clip_rect.z, cmd.clip_rect.w,
             cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }

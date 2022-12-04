@@ -40,11 +40,11 @@ type Vertex struct {
 
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
-	ClipRect  Vec4   // Clip rectangle
-	TexId     uint32 // Texture ID
-	idxOffset uint32 // Start offset in index buffer
-	vtxOffset uint32 // Start offset in vertex buffer
-	elemCount uint32 // Number of indices
+	ClipRect  Vec4    // Clip rectangle
+	TexId     uintptr // Texture ID
+	idxOffset uint32  // Start offset in index buffer
+	vtxOffset uint32  // Start offset in vertex buffer
+	elemCount uint32  // Number of indices
 }
 
 // DrawList contains lists of commands and buffers for the graphics backend
@@ -99,7 +99,7 @@ func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
 }
 
 // AddCmd appends a new command to the Draw List
-func (dl *DrawList) AddCmd(clipRect Vec4, texId uint32, indices []uint32, vertices []Vertex) {
+func (dl *DrawList) AddCmd(clipRect Vec4, texId uintptr, indices []uint32, vertices []Vertex) {
 
 	cmd, idx, vtx := dl.ReserveCmd(len(indices), len(vertices))
 	copy(idx, indices)

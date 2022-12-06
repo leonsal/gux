@@ -16,7 +16,8 @@ type Canvas struct {
 type Flags int
 
 const (
-	Flag_Closed = (1 << iota)
+	Flag_Closed Flags = (1 << iota)
+	Flag_AntiAliasedFill
 )
 
 func New(w *gux.Window) *Canvas {

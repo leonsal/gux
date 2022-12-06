@@ -19,7 +19,8 @@ func main() {
 
 	// Render loop
 	for win.StartFrame(0) {
-		testLines(win)
+		//testLines(win)
+		testPolygon(win)
 		win.Render()
 	}
 	win.Destroy()
@@ -54,8 +55,16 @@ func testLines(w *window.Window) {
 
 func testPolygon(w *window.Window) {
 
-	//	points := []gb.Vec2{{0, 10}, {10, 0}, {20, 10}, {30, 0}, {40, 10}, {50, 0}, {60, 10}}
+	dl := w.DrawList()
 
+	triangle := []gb.Vec2{{0, 100}, {100, 100}, {50, 0}}
+	scalePoints(triangle, 4)
+	translatePoints(triangle, gb.Vec2{500, 500})
+	w.AddConvexPolyFilled(dl, triangle, gb.MakeColor(0, 0, 0, 255), window.DrawFlag_AntiAliasedFill)
+
+	//rect := []gb.Vec2{{0, 100}, {200, 100}, {200, 0}, {0, 0}}
+	//translatePoints(rect, gb.Vec2{120, 10})
+	//w.AddConvexPolyFilled(dl, rect, gb.MakeColor(255, 0, 0, 255), 0)
 }
 
 // scale the supplied array of points

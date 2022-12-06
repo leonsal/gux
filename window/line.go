@@ -14,7 +14,7 @@ func (w *Window) AddPolyLine(dl *gb.DrawList, points []gb.Vec2, col gb.Color, fl
 func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
 
 	// Anti-aliased stroke
-	const AA_SIZE = 1.0
+	AA_SIZE := w.FringeScale
 	colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
 	var closed bool
 	if (flags & DrawFlag_Closed) != 0 {
@@ -27,9 +27,8 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 	}
 
 	// Checks if the line is thick or not
-	const FringeScale = 1.0
 	thickLine := false
-	if thickness > FringeScale {
+	if thickness > w.FringeScale {
 		thickLine = true
 	}
 

@@ -1,8 +1,6 @@
 package window
 
 import (
-	"fmt"
-
 	"github.com/leonsal/gux/gb"
 )
 
@@ -41,7 +39,7 @@ func New(title string, width, height int) (*Window, error) {
 	w.buildTexWhite()
 	w.buildTexLines()
 
-	w.FringeScale = 1.0
+	w.FringeScale = 10.0
 
 	return w, nil
 }
@@ -103,7 +101,7 @@ func (w *Window) buildTexWhite() {
 	// Creates and transfer texture
 	w.TexWhiteId = w.gbw.CreateTexture()
 	w.gbw.TransferTexture(w.TexWhiteId, 1, 1, &rect[0])
-	fmt.Println("texWhiteId", w.TexWhiteId)
+	//fmt.Println("texWhiteId", w.TexWhiteId)
 }
 
 // buildTexLines generates a texture with a triangular shape with various line widths
@@ -161,19 +159,21 @@ func (w *Window) buildTexLines() {
 	// Creates and transfer texture
 	w.TexLinesId = w.gbw.CreateTexture()
 	w.gbw.TransferTexture(w.TexLinesId, width, height, &rect[0])
-	fmt.Println("texture id", w.TexLinesId)
+	//fmt.Println("texture id", w.TexLinesId)
 
-	// Print image data
-	for n := 0; n < height; n++ {
-		pos := n * width
-		for c := 0; c < width; c++ {
-			fmt.Printf("%d ", rect[pos+c])
-		}
-		fmt.Println()
-	}
-
-	// Print UVs
-	for n := 0; n < height; n++ {
-		fmt.Println(w.TexUvLines[n])
-	}
+	// // Print image data
+	//
+	//	for n := 0; n < height; n++ {
+	//		pos := n * width
+	//		for c := 0; c < width; c++ {
+	//			fmt.Printf("%d ", rect[pos+c])
+	//		}
+	//		fmt.Println()
+	//	}
+	//
+	// // Print UVs
+	//
+	//	for n := 0; n < height; n++ {
+	//		fmt.Println(w.TexUvLines[n])
+	//	}
 }

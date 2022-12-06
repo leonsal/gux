@@ -1,6 +1,8 @@
 package window
 
 import (
+	"fmt"
+
 	"github.com/leonsal/gux/gb"
 )
 
@@ -16,6 +18,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 
 		AA_SIZE := w.FringeScale
 		colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
+		//colTrans := gb.MakeColor(255, 0, 0, 0)
 
 		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6
@@ -24,20 +27,20 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 		cmd.TexId = w.TexWhiteId
 
 		// Add indexes for fill
-		vtxInnerIdx := uint32(0)
+		idxPos := uint32(0)
+		vtxInnerIdx := idxPos
 		vtxOuterIdx := vtxInnerIdx + 1
-		idxPos := 0
 		for i := uint32(2); i < uint32(pointsCount); i++ {
 			bufIdx[idxPos+0] = vtxInnerIdx
 			bufIdx[idxPos+1] = vtxInnerIdx + (i-1)<<1
-			bufIdx[idxPos+2] = vtxInnerIdx + (i << 2)
-			idxPos++
+			bufIdx[idxPos+2] = vtxInnerIdx + (i << 1)
+			idxPos += 3
 		}
 
 		// Calculate normals
 		tempNormals := w.ReserveVec2(pointsCount)
 		i0 := uint32(pointsCount - 1)
-		for i1 := uint32(0); i1 < uint32(pointsCount-1); i1++ {
+		for i1 := uint32(0); i1 < uint32(pointsCount); i1++ {
 			p0 := points[i0]
 			p1 := points[i1]
 			dx := p1.X - p0.X
@@ -49,11 +52,10 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 		}
 
 		// Set indices and vertices
-		i0 = uint32(pointsCount - 1)
 		vtxPos := 0
-		idxPos = 0
-		for i1 := uint32(0); i1 < uint32(pointsCount-1); i1++ {
-
+		i0 = uint32(pointsCount - 1)
+		for i1 := uint32(0); i1 < uint32(pointsCount); i1++ {
+			fmt.Println("vtxpos", vtxPos)
 			// Average normals
 			n0 := tempNormals[i0]
 			n1 := tempNormals[i1]
@@ -84,6 +86,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 			idxPos += 6
 			i0 = i1
 		}
+		dl.AdjustIdx(cmd)
 		return
 	}
 
@@ -108,7 +111,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 		bufIdx[idxPos+2] = uint32(i)
 		idxPos += 3
 	}
-
+	dl.AdjustIdx(cmd)
 }
 
 /***

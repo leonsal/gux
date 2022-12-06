@@ -223,7 +223,7 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
     };
     glUniformMatrix4fv(s->uni_projmtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
-    //_gb_print_draw_list(dl);
+    _gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];

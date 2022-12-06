@@ -57,9 +57,9 @@ func testPolygon(w *window.Window) {
 
 	dl := w.DrawList()
 
-	triangle := []gb.Vec2{{0, 100}, {100, 100}, {50, 0}}
-	scalePoints(triangle, 4)
-	translatePoints(triangle, gb.Vec2{500, 500})
+	triangle := []gb.Vec2{{0, 1000}, {1000, 1000}, {500, 0}}
+	//scalePoints(triangle, 4)
+	//translatePoints(triangle, gb.Vec2{500, 500})
 	w.AddConvexPolyFilled(dl, triangle, gb.MakeColor(0, 0, 0, 255), window.DrawFlag_AntiAliasedFill)
 
 	//rect := []gb.Vec2{{0, 100}, {200, 100}, {200, 0}, {0, 0}}

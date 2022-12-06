@@ -1,8 +1,6 @@
 package window
 
 import (
-	"fmt"
-
 	"github.com/leonsal/gux/gb"
 )
 
@@ -18,7 +16,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 
 		AA_SIZE := w.FringeScale
 		colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
-		//colTrans := gb.MakeColor(255, 0, 0, 0)
+		//colTrans := gb.MakeColor(255, 0, 0, 255)
 
 		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6
@@ -28,7 +26,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 
 		// Add indexes for fill
 		idxPos := uint32(0)
-		vtxInnerIdx := idxPos
+		vtxInnerIdx := uint32(0)
 		vtxOuterIdx := vtxInnerIdx + 1
 		for i := uint32(2); i < uint32(pointsCount); i++ {
 			bufIdx[idxPos+0] = vtxInnerIdx
@@ -55,7 +53,6 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 		vtxPos := 0
 		i0 = uint32(pointsCount - 1)
 		for i1 := uint32(0); i1 < uint32(pointsCount); i1++ {
-			fmt.Println("vtxpos", vtxPos)
 			// Average normals
 			n0 := tempNormals[i0]
 			n1 := tempNormals[i1]
@@ -67,13 +64,21 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 
 			// Add vertices
 			// Inner
-			bufVtx[vtxPos+0].Pos.X = points[i1].X - dmX
-			bufVtx[vtxPos+0].Pos.Y = points[i1].Y - dmY
+			bufVtx[vtxPos+0].Pos.X = points[i1].X + dmX
+			bufVtx[vtxPos+0].Pos.Y = points[i1].Y + dmY
 			bufVtx[vtxPos+0].Col = col
 			// Outer
-			bufVtx[vtxPos+1].Pos.X = points[i1].X + dmX
-			bufVtx[vtxPos+1].Pos.Y = points[i1].Y + dmY
+			bufVtx[vtxPos+1].Pos.X = points[i1].X - dmX
+			bufVtx[vtxPos+1].Pos.Y = points[i1].Y - dmY
 			bufVtx[vtxPos+1].Col = colTrans
+
+			//bufVtx[vtxPos+0].Pos.X = points[i1].X - dmX
+			//bufVtx[vtxPos+0].Pos.Y = points[i1].Y - dmY
+			//bufVtx[vtxPos+0].Col = col
+			//// Outer
+			//bufVtx[vtxPos+1].Pos.X = points[i1].X + dmX
+			//bufVtx[vtxPos+1].Pos.Y = points[i1].Y + dmY
+			//bufVtx[vtxPos+1].Col = colTrans
 			vtxPos += 2
 
 			// Add indexes for fringes

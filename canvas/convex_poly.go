@@ -15,6 +15,9 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 	if (flags & Flag_AntiAliasedFill) != 0 {
 
 		AA_SIZE := c.w.FringeScale
+		colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
+
+		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6
 		vtxCount := pointsCount * 2
 		cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
@@ -22,18 +25,19 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 
 		// Add indexes for fill
 		vtxInnerIdx := uint32(0)
-		vtxOuterIdx := uint32(1)
+		vtxOuterIdx := vtxInnerIdx + 1
 		idxPos := 0
-		for i := 2; i < pointsCount; i++ {
+		for i := uint32(2); i < uint32(pointsCount); i++ {
 			bufIdx[idxPos+0] = vtxInnerIdx
-			bufIdx[idxPos+1] = vtxInnerIdx + (uint32(i)-1)<<1
-			bufIdx[idxPos+2] = vtxInnerIdx + (uint32(i) << 1)
+			bufIdx[idxPos+1] = vtxInnerIdx + (i-1)<<1
+			bufIdx[idxPos+2] = vtxInnerIdx + (i << 2)
+			idxPos++
 		}
 
-		// Calculate normals for each line segment: 2 points for each line point.
+		// Calculate normals
 		tempNormals := c.ReserveVec2(pointsCount)
-		i0 := pointsCount - 1
-		for i1 := 0; i1 < pointsCount-1; i1++ {
+		i0 := uint32(pointsCount - 1)
+		for i1 := uint32(0); i1 < uint32(pointsCount-1); i1++ {
 			p0 := points[i0]
 			p1 := points[i1]
 			dx := p1.X - p0.X
@@ -41,8 +45,45 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 			dx, dy = normalize2f(dx, dy)
 			tempNormals[i0].X = dy
 			tempNormals[i0].Y = -dx
+			i0 = i1
 		}
 
+		// Set indices and vertices
+		i0 = uint32(pointsCount - 1)
+		vtxPos := 0
+		idxPos = 0
+		for i1 := uint32(0); i1 < uint32(pointsCount-1); i1++ {
+
+			// Average normals
+			n0 := tempNormals[i0]
+			n1 := tempNormals[i1]
+			dmX := (n0.X + n1.X) * 0.5
+			dmY := (n0.Y + n1.Y) * 0.5
+			dmX, dmY = fixNormal2f(dmX, dmY)
+			dmX *= AA_SIZE * 0.5
+			dmY *= AA_SIZE * 0.5
+
+			// Add vertices
+			// Inner
+			bufVtx[vtxPos+0].Pos.X = points[i1].X - dmX
+			bufVtx[vtxPos+0].Pos.Y = points[i1].Y - dmY
+			bufVtx[vtxPos+0].Col = col
+			// Outer
+			bufVtx[vtxPos+1].Pos.X = points[i1].X + dmX
+			bufVtx[vtxPos+1].Pos.Y = points[i1].Y + dmY
+			bufVtx[vtxPos+1].Col = colTrans
+			vtxPos += 2
+
+			// Add indexes for fringes
+			bufIdx[idxPos+0] = vtxInnerIdx + (i1 << 1)
+			bufIdx[idxPos+1] = vtxInnerIdx + (i0 << 1)
+			bufIdx[idxPos+2] = vtxOuterIdx + (i0 << 1)
+			bufIdx[idxPos+3] = vtxOuterIdx + (i0 << 1)
+			bufIdx[idxPos+4] = vtxOuterIdx + (i1 << 1)
+			bufIdx[idxPos+5] = vtxInnerIdx + (i1 << 1)
+			idxPos += 6
+			i0 = i1
+		}
 		return
 	}
 

@@ -31,7 +31,7 @@ type Color uint32
 type TextureId uintptr
 
 // Mask for Color alpha
-const ColorMaskA uint32 = 0xFF_00_00_00
+const ColorMaskA Color = 0xFF_00_00_00
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
@@ -54,6 +54,7 @@ type DrawList struct {
 	bufCmd []DrawCmd // Buffer with draw commands
 	bufIdx []uint32  // Buffer with vertices indices
 	bufVtx []Vertex  // Buffer with vertices info
+	Path   []Vec2    // Path being built
 }
 
 func MakeColor(r, g, b, a byte) Color {
@@ -139,6 +140,7 @@ func (dl *DrawList) Clear() {
 	dl.bufCmd = dl.bufCmd[:0]
 	dl.bufIdx = dl.bufIdx[:0]
 	dl.bufVtx = dl.bufVtx[:0]
+	dl.Path = dl.Path[:0]
 }
 
 type Window struct {

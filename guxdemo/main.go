@@ -61,24 +61,24 @@ func testPolygon(w *window.Window) {
 	points := w.ReserveVec2(len(triangle))
 	copy(points, triangle)
 	scalePoints(points, 2)
-	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 0, 0, 255), window.DrawFlag_AntiAliasedFill)
+	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 0, 0, 255))
 
 	rect := []gb.Vec2{{0, 100}, {200, 100}, {200, 0}, {0, 0}}
 	points = w.ReserveVec2(len(rect))
 	copy(points, rect)
 	translatePoints(points, gb.Vec2{220, 10})
-	w.AddConvexPolyFilled(dl, points, gb.MakeColor(255, 0, 0, 255), 0)
+	w.AddConvexPolyFilled(dl, points, gb.MakeColor(255, 0, 0, 255))
 
 	points = w.ReserveVec2(len(triangle))
 	copy(points, triangle)
 	scalePoints(points, 2)
 	translatePoints(points, gb.Vec2{0, 300})
-	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 0, 255), 0)
+	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 0, 255))
 
 	points = w.ReserveVec2(len(rect))
 	copy(points, rect)
 	translatePoints(points, gb.Vec2{300, 300})
-	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 255, 255), 0)
+	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 255, 255))
 }
 
 // scale the supplied array of points

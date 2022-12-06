@@ -15,7 +15,7 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 
 	// Anti-aliased stroke
 	AA_SIZE := w.FringeScale
-	colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
+	colTrans := gb.Color(col & ^gb.ColorMaskA)
 	var closed bool
 	if (flags & DrawFlag_Closed) != 0 {
 		closed = true

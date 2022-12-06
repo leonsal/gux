@@ -22,6 +22,7 @@ type Window struct {
 	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 	FringeScale float32                       // Used for AA
 	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
+	drawFlags   DrawFlags                     // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
 }
 
 // New creates and returns a new Window
@@ -39,6 +40,7 @@ func New(title string, width, height int) (*Window, error) {
 	w.buildTexWhite()
 	w.buildTexLines()
 
+	w.drawFlags |= DrawFlag_AntiAliasedFill
 	w.FringeScale = 1.0
 
 	return w, nil
@@ -82,12 +84,6 @@ func (w *Window) ReserveVec2(count int) []gb.Vec2 {
 		w.bufVec2 = append(w.bufVec2, gb.Vec2{})
 	}
 	return w.bufVec2[idx : idx+count]
-}
-
-// DrawList return this window DrawList
-func (w *Window) DrawList() *gb.DrawList {
-
-	return &w.dl
 }
 
 // buildTexWhite generates a 1x1 texture with one white opaque pixel.

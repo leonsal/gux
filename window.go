@@ -10,11 +10,12 @@ const TexLinesWidthMax = 63
 
 // Window corresponds to a native platform Window
 type Window struct {
-	gbw        *gb.Window                    // Graphics backend native window reference
-	dl         gb.DrawList                   // Draw list to render
-	TexWhiteId gb.TextureId                  // Texture with white opaque pixel
-	TexLinesId gb.TextureId                  // Texture for lines
-	TexUvLines [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
+	gbw         *gb.Window                    // Graphics backend native window reference
+	dl          gb.DrawList                   // Draw list to render
+	TexWhiteId  gb.TextureId                  // Texture with white opaque pixel
+	TexLinesId  gb.TextureId                  // Texture for lines
+	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
+	FringeScale float32
 }
 
 // NewWindow creates and returns a new Window
@@ -31,6 +32,8 @@ func NewWindow(title string, width, height int) (*Window, error) {
 	// Create textures
 	w.buildTexWhite()
 	w.buildTexLines()
+
+	w.FringeScale = 1.0
 
 	return w, nil
 }

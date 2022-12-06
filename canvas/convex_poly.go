@@ -4,6 +4,7 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
+// AddConvexPolyFilled adds a filled convex polygon to this canvas
 func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags) {
 
 	pointsCount := len(points)
@@ -13,26 +14,58 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 
 	if (flags & Flag_AntiAliasedFill) != 0 {
 
-	} else {
-		// Allocate command
-		idxCount := (pointsCount - 2) * 3
-		vtxCount := pointsCount
-		_, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
+		AA_SIZE := c.w.FringeScale
+		idxCount := (pointsCount-2)*3 + pointsCount*6
+		vtxCount := pointsCount * 2
+		cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
+		cmd.TexId = c.w.TexWhiteId
 
-		// Set vertices
-		for i := 0; i < vtxCount; i++ {
-			bufVtx[i].Pos = points[i]
-			bufVtx[i].Col = col
-		}
-
-		// Set indices
+		// Add indexes for fill
+		vtxInnerIdx := uint32(0)
+		vtxOuterIdx := uint32(1)
 		idxPos := 0
 		for i := 2; i < pointsCount; i++ {
-			bufIdx[idxPos+0] = 0
-			bufIdx[idxPos+1] = uint32(i - 1)
-			bufIdx[idxPos+2] = uint32(i)
-			idxPos += 3
+			bufIdx[idxPos+0] = vtxInnerIdx
+			bufIdx[idxPos+1] = vtxInnerIdx + (uint32(i)-1)<<1
+			bufIdx[idxPos+2] = vtxInnerIdx + (uint32(i) << 1)
 		}
+
+		// Calculate normals for each line segment: 2 points for each line point.
+		tempNormals := c.ReserveVec2(pointsCount)
+		i0 := pointsCount - 1
+		for i1 := 0; i1 < pointsCount-1; i1++ {
+			p0 := points[i0]
+			p1 := points[i1]
+			dx := p1.X - p0.X
+			dy := p1.Y - p0.Y
+			dx, dy = normalize2f(dx, dy)
+			tempNormals[i0].X = dy
+			tempNormals[i0].Y = -dx
+		}
+
+		return
+	}
+
+	// Non-Anti aliased filled
+	// Allocate command
+	idxCount := (pointsCount - 2) * 3
+	vtxCount := pointsCount
+	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
+	cmd.TexId = c.w.TexWhiteId
+
+	// Set vertices
+	for i := 0; i < vtxCount; i++ {
+		bufVtx[i].Pos = points[i]
+		bufVtx[i].Col = col
+	}
+
+	// Set indices
+	idxPos := 0
+	for i := 2; i < pointsCount; i++ {
+		bufIdx[idxPos+0] = 0
+		bufIdx[idxPos+1] = uint32(i - 1)
+		bufIdx[idxPos+2] = uint32(i)
+		idxPos += 3
 	}
 
 }

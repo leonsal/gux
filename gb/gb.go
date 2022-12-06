@@ -83,7 +83,7 @@ func (dl *DrawList) ReserveCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 	// Reserve command
 	cmd := DrawCmd{
 		ClipRect:  Vec4{},
-		TexId:     0,
+		TexId:     1, // First texture allocated: white pixel
 		idxOffset: uint32(idxOffset),
 		vtxOffset: uint32(vtxOffset),
 		elemCount: uint32(idxCount),

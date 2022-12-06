@@ -6,17 +6,20 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-const TexLinesWidthMax = 63
+//const TexLinesWidthMax = 63
 
-//const TexLinesWidthMax = 9
+const TexLinesWidthMax = 9
 
+// Window corresponds to a native platform Window
 type Window struct {
 	gbw        *gb.Window                    // Graphics backend native window reference
 	dl         gb.DrawList                   // Draw list to render
-	texId      gb.TextureId                  // Texture for lines
+	texWhiteId gb.TextureId                  // Texture with white pixel
+	texLinesId gb.TextureId                  // Texture for lines
 	texUvLines [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 }
 
+// NewWindow creates and returns a new Window
 func NewWindow(title string, width, height int) (*Window, error) {
 
 	// Creates graphics backend native window
@@ -27,8 +30,9 @@ func NewWindow(title string, width, height int) (*Window, error) {
 		return nil, err
 	}
 
-	// Create line texture and transfer to backend
-	w.buildRenderLinesTexData()
+	// Create textures
+	w.buildTexWhite()
+	w.buildTexLines()
 
 	return w, nil
 }
@@ -56,9 +60,23 @@ func (w *Window) Destroy() {
 	w.gbw.Destroy()
 }
 
-// buildRenderLinesTexData generates a texture with a triangular shape with various line widths
+// buildTexWhite generates a 1x1 texture with one white opaque pixel.
+// It is used as a default texture for commands which don't use a texture.
+func (w *Window) buildTexWhite() {
+
+	// Creates image with one white opaque pixel
+	var rect [1]gb.Color
+	rect[0] = gb.MakeColor(255, 255, 255, 255)
+
+	// Creates and transfer texture
+	w.texWhiteId = w.gbw.CreateTexture()
+	w.gbw.TransferTexture(w.texWhiteId, 1, 1, &rect[0])
+	fmt.Println("texWhiteId", w.texWhiteId)
+}
+
+// buildTexLines generates a texture with a triangular shape with various line widths
 // stacked on top of each other to allow interpolation between them.
-func (w *Window) buildRenderLinesTexData() {
+func (w *Window) buildTexLines() {
 
 	/*
 		Example for TexLinesWidthMax = 9
@@ -89,7 +107,6 @@ func (w *Window) buildRenderLinesTexData() {
 		lineWidth := n
 		padLeft := (width - lineWidth) / 2
 		padRight := width - (padLeft + lineWidth)
-		fmt.Println("lineWidth", lineWidth, "padLeft", padLeft, "padRight", padRight)
 		pos := n * width
 
 		for i := 0; i < padLeft; i++ {
@@ -105,15 +122,14 @@ func (w *Window) buildRenderLinesTexData() {
 		// Calculate UVs for this line
 		uv0 := gb.Vec2Mult(gb.Vec2{float32(padLeft - 1), float32(n)}, uvScale)
 		uv1 := gb.Vec2Mult(gb.Vec2{float32(padLeft + lineWidth + 1), float32(n + 1)}, uvScale)
-		//halfV := (uv0.Y + uv1.Y) * 0.5 // Calculate a constant V in the middle of the row to avoid sampling artifacts
-		//w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
-		w.texUvLines[n] = gb.Vec4{uv0.X, uv0.Y, uv1.X, uv1.Y}
+		halfV := (uv0.Y + uv1.Y) * 0.5 // Calculate a constant V in the middle of the row to avoid sampling artifacts
+		w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
 	}
 
 	// Creates and transfer texture
-	w.texId = w.gbw.CreateTexture()
-	w.gbw.TransferTexture(w.texId, width, height, &rect[0])
-	fmt.Println("texture id", w.texId)
+	w.texLinesId = w.gbw.CreateTexture()
+	w.gbw.TransferTexture(w.texLinesId, width, height, &rect[0])
+	fmt.Println("texture id", w.texLinesId)
 
 	// Print image data
 	for n := 0; n < height; n++ {

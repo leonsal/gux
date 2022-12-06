@@ -28,7 +28,7 @@ typedef struct gb_vec4 {
     float x; float y; float z; float w;
 } gb_vec4_t;
 
-// Packed color
+// Packed color containg RGBA components each as an unsigned byte
 typedef unsigned int gb_color_t;
 
 // Texture id

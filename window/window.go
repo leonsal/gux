@@ -1,4 +1,4 @@
-package gux
+package window
 
 import (
 	"fmt"
@@ -8,6 +8,13 @@ import (
 
 const TexLinesWidthMax = 63
 
+type DrawFlags int
+
+const (
+	DrawFlag_Closed DrawFlags = (1 << iota)
+	DrawFlag_AntiAliasedFill
+)
+
 // Window corresponds to a native platform Window
 type Window struct {
 	gbw         *gb.Window                    // Graphics backend native window reference
@@ -15,11 +22,12 @@ type Window struct {
 	TexWhiteId  gb.TextureId                  // Texture with white opaque pixel
 	TexLinesId  gb.TextureId                  // Texture for lines
 	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
-	FringeScale float32
+	FringeScale float32                       // Used for AA
+	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
 }
 
-// NewWindow creates and returns a new Window
-func NewWindow(title string, width, height int) (*Window, error) {
+// New creates and returns a new Window
+func New(title string, width, height int) (*Window, error) {
 
 	// Creates graphics backend native window
 	w := new(Window)
@@ -41,12 +49,18 @@ func NewWindow(title string, width, height int) (*Window, error) {
 func (w *Window) StartFrame(timeout float64) bool {
 
 	w.dl.Clear()
+	w.bufVec2 = w.bufVec2[:0]
 	return w.gbw.StartFrame(timeout)
 }
 
 func (w *Window) RenderFrame(view IView) {
 
 	view.Render(w)
+	w.gbw.RenderFrame(&w.dl)
+}
+
+func (w *Window) Render() {
+
 	w.gbw.RenderFrame(&w.dl)
 }
 
@@ -59,6 +73,23 @@ func (w *Window) AddList(src gb.DrawList) {
 func (w *Window) Destroy() {
 
 	w.gbw.Destroy()
+}
+
+// ReserveVec2 reserves 'count' gb.Vec2 entries in internal Vec2 buffer
+// returning a slice to access these entries
+func (w *Window) ReserveVec2(count int) []gb.Vec2 {
+
+	idx := len(w.bufVec2)
+	for i := 0; i < count; i++ {
+		w.bufVec2 = append(w.bufVec2, gb.Vec2{})
+	}
+	return w.bufVec2[idx : idx+count]
+}
+
+// DrawList return this window DrawList
+func (w *Window) DrawList() *gb.DrawList {
+
+	return &w.dl
 }
 
 // buildTexWhite generates a 1x1 texture with one white opaque pixel.

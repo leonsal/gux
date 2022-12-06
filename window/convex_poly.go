@@ -1,27 +1,27 @@
-package canvas
+package window
 
 import (
 	"github.com/leonsal/gux/gb"
 )
 
 // AddConvexPolyFilled adds a filled convex polygon to this canvas
-func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags) {
+func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags) {
 
 	pointsCount := len(points)
 	if pointsCount < 3 {
 		return
 	}
 
-	if (flags & Flag_AntiAliasedFill) != 0 {
+	if (flags & DrawFlag_AntiAliasedFill) != 0 {
 
-		AA_SIZE := c.w.FringeScale
+		AA_SIZE := w.FringeScale
 		colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
 
 		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6
 		vtxCount := pointsCount * 2
-		cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
-		cmd.TexId = c.w.TexWhiteId
+		cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+		cmd.TexId = w.TexWhiteId
 
 		// Add indexes for fill
 		vtxInnerIdx := uint32(0)
@@ -35,7 +35,7 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 		}
 
 		// Calculate normals
-		tempNormals := c.ReserveVec2(pointsCount)
+		tempNormals := w.ReserveVec2(pointsCount)
 		i0 := uint32(pointsCount - 1)
 		for i1 := uint32(0); i1 < uint32(pointsCount-1); i1++ {
 			p0 := points[i0]
@@ -91,8 +91,8 @@ func (c *Canvas) AddConvexPolyFilled(points []gb.Vec2, col gb.Color, flags Flags
 	// Allocate command
 	idxCount := (pointsCount - 2) * 3
 	vtxCount := pointsCount
-	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
-	cmd.TexId = c.w.TexWhiteId
+	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+	cmd.TexId = w.TexWhiteId
 
 	// Set vertices
 	for i := 0; i < vtxCount; i++ {

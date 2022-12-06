@@ -1,24 +1,23 @@
-package canvas
+package window
 
 import (
 	"math"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
 )
 
-func (c *Canvas) AddPolyLine(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+func (w *Window) AddPolyLine(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
 
 	//c.polyLineBasic(points, col, flags, thickness)
 }
 
-func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
 
 	// Anti-aliased stroke
 	const AA_SIZE = 1.0
 	colTrans := gb.Color(uint32(col) & ^gb.ColorMaskA)
 	var closed bool
-	if (flags & Flag_Closed) != 0 {
+	if (flags & DrawFlag_Closed) != 0 {
 		closed = true
 	}
 
@@ -51,10 +50,10 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		idxCount = segCount * 12
 		vtxCount = pointCount * 3
 	}
-	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
-	tempNormals := c.ReserveVec2(pointCount)
+	tempNormals := w.ReserveVec2(pointCount)
 	for i1 := 0; i1 < segCount; i1++ {
 
 		// Calculates the index of the next point in the segment
@@ -79,7 +78,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 	if thickLine {
 		tempCount = pointCount * 4
 	}
-	tempPoints := c.ReserveVec2(tempCount)
+	tempPoints := w.ReserveVec2(tempCount)
 
 	// One pixel wide line
 	if !thickLine {
@@ -167,7 +166,7 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 			bufVtx[vtxPos+2].Col = colTrans
 			vtxPos += 3
 		}
-		c.dl.AdjustIdx(cmd)
+		dl.AdjustIdx(cmd)
 		return
 	}
 
@@ -277,10 +276,10 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 		bufVtx[vtxPos+3].Col = colTrans
 		vtxPos += 4
 	}
-	c.dl.AdjustIdx(cmd)
+	dl.AdjustIdx(cmd)
 }
 
-func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
+func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
 
 	/*
 		- 2 vertices per point
@@ -297,7 +296,7 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 
 	// Checks if 'flags' specifies closed line path (last point == first point)
 	var closed bool
-	if (flags & Flag_Closed) != 0 {
+	if (flags & DrawFlag_Closed) != 0 {
 		closed = true
 	}
 
@@ -316,10 +315,10 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
 	vtxCount := pointCount * 2
-	cmd, bufIdx, bufVtx := c.dl.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
-	tempNormals := c.ReserveVec2(pointCount)
+	tempNormals := w.ReserveVec2(pointCount)
 	for i1 := 0; i1 < segCount; i1++ {
 
 		// Calculates the index of the next point in the segment
@@ -340,7 +339,7 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 	}
 
 	// Generates
-	tempPoints := c.ReserveVec2(pointCount * 2)
+	tempPoints := w.ReserveVec2(pointCount * 2)
 	halfDrawSize := (thickness * 0.5) + 1
 	// If line is not closed, the first and last points need to be generated differently as there are no normals to blend
 	if !closed {
@@ -398,9 +397,9 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 	intThickness := int(thickness)
 	texUv0 := gb.Vec2{}
 	texUv1 := gb.Vec2{}
-	if intThickness < gux.TexLinesWidthMax {
-		cmd.TexId = c.w.TexLinesId
-		texUvs := c.w.TexUvLines[intThickness]
+	if intThickness < TexLinesWidthMax {
+		cmd.TexId = w.TexLinesId
+		texUvs := w.TexUvLines[intThickness]
 		texUv0 = gb.Vec2{texUvs.X, texUvs.Y}
 		texUv1 = gb.Vec2{texUvs.Z, texUvs.W}
 	}
@@ -416,7 +415,7 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 		bufVtx[vtxPos+1].Col = col
 		vtxPos += 2
 	}
-	c.dl.AdjustIdx(cmd)
+	dl.AdjustIdx(cmd)
 }
 
 func normalize2f(vx, vy float32) (float32, float32) {

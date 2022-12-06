@@ -6,17 +6,15 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-//const TexLinesWidthMax = 63
-
-const TexLinesWidthMax = 9
+const TexLinesWidthMax = 63
 
 // Window corresponds to a native platform Window
 type Window struct {
 	gbw        *gb.Window                    // Graphics backend native window reference
 	dl         gb.DrawList                   // Draw list to render
-	texWhiteId gb.TextureId                  // Texture with white pixel
-	texLinesId gb.TextureId                  // Texture for lines
-	texUvLines [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
+	TexWhiteId gb.TextureId                  // Texture with white opaque pixel
+	TexLinesId gb.TextureId                  // Texture for lines
+	TexUvLines [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 }
 
 // NewWindow creates and returns a new Window
@@ -69,9 +67,9 @@ func (w *Window) buildTexWhite() {
 	rect[0] = gb.MakeColor(255, 255, 255, 255)
 
 	// Creates and transfer texture
-	w.texWhiteId = w.gbw.CreateTexture()
-	w.gbw.TransferTexture(w.texWhiteId, 1, 1, &rect[0])
-	fmt.Println("texWhiteId", w.texWhiteId)
+	w.TexWhiteId = w.gbw.CreateTexture()
+	w.gbw.TransferTexture(w.TexWhiteId, 1, 1, &rect[0])
+	fmt.Println("texWhiteId", w.TexWhiteId)
 }
 
 // buildTexLines generates a texture with a triangular shape with various line widths
@@ -123,13 +121,13 @@ func (w *Window) buildTexLines() {
 		uv0 := gb.Vec2Mult(gb.Vec2{float32(padLeft - 1), float32(n)}, uvScale)
 		uv1 := gb.Vec2Mult(gb.Vec2{float32(padLeft + lineWidth + 1), float32(n + 1)}, uvScale)
 		halfV := (uv0.Y + uv1.Y) * 0.5 // Calculate a constant V in the middle of the row to avoid sampling artifacts
-		w.texUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
+		w.TexUvLines[n] = gb.Vec4{uv0.X, halfV, uv1.X, halfV}
 	}
 
 	// Creates and transfer texture
-	w.texLinesId = w.gbw.CreateTexture()
-	w.gbw.TransferTexture(w.texLinesId, width, height, &rect[0])
-	fmt.Println("texture id", w.texLinesId)
+	w.TexLinesId = w.gbw.CreateTexture()
+	w.gbw.TransferTexture(w.TexLinesId, width, height, &rect[0])
+	fmt.Println("texture id", w.TexLinesId)
 
 	// Print image data
 	for n := 0; n < height; n++ {
@@ -142,57 +140,6 @@ func (w *Window) buildTexLines() {
 
 	// Print UVs
 	for n := 0; n < height; n++ {
-		fmt.Println(w.texUvLines[n])
+		fmt.Println(w.TexUvLines[n])
 	}
 }
-
-//static void ImFontAtlasBuildRenderLinesTexData(ImFontAtlas* atlas)
-//{
-//    if (atlas->Flags & ImFontAtlasFlags_NoBakedLines)
-//        return;
-//
-//    // This generates a triangular shape in the texture, with the various line widths stacked on top of each other to allow interpolation between them
-//    ImFontAtlasCustomRect* r = atlas->GetCustomRectByIndex(atlas->PackIdLines);
-//    IM_ASSERT(r->IsPacked());
-//    for (unsigned int n = 0; n < IM_DRAWLIST_TEX_LINES_WIDTH_MAX + 1; n++) // +1 because of the zero-width row
-//    {
-//        // Each line consists of at least two empty pixels at the ends, with a line of solid pixels in the middle
-//        unsigned int y = n;
-//        unsigned int line_width = n;
-//        unsigned int pad_left = (r->Width - line_width) / 2;
-//        unsigned int pad_right = r->Width - (pad_left + line_width);
-//
-//        // Write each slice
-//        IM_ASSERT(pad_left + line_width + pad_right == r->Width && y < r->Height); // Make sure we're inside the texture bounds before we start writing pixels
-//        if (atlas->TexPixelsAlpha8 != NULL)
-//        {
-//            unsigned char* write_ptr = &atlas->TexPixelsAlpha8[r->X + ((r->Y + y) * atlas->TexWidth)];
-//            for (unsigned int i = 0; i < pad_left; i++)
-//                *(write_ptr + i) = 0x00;
-//
-//            for (unsigned int i = 0; i < line_width; i++)
-//                *(write_ptr + pad_left + i) = 0xFF;
-//
-//            for (unsigned int i = 0; i < pad_right; i++)
-//                *(write_ptr + pad_left + line_width + i) = 0x00;
-//        }
-//        else
-//        {
-//            unsigned int* write_ptr = &atlas->TexPixelsRGBA32[r->X + ((r->Y + y) * atlas->TexWidth)];
-//            for (unsigned int i = 0; i < pad_left; i++)
-//                *(write_ptr + i) = IM_COL32(255, 255, 255, 0);
-//
-//            for (unsigned int i = 0; i < line_width; i++)
-//                *(write_ptr + pad_left + i) = IM_COL32_WHITE;
-//
-//            for (unsigned int i = 0; i < pad_right; i++)
-//                *(write_ptr + pad_left + line_width + i) = IM_COL32(255, 255, 255, 0);
-//        }
-//
-//        // Calculate UVs for this line
-//        ImVec2 uv0 = ImVec2((float)(r->X + pad_left - 1), (float)(r->Y + y)) * atlas->TexUvScale;
-//        ImVec2 uv1 = ImVec2((float)(r->X + pad_left + line_width + 1), (float)(r->Y + y + 1)) * atlas->TexUvScale;
-//        float half_v = (uv0.y + uv1.y) * 0.5f; // Calculate a constant V in the middle of the row to avoid sampling artifacts
-//        atlas->TexUvLines[n] = ImVec4(uv0.x, half_v, uv1.x, half_v);
-//    }
-//}

@@ -3,6 +3,7 @@ package canvas
 import (
 	"math"
 
+	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
 )
 
@@ -32,9 +33,6 @@ func (c *Canvas) AddPolyLineAntiAliased(points []gb.Vec2, col gb.Color, flags Fl
 	if thickness > FringeScale {
 		thickLine = true
 	}
-
-	//_, frac := math.Modf(float64(thickness))
-	//fracThickness := float32(frac)
 
 	// Number of points and line segments to draw
 	pointCount := len(points)
@@ -307,8 +305,6 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 	if thickness < 1.0 {
 		thickness = 1.0
 	}
-	//_, frac := math.Modf(float64(thickness))
-	//fracThickness := float32(frac)
 
 	// Number of line segments to draw
 	pointCount := len(points)
@@ -397,82 +393,28 @@ func (c *Canvas) AddPolyLineTextured(points []gb.Vec2, col gb.Color, flags Flags
 		idx1 = idx2
 	}
 
+	// If line width less than maximum for textured lines
+	// sets the command texture id and UV coordinates
+	intThickness := int(thickness)
+	texUv0 := gb.Vec2{}
+	texUv1 := gb.Vec2{}
+	if intThickness < gux.TexLinesWidthMax {
+		cmd.TexId = c.w.TexLinesId
+		texUvs := c.w.TexUvLines[intThickness]
+		texUv0 = gb.Vec2{texUvs.X, texUvs.Y}
+		texUv1 = gb.Vec2{texUvs.Z, texUvs.W}
+	}
+
 	// Add vertexes for each point on the line
 	vtxPos := 0
 	for i := 0; i < pointCount; i++ {
 		bufVtx[vtxPos+0].Pos = tempPoints[i*2+0]
+		bufVtx[vtxPos+0].UV = texUv0
 		bufVtx[vtxPos+0].Col = col
 		bufVtx[vtxPos+1].Pos = tempPoints[i*2+1]
+		bufVtx[vtxPos+1].UV = texUv1
 		bufVtx[vtxPos+1].Col = col
 		vtxPos += 2
-	}
-	c.dl.AdjustIdx(cmd)
-}
-
-func (c *Canvas) AddPolyLineBasic(points []gb.Vec2, col gb.Color, flags Flags, thickness float32) {
-
-	pointCount := len(points) - 1
-	cmd, indices, vertices := c.dl.ReserveCmd(pointCount*6, pointCount*4)
-	uv := gb.Vec2{0, 0}
-
-	vtxCurrent := uint32(0)
-	vtx := 0
-	idx := 0
-	for i1 := 0; i1 < pointCount; i1++ {
-
-		// Calculates the index of the next point in the segment
-		i2 := i1 + 1
-		if i2 > pointCount {
-			i2 = 0
-		}
-
-		// Calculate normals
-		p1 := points[i1]
-		p2 := points[i2]
-		dx := p2.X - p1.X
-		dy := p2.Y - p1.Y
-		dx, dy = normalize2f(dx, dy)
-		dx *= thickness * 0.5
-		dy *= thickness * 0.5
-
-		vertices[vtx].Pos.X = p1.X + dy
-		vertices[vtx].Pos.Y = p1.Y - dx
-		vertices[vtx].UV = uv
-		vertices[vtx].Col = col
-		vtx++
-
-		vertices[vtx].Pos.X = p2.X + dy
-		vertices[vtx].Pos.Y = p2.Y - dx
-		vertices[vtx].UV = uv
-		vertices[vtx].Col = col
-		vtx++
-
-		vertices[vtx].Pos.X = p2.X - dy
-		vertices[vtx].Pos.Y = p2.Y + dx
-		vertices[vtx].UV = uv
-		vertices[vtx].Col = col
-		vtx++
-
-		vertices[vtx].Pos.X = p1.X - dy
-		vertices[vtx].Pos.Y = p1.Y + dx
-		vertices[vtx].UV = uv
-		vertices[vtx].Col = col
-		vtx++
-
-		indices[idx] = vtxCurrent
-		idx++
-		indices[idx] = vtxCurrent + 1
-		idx++
-		indices[idx] = vtxCurrent + 2
-		idx++
-		indices[idx] = vtxCurrent
-		idx++
-		indices[idx] = vtxCurrent + 2
-		idx++
-		indices[idx] = vtxCurrent + 3
-		idx++
-
-		vtxCurrent += 4
 	}
 	c.dl.AdjustIdx(cmd)
 }

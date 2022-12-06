@@ -39,7 +39,7 @@ func New(title string, width, height int) (*Window, error) {
 	w.buildTexWhite()
 	w.buildTexLines()
 
-	w.FringeScale = 10.0
+	w.FringeScale = 1.0
 
 	return w, nil
 }

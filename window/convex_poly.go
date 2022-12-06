@@ -12,7 +12,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 		return
 	}
 
-	if (w.drawFlags & DrawFlag_AntiAliasedFill) != 0 {
+	if (w.drawFlags & DrawListFlags_AntiAliasedFill) != 0 {
 
 		AA_SIZE := w.FringeScale
 		colTrans := gb.Color(col & ^gb.ColorMaskA)

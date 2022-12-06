@@ -9,8 +9,24 @@ const TexLinesWidthMax = 63
 type DrawFlags int
 
 const (
-	DrawFlag_Closed DrawFlags = (1 << iota)
-	DrawFlag_AntiAliasedFill
+	DrawFlags_None  DrawFlags = 0
+	DrawFlag_Closed DrawFlags = 1 << iota
+	DrawFlags_RoundCornersTopLeft
+	DrawFlags_RoundCornersTopRight
+	DrawFlags_RoundCornersBottomLeft
+	DrawFlags_RoundCornersBottomRight
+	DrawFlags_RoundCornersNone
+	DrawFlags_RoundCornersTop    = DrawFlags_RoundCornersTopLeft | DrawFlags_RoundCornersTopRight
+	DrawFlags_RoundCornersBottom = DrawFlags_RoundCornersBottomLeft | DrawFlags_RoundCornersBottomRight
+	DrawFlags_RoundCornersLeft   = DrawFlags_RoundCornersBottomLeft | DrawFlags_RoundCornersTopLeft
+	DrawFlags_RoundCornersRight  = DrawFlags_RoundCornersBottomRight | DrawFlags_RoundCornersTopRight
+	DrawFlags_RoundCornersAll    = DrawFlags_RoundCornersTopLeft | DrawFlags_RoundCornersTopRight | DrawFlags_RoundCornersBottomLeft | DrawFlags_RoundCornersBottomRight
+)
+
+type DrawListFlags int
+
+const (
+	DrawListFlags_AntiAliasedFill DrawListFlags = 1 << iota
 )
 
 // Window corresponds to a native platform Window
@@ -22,7 +38,7 @@ type Window struct {
 	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 	FringeScale float32                       // Used for AA
 	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
-	drawFlags   DrawFlags                     // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
+	drawFlags   DrawListFlags                 // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
 }
 
 // New creates and returns a new Window
@@ -40,7 +56,7 @@ func New(title string, width, height int) (*Window, error) {
 	w.buildTexWhite()
 	w.buildTexLines()
 
-	w.drawFlags |= DrawFlag_AntiAliasedFill
+	w.drawFlags |= DrawListFlags_AntiAliasedFill
 	w.FringeScale = 1.0
 
 	return w, nil

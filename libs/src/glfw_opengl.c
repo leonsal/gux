@@ -411,24 +411,6 @@ static void _gb_destroy_objects(gb_state_t* s) {
     }
 }
 
-//// Creates default 1x1 pixel WHITE texture (ID=0) which is used when draw command texid == 0.
-//static void _gb_create_default_texture() {
-//
-//    // Used ID = 0 for default texture
-//    GLuint texid = 0;
-//    GL_CALL(glBindTexture(GL_TEXTURE_2D, texid));
-//
-//    // Setup filtering parameters for display
-//    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-//    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-//
-//    // Transfer texture
-//    GL_CALL(glBindTexture(GL_TEXTURE_2D, texid));
-//    GL_CALL(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-//    const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF};
-//    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
-//}
-
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {
 
     GLint status = 0, log_length = 0;

@@ -1,4 +1,4 @@
-package window
+package gux
 
 import "github.com/leonsal/gux/gb"
 

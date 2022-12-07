@@ -3,8 +3,8 @@ package main
 import (
 	"runtime"
 
+	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
-	"github.com/leonsal/gux/window"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 	runtime.LockOSThread()
 
 	// Create window
-	win, err := window.New("title", 2000, 1200)
+	win, err := gux.NewWindow("title", 2000, 1200)
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +26,7 @@ func main() {
 	win.Destroy()
 }
 
-func testLines(w *window.Window) {
+func testLines(w *gux.Window) {
 
 	// Line points
 	points := []gb.Vec2{{0, 10}, {10, 0}, {20, 10}, {30, 0}, {40, 10}, {50, 0}, {60, 10}}
@@ -53,7 +53,7 @@ func testLines(w *window.Window) {
 	}
 }
 
-func testPolygon(w *window.Window) {
+func testPolygon(w *gux.Window) {
 
 	dl := w.DrawList()
 

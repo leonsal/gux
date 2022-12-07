@@ -1,4 +1,4 @@
-package window
+package gux
 
 import (
 	"github.com/leonsal/gux/gb"
@@ -45,7 +45,7 @@ type Window struct {
 }
 
 // New creates and returns a new Window
-func New(title string, width, height int) (*Window, error) {
+func NewWindow(title string, width, height int) (*Window, error) {
 
 	// Creates graphics backend native window
 	w := new(Window)

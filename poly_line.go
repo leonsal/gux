@@ -1,4 +1,4 @@
-package window
+package gux
 
 import (
 	"math"

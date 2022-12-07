@@ -1,4 +1,4 @@
-package window
+package gux
 
 // IView is the interface for all Views
 type IView interface {

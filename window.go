@@ -62,6 +62,8 @@ func NewWindow(title string, width, height int) (*Window, error) {
 	w.drawFlags |= DrawListFlags_AntiAliasedFill
 	w.FringeScale = 1.0
 
+	w.dlData = NewDrawListSharedData()
+
 	return w, nil
 }
 

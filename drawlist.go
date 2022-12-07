@@ -1,6 +1,10 @@
 package gux
 
-import "github.com/leonsal/gux/gb"
+import (
+	"math"
+
+	"github.com/leonsal/gux/gb"
+)
 
 const (
 	DrawListCircleAutoSegmentMin = 4
@@ -22,9 +26,16 @@ type DrawListSharedData struct {
 
 func NewDrawListSharedData() *DrawListSharedData {
 
-	dlsd := new(DrawListSharedData)
+	sd := new(DrawListSharedData)
 
-	return dlsd
+	for i := 0; i < len(sd.ArcFastVtx); i++ {
+		a := (float32(i) * 2 * math.Pi) / float32(len(sd.ArcFastVtx))
+		sd.ArcFastVtx[i] = gb.Vec2{Cos(a), Sin(a)}
+
+	}
+	sd.ArcFastRadiusCutoff = float32(drawListCircleAutoSegmentCalc(DrawListArcFastSampleMax, sd.CircleSegmentMaxError))
+
+	return sd
 
 }
 
@@ -113,8 +124,12 @@ func roundupToEven(v int) int {
 	return ((v + 1) / 2 * 2)
 }
 
-// #define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC(_RAD,_MAXERROR)    ImClamp(IM_ROUNDUP_TO_EVEN((int)ImCeil(IM_PI / ImAcos(1 - ImMin((_MAXERROR), (_RAD)) / (_RAD)))), IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MIN, IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MAX)
-func drawListCircleAutoSegmentCalc(rad, maxerror float32) {
+// #define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC(_RAD,_MAXERROR)
+//
+//	ImClamp(IM_ROUNDUP_TO_EVEN((int)ImCeil(IM_PI / ImAcos(1 - ImMin((_MAXERROR), (_RAD)) / (_RAD)))), IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MIN, IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MAX)
+func drawListCircleAutoSegmentCalc(rad, maxerror float32) int {
+
+	return Clamp(roundupToEven(int(math.Ceil(math.Pi/math.Cos(float64(1-Min(maxerror, rad)/rad))))), DrawListCircleAutoSegmentMin, DrawListCircleAutoSegmentMax)
 
 }
 

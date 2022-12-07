@@ -31,14 +31,17 @@ const (
 
 // Window corresponds to a native platform Window
 type Window struct {
-	gbw         *gb.Window                    // Graphics backend native window reference
-	dl          gb.DrawList                   // Draw list to render
+	gbw *gb.Window  // Graphics backend native window reference
+	dl  gb.DrawList // Draw list to render
+
 	TexWhiteId  gb.TextureId                  // Texture with white opaque pixel
 	TexLinesId  gb.TextureId                  // Texture for lines
 	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 	FringeScale float32                       // Used for AA
 	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
 	drawFlags   DrawListFlags                 // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
+
+	dlData *DrawListSharedData
 }
 
 // New creates and returns a new Window

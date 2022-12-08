@@ -45,26 +45,26 @@ typedef struct gb_vertex {
 typedef struct gb_draw_cmd {
     gb_vec4_t       clip_rect;      // Clip rectangle
     gb_texid_t      texid;          // Texture id
-    unsigned int    idx_offset;     // Start offset in index buffer
-    unsigned int    vtx_offset;     // Start offset in vertex buffer
-    unsigned int    elem_count;     // Number of indices
+    uint32_t        idx_offset;     // Start offset in index buffer
+    uint32_t        vtx_offset;     // Start offset in vertex buffer
+    uint32_t        elem_count;     // Number of indices
 } gb_draw_cmd_t;
 
 // List of draw commands and buffers of vertices indices/positions
 typedef struct gb_draw_list {
 	gb_draw_cmd_t*  buf_cmd;        // Draw command buffer
-    unsigned int    cmd_count;      // Total number of commands
-	unsigned int*   buf_idx;        // Indices buffer
-    unsigned int    idx_count;      // Total number of indices
+    uint32_t        cmd_count;      // Total number of commands
+	uint32_t*       buf_idx;        // Indices buffer
+    uint32_t        idx_count;      // Total number of indices
 	gb_vertex_t*    buf_vtx;        // Vertices info buffer
-    unsigned int    vtx_count;      // Total number of vertices
+    uint32_t        vtx_count;      // Total number of vertices
 } gb_draw_list_t;
 
 // Single generic event
 typedef struct gb_event {
-    unsigned int type;              // Event type
-    unsigned int argint[4];         // Integer arguments
-    float        argfloat[2];       // Float parameters
+    uint32_t        type;           // Event type
+    int32_t         argint[4];      // Integer arguments
+    float           argfloat[2];    // Float parameters
 } gb_event_t;
 
 // Event types

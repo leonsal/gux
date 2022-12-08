@@ -18,17 +18,20 @@
 
 // Internal state
 typedef struct {
-    GLFWwindow* w;                  // GLFW window pointer
-    gb_vec4_t   clear_color;        // Current color to clear color buffer before rendering
-    GLuint      handle_shader;      // Handle of compiled shader program
-    GLint       uni_tex;            // Location of texture id uniform in the shader
-    GLint       uni_projmtx;        // Location of projection matrix uniform the shader
-    GLint       attrib_vtx_pos;     // Location of vertex position attribute in the shader
-    GLint       attrib_vtx_uv;      // Location of vertex uv attribute in the shader
-    GLint       attrib_vtx_color;   // Location of vertex color attribute in the shader
-    unsigned int handle_vbo;        // Handle of vertex buffer object
-    unsigned int handle_elems;      // Handle of vertex elements object
-    GLint       vao;
+    GLFWwindow*     w;                  // GLFW window pointer
+    gb_vec4_t       clear_color;        // Current color to clear color buffer before rendering
+    GLuint          handle_shader;      // Handle of compiled shader program
+    GLint           uni_tex;            // Location of texture id uniform in the shader
+    GLint           uni_projmtx;        // Location of projection matrix uniform the shader
+    GLint           attrib_vtx_pos;     // Location of vertex position attribute in the shader
+    GLint           attrib_vtx_uv;      // Location of vertex uv attribute in the shader
+    GLint           attrib_vtx_color;   // Location of vertex color attribute in the shader
+    unsigned int    handle_vbo;         // Handle of vertex buffer object
+    unsigned int    handle_elems;       // Handle of vertex elements object
+    GLint           vao;
+    gb_event_t*     events;             // Pointer to events array
+    int             ev_count;           // Current number of valid events in the events array
+    int             ev_cap;             // Current capacity of events array
 } gb_state_t;
 
 
@@ -41,6 +44,14 @@ static void _gb_destroy_objects(gb_state_t* s);
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src);
 static bool _gb_check_program(GLuint handle, const char* desc);
 static void _gb_print_draw_list(gb_draw_list_t dl);
+static void _gb_set_ev_handlers(gb_state_t* s);
+static gb_event_t* _gb_ev_reserve(gb_state_t* s);
+static void _gb_key_callback(GLFWwindow* win, int key, int scancode, int action, int mods);
+static void _gb_char_callback(GLFWwindow* win, unsigned int codepoint);
+static void _gb_cursor_pos_callback(GLFWwindow* win, double xpos, double ypos);
+static void _gb_cursor_enter_callback(GLFWwindow* win, int entered);
+static void _gb_mouse_button_callback(GLFWwindow* win, int button, int action, int mods);
+static void _gb_scroll_callback(GLFWwindow* win, double xoffset, double yoffset);
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -94,6 +105,8 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         return NULL;
     }
     memset(s, 0, sizeof(gb_state_t));
+    s->w = win;
+    glfwSetWindowUserPointer(win, s);
 
     // Initialize OpenGL
     bool res = _gb_init(s, NULL);
@@ -102,11 +115,21 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         return NULL;
     }
 
-    s->w = win;
+    // Sets default clear color
     s->clear_color.x = 0.5;
     s->clear_color.y = 0.5;
     s->clear_color.z = 0.5;
     s->clear_color.w = 1.0;
+
+    // Allocates initial events array
+    s->ev_count = 0;
+    s->ev_cap = 1024;
+    s->events = malloc(sizeof(gb_event_t) * s->ev_cap);
+    if (s->events == NULL) {
+        fprintf(stderr, "No memory for events array");
+        return NULL;
+    }
+    _gb_set_ev_handlers(s);
     return s;
 }
 
@@ -115,6 +138,9 @@ void gb_window_destroy(gb_window_t bw) {
 
     gb_state_t* s = (gb_state_t*)(bw);
     glfwDestroyWindow(s->w);
+    free(s->events);
+    s->events = NULL;
+
     glfwTerminate();
     free(s);
 }
@@ -185,6 +211,24 @@ void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_color
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 }
 
+int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
+
+    // Transfer specified number of events
+    gb_state_t* s = (gb_state_t*)(win);
+    if (ev_count > s->ev_count) {
+        ev_count = s->ev_count;
+    }
+    memcpy(events, s->events, sizeof(gb_event_t) * ev_count);
+
+    // Shift remaining events to the start of the buffer
+    int remain = s->ev_count - ev_count;
+    if (remain > 0) {
+        memcpy(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
+    }
+    s->ev_count = remain;
+    return ev_count;
+}
+
 
 //-----------------------------------------------------------------------------
 // Internal functions
@@ -223,7 +267,7 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
     };
     glUniformMatrix4fv(s->uni_projmtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
-    _gb_print_draw_list(dl);
+    //_gb_print_draw_list(dl);
 
     for (int i = 0; i < dl.cmd_count; i++) {
         gb_draw_cmd_t cmd = dl.buf_cmd[i];
@@ -411,6 +455,8 @@ static void _gb_destroy_objects(gb_state_t* s) {
     }
 }
 
+
+
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src) {
 
     GLint status = 0, log_length = 0;
@@ -472,6 +518,112 @@ static void _gb_print_draw_list(gb_draw_list_t dl) {
             cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
     printf("\n");
+}
+
+// Setup GLFW event handlers
+static void _gb_set_ev_handlers(gb_state_t* s) {
+
+    glfwSetKeyCallback(s->w, _gb_key_callback);
+    glfwSetCharCallback(s->w, _gb_char_callback);
+    glfwSetCursorPosCallback(s->w, _gb_cursor_pos_callback);
+    glfwSetCursorEnterCallback(s->w, _gb_cursor_enter_callback);
+    glfwSetMouseButtonCallback(s->w, _gb_mouse_button_callback);
+    glfwSetScrollCallback(s->w, _gb_scroll_callback);
+}
+
+// Reserve event at the end of events array allocating memory if necessary and returns its pointer
+static gb_event_t* _gb_ev_reserve(gb_state_t* s) {
+
+    if (s->ev_count >= s->ev_cap) {
+        int new_cap = s->ev_cap + 128;
+        s->events = realloc(s->events, sizeof(gb_event_t) * new_cap);
+        if (s->events == NULL) {
+            fprintf(stderr, "No memory for events array");
+            return NULL;
+        }
+        s->ev_cap = new_cap;
+    }
+    printf("events:%d\n", s->ev_count + 1);
+    return &s->events[s->ev_count++];
+}
+
+// Appends GLFW key event to events array
+static void _gb_key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_KEY;
+    ev->argint[0] = key;
+    ev->argint[1] = scancode;
+    ev->argint[2] = action;
+    ev->argint[3] = mods;
+}
+
+// Appends GLFW characted event to events array
+static void _gb_char_callback(GLFWwindow* win, unsigned int codepoint) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_CHAR;
+    ev->argint[0] = codepoint;
+}
+
+// Appends GLFW cursor position event to events array
+static void _gb_cursor_pos_callback(GLFWwindow* win, double xpos, double ypos) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_CURSOR_POS;
+    ev->argfloat[0] = xpos;
+    ev->argfloat[1] = ypos;
+}
+
+// Appends GLFW cursor enter event to events array
+static void _gb_cursor_enter_callback(GLFWwindow* win, int entered) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_CURSOR_ENTER;
+    ev->argint[0] = entered;
+}
+
+// Appends GLFW mouse button event to events array
+static void _gb_mouse_button_callback(GLFWwindow* win, int button, int action, int mods) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_MOUSE_BUTTON;
+    ev->argint[0] = button;
+    ev->argint[1] = action;
+    ev->argint[2] = mods;
+}
+
+// Appends GLFW scroll event to events array
+static void _gb_scroll_callback(GLFWwindow* win, double xoffset, double yoffset) {
+
+    gb_state_t* s = (gb_state_t*)(glfwGetWindowUserPointer(win));
+    gb_event_t* ev = _gb_ev_reserve(s);
+    if (ev == NULL) {
+        return;
+    }
+    ev->type = EVENT_SCROLL;
+    ev->argfloat[0] = xoffset;
+    ev->argfloat[1] = yoffset;
 }
 
 

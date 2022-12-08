@@ -60,6 +60,23 @@ typedef struct gb_draw_list {
     unsigned int    vtx_count;      // Total number of vertices
 } gb_draw_list_t;
 
+// Single generic event
+typedef struct gb_event {
+    unsigned int type;              // Event type
+    unsigned int argint[4];         // Integer arguments
+    float        argfloat[2];       // Float parameters
+} gb_event_t;
+
+// Event types
+enum {
+    EVENT_KEY,                      // Key input event
+    EVENT_CHAR,                     // Character input event
+    EVENT_CURSOR_POS,               // Cursor position change event
+    EVENT_CURSOR_ENTER,             // Cursor enter/exit event
+    EVENT_MOUSE_BUTTON,             // Mouse button event
+    EVENT_SCROLL,                   // Scroll event (mouse wheel)
+};
+
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
 bool gb_window_start_frame(gb_window_t bw, double timeout);
@@ -67,5 +84,5 @@ void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
 gb_texid_t gb_create_texture();
 void gb_delete_texture(gb_texid_t texid);
 void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_color_t* data);
-
+int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count);
 

@@ -57,6 +57,12 @@ type DrawList struct {
 	Path   []Vec2    // Path being built
 }
 
+type Event struct {
+	Type     uint32
+	ArgInt   [4]int32
+	ArgFloat [2]float32
+}
+
 func MakeColor(r, g, b, a byte) Color {
 
 	return Color(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))
@@ -200,4 +206,10 @@ func (w *Window) DeleteTexture(texid TextureId) {
 func (w *Window) TransferTexture(texid TextureId, width, height int, data *Color) {
 
 	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_color_t)(data))
+}
+
+func (w *Window) GetEvents(events []Event) int {
+
+	count := C.gb_get_events(w.c, (*C.gb_event_t)(unsafe.Pointer(&events[0])), C.int(len(events)))
+	return int(count)
 }

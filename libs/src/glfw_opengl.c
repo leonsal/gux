@@ -215,6 +215,9 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 
     // Transfer specified number of events
     gb_state_t* s = (gb_state_t*)(win);
+    if (s->ev_count == 0) {
+        return 0;
+    }
     if (ev_count > s->ev_count) {
         ev_count = s->ev_count;
     }
@@ -223,7 +226,7 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
     // Shift remaining events to the start of the buffer
     int remain = s->ev_count - ev_count;
     if (remain > 0) {
-        memcpy(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
+        memmove(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
     }
     s->ev_count = remain;
     return ev_count;
@@ -543,7 +546,7 @@ static gb_event_t* _gb_ev_reserve(gb_state_t* s) {
         }
         s->ev_cap = new_cap;
     }
-    printf("events:%d\n", s->ev_count + 1);
+    //printf("events:%d\n", s->ev_count + 1);
     return &s->events[s->ev_count++];
 }
 

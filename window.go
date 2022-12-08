@@ -91,6 +91,11 @@ func (w *Window) AddList(src gb.DrawList) {
 	w.dl.AddList(src)
 }
 
+func (w *Window) GetEvents(events []gb.Event) int {
+
+	return w.gbw.GetEvents(events)
+}
+
 func (w *Window) Destroy() {
 
 	w.gbw.Destroy()

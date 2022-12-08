@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/leonsal/gux"
@@ -17,8 +18,11 @@ func main() {
 		panic(err)
 	}
 
+	events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
+		count := win.GetEvents(events)
+		fmt.Println("events:", count)
 		//testLines(win)
 		testPolygon(win)
 		win.Render()

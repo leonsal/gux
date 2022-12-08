@@ -17,15 +17,21 @@ typedef struct gb_config {
 typedef void* gb_window_t;
 
 typedef struct gb_vec2 {
-    float x; float y;
+    float x;
+    float y;
 } gb_vec2_t;
 
 typedef struct gb_vec3 {
-    float x; float y; float z;
+    float x;
+    float y;
+    float z;
 } gb_vec3_t;
 
 typedef struct gb_vec4 {
-    float x; float y; float z; float w;
+    float x;
+    float y;
+    float z;
+    float w;
 } gb_vec4_t;
 
 // Packed color containg RGBA components each as an unsigned byte

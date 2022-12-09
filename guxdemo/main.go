@@ -26,18 +26,11 @@ func main() {
 	}
 	fmt.Printf("font:%+v\n", f)
 	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
+	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(180)
 
-	// Create image with font
-	img := f.DrawText("Hello gjpq\nLine2\nLine3")
-	b := img.Bounds()
-	width := b.Dx()
-	height := b.Dy()
-
-	// Creates backend texture to store the image and transfer the image
-	texID := win.CreateTexture()
-	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
-	fmt.Println("width: ", width, "height:", height, "texID", texID)
+	// Create Texture with text
+	texID, width, height := createText(win, f, "Hello gjpq\n01234567890\nABCDEFGHIJKLMNOPQRSTUVWZ")
 
 	//events := make([]gb.Event, 256)
 	// Render loop
@@ -52,7 +45,22 @@ func main() {
 	win.Destroy()
 }
 
-func testText(w *gux.Window, texID gb.TextureId, width, height int) {
+func createText(win *gux.Window, f *gux.Font, text string) (gb.TextureId, float32, float32) {
+
+	// Create image and draw text on it
+	img := f.DrawText(text)
+	b := img.Bounds()
+	width := b.Dx()
+	height := b.Dy()
+
+	// Creates backend texture to store the image and transfer the image
+	texID := win.CreateTexture()
+	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
+	fmt.Println("width: ", width, "height:", height, "texID", texID)
+	return texID, float32(width), float32(height)
+}
+
+func testText(w *gux.Window, texID gb.TextureId, width, height float32) {
 
 	dl := w.DrawList()
 	cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
@@ -61,15 +69,15 @@ func testText(w *gux.Window, texID gb.TextureId, width, height int) {
 	bufVtx[0].UV = gb.Vec2{0, 0}
 	bufVtx[0].Col = gb.MakeColor(255, 255, 255, 255)
 
-	bufVtx[1].Pos = gb.Vec2{0, float32(height)}
+	bufVtx[1].Pos = gb.Vec2{0, height}
 	bufVtx[1].UV = gb.Vec2{0, 1}
 	bufVtx[1].Col = gb.MakeColor(255, 255, 255, 255)
 
-	bufVtx[2].Pos = gb.Vec2{float32(width), float32(height)}
+	bufVtx[2].Pos = gb.Vec2{width, height}
 	bufVtx[2].UV = gb.Vec2{1, 1}
 	bufVtx[2].Col = gb.MakeColor(255, 255, 255, 255)
 
-	bufVtx[3].Pos = gb.Vec2{float32(width), 0}
+	bufVtx[3].Pos = gb.Vec2{width, 0}
 	bufVtx[3].UV = gb.Vec2{1, 0}
 	bufVtx[3].Col = gb.MakeColor(255, 255, 255, 255)
 

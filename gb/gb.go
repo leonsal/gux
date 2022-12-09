@@ -43,8 +43,6 @@ const RGBAShiftA = 24
 // TextureId is the type for textures identifiers
 type TextureId uintptr
 
-// Mask for Color alpha
-
 // Vertex specifies information about a single vertex
 type Vertex struct {
 	Pos Vec2 // Position in screen coordinates
@@ -69,12 +67,14 @@ type DrawList struct {
 	Path   []Vec2    // Path being built
 }
 
+// Event describes an I/O event
 type Event struct {
-	Type     uint32
-	ArgInt   [4]int32
-	ArgFloat [2]float32
+	Type     uint32     // Event type
+	ArgInt   [4]int32   // Signed integer arguments
+	ArgFloat [2]float32 // Float arguments
 }
 
+// MakeColor makes and returns an RGBA packed color from the specified components
 func MakeColor(r, g, b, a byte) RGBA {
 
 	return RGBA(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))

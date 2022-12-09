@@ -203,7 +203,7 @@ void gb_delete_texture(gb_texid_t texid) {
 }
 
 // Transfer data for the specified texture
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_color_t* data) {
+void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
 
     GLuint tex = (GLuint)(texid);
     glBindTexture(GL_TEXTURE_2D, tex);

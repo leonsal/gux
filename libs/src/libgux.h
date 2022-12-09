@@ -35,7 +35,7 @@ typedef struct gb_vec4 {
 } gb_vec4_t;
 
 // Packed color containg RGBA components each as an unsigned byte
-typedef unsigned int gb_color_t;
+typedef uint32_t gb_rgba_t;
 
 // Texture id
 typedef intptr_t gb_texid_t;
@@ -44,7 +44,7 @@ typedef intptr_t gb_texid_t;
 typedef struct gb_vertex {
     gb_vec2_t  pos;                 // Vertex position in screen coordinates
     gb_vec2_t  uv;                  // Texture coordinates
-    gb_color_t col;                 // Color as an uint32
+    gb_rgba_t col;                 // Color as an uint32
 } gb_vertex_t;
 
 // Single draw command
@@ -89,6 +89,6 @@ bool gb_window_start_frame(gb_window_t bw, double timeout);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
 gb_texid_t gb_create_texture();
 void gb_delete_texture(gb_texid_t texid);
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_color_t* data);
+void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data);
 int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count);
 

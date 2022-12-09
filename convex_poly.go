@@ -5,7 +5,7 @@ import (
 )
 
 // AddConvexPolyFilled adds a filled convex polygon to draw list
-func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.Color) {
+func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA) {
 
 	pointsCount := len(points)
 	if pointsCount < 3 {
@@ -15,7 +15,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.C
 	if (w.drawFlags & DrawListFlags_AntiAliasedFill) != 0 {
 
 		AA_SIZE := w.FringeScale
-		colTrans := gb.Color(col & ^gb.ColorMaskA)
+		colTrans := gb.RGBA(col & ^gb.RGBAMaskA)
 
 		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6

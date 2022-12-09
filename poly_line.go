@@ -6,16 +6,16 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-func (w *Window) AddPolyLine(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
+func (w *Window) AddPolyLine(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
 
 	//c.polyLineBasic(points, col, flags, thickness)
 }
 
-func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
+func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
 
 	// Anti-aliased stroke
 	AA_SIZE := w.FringeScale
-	colTrans := gb.Color(col & ^gb.ColorMaskA)
+	colTrans := gb.RGBA(col & ^gb.RGBAMaskA)
 	var closed bool
 	if (flags & DrawFlag_Closed) != 0 {
 		closed = true
@@ -278,7 +278,7 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 	dl.AdjustIdx(cmd)
 }
 
-func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.Color, flags DrawFlags, thickness float32) {
+func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
 
 	/*
 		- 2 vertices per point

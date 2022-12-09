@@ -63,6 +63,18 @@ func NewFontFromData(fontData []byte) (*Font, error) {
 	return f, nil
 }
 
+//// SetFgColor sets the text color.
+//func (f *Font) SetFgColor(color *math32.Color4) {
+//
+//	f.fg = image.NewUniform(Color4RGBA(color))
+//}
+//
+//// SetBgColor sets the background color.
+//func (f *Font) SetBgColor(color *math32.Color4) {
+//
+//	f.bg = image.NewUniform(Color4RGBA(color))
+//}
+
 // MeasureText returns the minimum width and height in pixels necessary for an image to contain
 // the specified text. The supplied text string can contain line break escape sequences (\n).
 func (f *Font) MeasureText(text string) (int, int) {

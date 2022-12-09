@@ -82,13 +82,13 @@ func (w *Window) PathLineTo(dl *gb.DrawList, pos gb.Vec2) {
 
 // PathFillConvex adds to the drawlist a filled convex polygon with the points in the drawlist current path.
 // The path is cleared.
-func (w *Window) PathFillConvex(dl *gb.DrawList, col gb.Color) {
+func (w *Window) PathFillConvex(dl *gb.DrawList, col gb.RGBA) {
 
 	w.AddConvexPolyFilled(dl, dl.Path, col)
 	w.PathClear(dl)
 }
 
-func (w *Window) PathStroke(dl *gb.DrawList, col gb.Color, flags DrawFlags, thickness float32) {
+func (w *Window) PathStroke(dl *gb.DrawList, col gb.RGBA, flags DrawFlags, thickness float32) {
 
 	w.AddPolyLine(dl, dl.Path, col, flags, thickness)
 	w.PathClear(dl)
@@ -106,9 +106,9 @@ func (w *Window) PathRect(dl *gb.DrawList, rectMin, rectMax gb.Vec2, rounding fl
 
 }
 
-func (w *Window) AddLine(dl *gb.DrawList, p1, p2 gb.Vec2, col gb.Color, thickness float32) {
+func (w *Window) AddLine(dl *gb.DrawList, p1, p2 gb.Vec2, col gb.RGBA, thickness float32) {
 
-	if (col & gb.ColorMaskA) == 0 {
+	if (col & gb.RGBAMaskA) == 0 {
 		return
 	}
 	w.PathLineTo(dl, gb.Vec2Add(p1, gb.Vec2{0.5, 0.5}))

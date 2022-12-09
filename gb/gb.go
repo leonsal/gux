@@ -26,18 +26,20 @@ type Vec4 struct {
 }
 
 // Packed RGBA color from LSB to MSB
-type Color uint32
+type RGBA uint32
+
+// Bit mask for RGPBA color alpha component
+const RGBAMaskA RGBA = 0xFF_00_00_00
 
 type TextureId uintptr
 
 // Mask for Color alpha
-const ColorMaskA Color = 0xFF_00_00_00
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
-	Pos Vec2  // Position in screen coordinates
-	UV  Vec2  // Texture coordinates (only relevant if texture used)
-	Col Color // RGBA packed color
+	Pos Vec2 // Position in screen coordinates
+	UV  Vec2 // Texture coordinates (only relevant if texture used)
+	Col RGBA // RGBA packed color
 }
 
 // DrawCmd specifies a single draw command
@@ -63,9 +65,9 @@ type Event struct {
 	ArgFloat [2]float32
 }
 
-func MakeColor(r, g, b, a byte) Color {
+func MakeColor(r, g, b, a byte) RGBA {
 
-	return Color(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))
+	return RGBA(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))
 }
 
 // ReserveCmd creates and appends a DrawCmd into the DrawList
@@ -203,9 +205,9 @@ func (w *Window) DeleteTexture(texid TextureId) {
 }
 
 // TransferTexture transfers data to the texture
-func (w *Window) TransferTexture(texid TextureId, width, height int, data *Color) {
+func (w *Window) TransferTexture(texid TextureId, width, height int, data *RGBA) {
 
-	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_color_t)(data))
+	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_rgba_t)(data))
 }
 
 func (w *Window) GetEvents(events []Event) int {

@@ -117,7 +117,7 @@ func (w *Window) ReserveVec2(count int) []gb.Vec2 {
 func (w *Window) buildTexWhite() {
 
 	// Creates image with one white opaque pixel
-	var rect [1]gb.Color
+	var rect [1]gb.RGBA
 	rect[0] = gb.MakeColor(255, 255, 255, 255)
 
 	// Creates and transfer texture
@@ -151,7 +151,7 @@ func (w *Window) buildTexLines() {
 
 	width := TexLinesWidthMax + 2
 	height := TexLinesWidthMax + 1
-	rect := make([]gb.Color, width*height)
+	rect := make([]gb.RGBA, width*height)
 	uvScale := gb.Vec2{1 / float32(width), 1 / float32(height)}
 	for n := 0; n < height; n++ {
 

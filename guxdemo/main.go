@@ -18,6 +18,12 @@ func main() {
 		panic(err)
 	}
 
+	f, err := gux.NewFont("assets/Roboto-Medium.ttf")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("font:%+v\n", f)
+
 	events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {

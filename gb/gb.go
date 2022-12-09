@@ -25,12 +25,22 @@ type Vec4 struct {
 	W float32
 }
 
-// Packed RGBA color from LSB to MSB
+// RGBA is a packed color
 type RGBA uint32
 
-// Bit mask for RGPBA color alpha component
+// Bit masks for RGBA color components
+const RGBAMaskR RGBA = 0x00_00_00_FF
+const RGBAMaskG RGBA = 0x00_00_FF_00
+const RGBAMaskB RGBA = 0x00_FF_00_00
 const RGBAMaskA RGBA = 0xFF_00_00_00
 
+// Bit shifts for RGBA color components
+const RGBAShiftR = 0
+const RGBAShiftG = 8
+const RGBAShiftB = 16
+const RGBAShiftA = 24
+
+// TextureId is the type for textures identifiers
 type TextureId uintptr
 
 // Mask for Color alpha

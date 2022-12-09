@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime"
+	"unsafe"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -18,22 +19,67 @@ func main() {
 		panic(err)
 	}
 
+	// Create font
 	f, err := gux.NewFont("assets/Roboto-Medium.ttf")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("font:%+v\n", f)
+	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
+	f.SetPointSize(180)
 
-	events := make([]gb.Event, 256)
+	// Create image with font
+	img := f.DrawText("Hello gjpq\nLine2\nLine3")
+	b := img.Bounds()
+	width := b.Dx()
+	height := b.Dy()
+
+	// Creates backend texture to store the image and transfer the image
+	texID := win.CreateTexture()
+	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
+	fmt.Println("width: ", width, "height:", height, "texID", texID)
+
+	//events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
-		count := win.GetEvents(events)
-		fmt.Println("events:", count)
+		testText(win, texID, width, height)
+		//count := win.GetEvents(events)
+		//fmt.Println("events:", count)
 		//testLines(win)
-		testPolygon(win)
+		//testPolygon(win)
 		win.Render()
 	}
 	win.Destroy()
+}
+
+func testText(w *gux.Window, texID gb.TextureId, width, height int) {
+
+	dl := w.DrawList()
+	cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
+	cmd.TexId = texID
+	bufVtx[0].Pos = gb.Vec2{0, 0}
+	bufVtx[0].UV = gb.Vec2{0, 0}
+	bufVtx[0].Col = gb.MakeColor(255, 255, 255, 255)
+
+	bufVtx[1].Pos = gb.Vec2{0, float32(height)}
+	bufVtx[1].UV = gb.Vec2{0, 1}
+	bufVtx[1].Col = gb.MakeColor(255, 255, 255, 255)
+
+	bufVtx[2].Pos = gb.Vec2{float32(width), float32(height)}
+	bufVtx[2].UV = gb.Vec2{1, 1}
+	bufVtx[2].Col = gb.MakeColor(255, 255, 255, 255)
+
+	bufVtx[3].Pos = gb.Vec2{float32(width), 0}
+	bufVtx[3].UV = gb.Vec2{1, 0}
+	bufVtx[3].Col = gb.MakeColor(255, 255, 255, 255)
+
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+	dl.AdjustIdx(cmd)
 }
 
 func testLines(w *gux.Window) {

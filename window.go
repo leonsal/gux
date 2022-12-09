@@ -101,6 +101,16 @@ func (w *Window) Destroy() {
 	w.gbw.Destroy()
 }
 
+func (w *Window) CreateTexture() gb.TextureId {
+
+	return w.gbw.CreateTexture()
+}
+
+func (w *Window) TransferTexture(texid gb.TextureId, width, height int, data *gb.RGBA) {
+
+	w.gbw.TransferTexture(texid, width, height, data)
+}
+
 // ReserveVec2 reserves 'count' gb.Vec2 entries in internal Vec2 buffer
 // returning a slice to access these entries
 func (w *Window) ReserveVec2(count int) []gb.Vec2 {

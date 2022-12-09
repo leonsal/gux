@@ -1,12 +1,15 @@
 package gux
 
 import (
+	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"io/ioutil"
 	"strings"
 
 	"github.com/golang/freetype/truetype"
+	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -43,15 +46,16 @@ func NewFontFromData(fontData []byte) (*Font, error) {
 		return nil, err
 	}
 
+	// Create font and initialize with default values
 	f := new(Font)
 	f.ttf = ttf
-
-	// Initialize with default values
-	f.pointSize = 12
+	//f.pointSize = 18
+	f.pointSize = 60
 	f.dpi = 72
 	f.lineSpacing = 1.0
 	f.hinting = font.HintingNone
-	//f.SetColor(&math32.Color4{0, 0, 0, 1})
+	f.fg = image.Black
+	f.bg = image.Transparent
 
 	// Create font face
 	f.face = truetype.NewFace(f.ttf, &truetype.Options{
@@ -63,17 +67,24 @@ func NewFontFromData(fontData []byte) (*Font, error) {
 	return f, nil
 }
 
-//// SetFgColor sets the text color.
-//func (f *Font) SetFgColor(color *math32.Color4) {
-//
-//	f.fg = image.NewUniform(Color4RGBA(color))
-//}
-//
-//// SetBgColor sets the background color.
-//func (f *Font) SetBgColor(color *math32.Color4) {
-//
-//	f.bg = image.NewUniform(Color4RGBA(color))
-//}
+// SetFgColor sets the text color.
+func (f *Font) SetFgColor(col gb.RGBA) {
+
+	f.fg = image.NewUniform(ConvRGBA(col))
+}
+
+// SetBgColor sets the background color.
+func (f *Font) SetBgColor(col gb.RGBA) {
+
+	f.bg = image.NewUniform(ConvRGBA(col))
+}
+
+// SetPointSize sets the point size of the font.
+func (f *Font) SetPointSize(size float64) {
+
+	f.pointSize = size
+	f.changed = true
+}
 
 // MeasureText returns the minimum width and height in pixels necessary for an image to contain
 // the specified text. The supplied text string can contain line break escape sequences (\n).
@@ -107,11 +118,15 @@ func (f *Font) MeasureText(text string) (int, int) {
 // DrawText draws the specified text on a new, tightly fitting image, and returns a pointer to the image.
 func (f *Font) DrawText(text string) *image.RGBA {
 
+	// Create image with the dimensions of the text area
 	width, height := f.MeasureText(text)
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(img, img.Bounds(), f.bg, image.ZP, draw.Src)
-	f.DrawTextOnImage(text, 0, 0, img)
 
+	// Draws the background color of image
+	draw.Draw(img, img.Bounds(), f.bg, image.ZP, draw.Src)
+
+	// Draws the text as the foreground color
+	f.DrawTextOnImage(text, 0, 0, img)
 	return img
 }
 
@@ -135,6 +150,17 @@ func (f *Font) DrawTextOnImage(text string, x, y int, dst *image.RGBA) {
 			py += lineGap
 		}
 	}
+}
+
+// ConvRGBA converts an gb.RGBA color to image/color.RGBA
+func ConvRGBA(col gb.RGBA) color.RGBA {
+
+	red := uint8((col & gb.RGBAMaskR) >> gb.RGBAShiftR)
+	green := uint8((col & gb.RGBAMaskG) >> gb.RGBAShiftG)
+	blue := uint8((col & gb.RGBAMaskB) >> gb.RGBAShiftB)
+	alpha := uint8((col & gb.RGBAMaskA) >> gb.RGBAShiftA)
+	fmt.Printf("gb.RGBA:%08X  color.RGBA:%+v\n", col, color.RGBA{red, green, blue, alpha})
+	return color.RGBA{red, green, blue, alpha}
 }
 
 // updateFace updates the font face if parameters have changed.

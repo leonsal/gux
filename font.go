@@ -1,7 +1,6 @@
 package gux
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -159,7 +158,6 @@ func ConvRGBA(col gb.RGBA) color.RGBA {
 	green := uint8((col & gb.RGBAMaskG) >> gb.RGBAShiftG)
 	blue := uint8((col & gb.RGBAMaskB) >> gb.RGBAShiftB)
 	alpha := uint8((col & gb.RGBAMaskA) >> gb.RGBAShiftA)
-	fmt.Printf("gb.RGBA:%08X  color.RGBA:%+v\n", col, color.RGBA{red, green, blue, alpha})
 	return color.RGBA{red, green, blue, alpha}
 }
 

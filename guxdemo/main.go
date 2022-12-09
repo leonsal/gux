@@ -25,7 +25,7 @@ func main() {
 	}
 	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
-	f.SetPointSize(180)
+	f.SetPointSize(120)
 
 	// Create Texture with text
 	texID, width, height := createText(win, f, `Hello Text: 01234567890
@@ -61,7 +61,7 @@ func createText(win *gux.Window, f *gux.Font, text string) (gb.TextureId, float3
 
 func testText(w *gux.Window, texID gb.TextureId, width, height float32) {
 	//
-	//    UV coordinates adjustment
+	//    OpenGL UV coordinates adjustment
 	//
 	//	  0,1    1,1      0,0    1,0
 	// 0 +------+ 3       +------+

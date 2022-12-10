@@ -11,7 +11,7 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-// CharInfo contains the information to locate a character in an Atlas
+// CharInfo contains the information to locate a character in an FontAtlas
 type CharInfo struct {
 	X      int        // Position X in pixels in the sheet image from left to right
 	Y      int        // Position Y in pixels in the sheet image from top to bottom
@@ -20,8 +20,8 @@ type CharInfo struct {
 	UV     [4]gb.Vec2 // UV coordinates for char quad vertices
 }
 
-// Atlas represents an image containing characters and the information about their location in the image
-type Atlas struct {
+// FontAtlas represents an image containing characters and the information about their location in the image
+type FontAtlas struct {
 	Chars   []CharInfo
 	Image   *image.RGBA
 	Height  int // Recommended vertical space between two lines of text
@@ -29,10 +29,10 @@ type Atlas struct {
 	Descent int // Distance from the bottom of a line to its baseline
 }
 
-// NewAtlas returns a pointer to a new Atlas object
-func NewAtlas(font *Font, first, last rune) *Atlas {
+// NewFontAtlas returns a pointer to a new FontAtlas object
+func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
-	a := new(Atlas)
+	a := new(FontAtlas)
 	a.Chars = make([]CharInfo, last+1)
 
 	// Get font metrics
@@ -42,7 +42,7 @@ func NewAtlas(font *Font, first, last rune) *Atlas {
 	a.Descent = int(metrics.Descent >> 6)
 	fmt.Printf("Font height:%d Font ascent:%d Font descent:%d\n", a.Height, a.Ascent, a.Descent)
 
-	const cols = 2
+	const maxCols = 16
 	col := 0
 	encoded := make([]byte, 4)
 	line := []byte{}
@@ -78,7 +78,7 @@ func NewAtlas(font *Font, first, last rune) *Atlas {
 
 		// Checks end of the current line
 		col++
-		if col >= cols {
+		if col >= maxCols {
 			nlines++
 			lines += string(line) + "\n"
 			line = []byte{}
@@ -104,14 +104,14 @@ func NewAtlas(font *Font, first, last rune) *Atlas {
 		}
 	}
 
-	// Draw atlas image
+	// Generates atlas image
 	fmt.Println("LINES:", lines)
 	a.Image = font.DrawText(lines)
 	return a
 }
 
 // SavePNG saves the current atlas image as a PNG image file
-func (a *Atlas) SavePNG(filename string) error {
+func (a *FontAtlas) SavePNG(filename string) error {
 
 	// Save that RGBA image to disk.
 	outFile, err := os.Create(filename)

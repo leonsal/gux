@@ -14,9 +14,17 @@ func Test1(t *testing.T) {
 		panic(err)
 	}
 
+	// Creates image with one white opaque pixel
+	var rect [1]RGBA
+	rect[0] = MakeColor(255, 255, 255, 255)
+
+	// Creates and transfer texture
+	texId := win.CreateTexture()
+	win.TransferTexture(texId, 1, 1, &rect[0])
+
 	// DrawList 1
 	drawList1 := DrawList{}
-	drawList1.AddCmd(Vec4{}, 0,
+	drawList1.AddCmd(Vec4{}, 1,
 		[]uint32{0, 1, 2, 2, 3, 0},
 		[]Vertex{
 			Vertex{Pos: Vec2{10, 10}, Col: 0xFF_FF_00_00},
@@ -25,7 +33,7 @@ func Test1(t *testing.T) {
 			Vertex{Pos: Vec2{200, 10}, Col: 0xFF_FF_00_00},
 		},
 	)
-	drawList1.AddCmd(Vec4{}, 0,
+	drawList1.AddCmd(Vec4{}, 1,
 		[]uint32{0, 1, 2, 2, 3, 0},
 		[]Vertex{
 			Vertex{Pos: Vec2{500, 0}, Col: 0xFF_00_00_FF},
@@ -37,7 +45,7 @@ func Test1(t *testing.T) {
 
 	// DrawList 2
 	drawList2 := DrawList{}
-	drawList2.AddCmd(Vec4{}, 0,
+	drawList2.AddCmd(Vec4{}, 1,
 		[]uint32{0, 1, 2},
 		[]Vertex{
 			Vertex{Pos: Vec2{200, 800}, Col: 0xFF_00_00_FF},
@@ -45,7 +53,7 @@ func Test1(t *testing.T) {
 			Vertex{Pos: Vec2{300, 600}, Col: 0xFF_FF_00_00},
 		},
 	)
-	drawList2.AddCmd(Vec4{}, 0,
+	drawList2.AddCmd(Vec4{}, 1,
 		[]uint32{0, 1, 2},
 		[]Vertex{
 			Vertex{Pos: Vec2{700, 800}, Col: 0xFF_00_00_FF},

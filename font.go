@@ -66,6 +66,13 @@ func NewFontFromData(fontData []byte) (*Font, error) {
 	return f, nil
 }
 
+// Metrics returns the font metrics.
+func (f *Font) Metrics() font.Metrics {
+
+	f.updateFace()
+	return f.face.Metrics()
+}
+
 // SetFgColor sets the text color.
 func (f *Font) SetFgColor(col gb.RGBA) {
 

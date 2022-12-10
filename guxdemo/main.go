@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
 	"unsafe"
 
@@ -27,15 +28,23 @@ func main() {
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(120)
 
-	// Create Texture with text
-	texID, width, height := createText(win, f, `Hello Text: 01234567890
-abcdefghijklmnopqrstuvwxyz
-ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
+	// Create atlas
+	//atlas := gux.NewAtlas(f, ' ', '~')
+	atlas := gux.NewAtlas(f, 'A', 'D')
+	err = atlas.SavePNG("atlas.png")
+	if err != nil {
+		fmt.Println("SAVE ERROR:", err)
+	}
+
+	//	// Create Texture with text
+	//	texID, width, height := createText(win, f, `Hello Text: 01234567890
+	//abcdefghijklmnopqrstuvwxyz
+	//ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
 
 	//events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
-		testText(win, texID, width, height)
+		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
 		//testLines(win)

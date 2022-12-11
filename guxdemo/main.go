@@ -26,7 +26,7 @@ func main() {
 	}
 	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
-	f.SetPointSize(120)
+	f.SetPointSize(164)
 
 	// Create atlas
 	fa := gux.NewFontAtlas(f, ' ', '~')
@@ -34,6 +34,8 @@ func main() {
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
 	}
+
+	texId, _, _ := createAtlasTexture(win, fa)
 
 	//	// Create Texture with text
 	//	texID, width, height := createText(win, f, `Hello Text: 01234567890
@@ -43,6 +45,7 @@ func main() {
 	//events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
+		testAtlas(win, fa, texId, "Aa")
 		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
@@ -51,6 +54,58 @@ func main() {
 		win.Render()
 	}
 	win.Destroy()
+}
+
+func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string) {
+
+	white := gb.MakeColor(255, 255, 255, 255)
+	codes := []rune(text)
+	posX := float32(0)
+	for _, c := range codes {
+
+		charInfo := fa.Chars[c]
+		fmt.Printf("char: %v Info:%+v\n", c, charInfo)
+		dl := w.DrawList()
+		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
+		cmd.TexId = texId
+		bufVtx[0].Pos = gb.Vec2{posX, 0}
+		bufVtx[0].UV = charInfo.UV[0]
+		bufVtx[0].Col = white
+
+		bufVtx[1].Pos = gb.Vec2{posX, float32(charInfo.Height) - 1}
+		bufVtx[1].UV = charInfo.UV[1]
+		bufVtx[1].Col = white
+
+		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width) - 1, float32(charInfo.Height - 1)}
+		bufVtx[2].UV = charInfo.UV[2]
+		bufVtx[2].Col = white
+
+		bufVtx[3].Pos = gb.Vec2{posX + float32(charInfo.Width-1), 0}
+		bufVtx[3].UV = charInfo.UV[3]
+		bufVtx[3].Col = white
+
+		bufIdx[0] = 0
+		bufIdx[1] = 1
+		bufIdx[2] = 2
+		bufIdx[3] = 2
+		bufIdx[4] = 3
+		bufIdx[5] = 0
+		dl.AdjustIdx(cmd)
+		posX += float32(charInfo.Width - 1)
+	}
+
+}
+func createAtlasTexture(win *gux.Window, fa *gux.FontAtlas) (gb.TextureId, float32, float32) {
+
+	img := fa.Image
+	b := img.Bounds()
+	width := b.Dx()
+	height := b.Dy()
+
+	// Creates backend texture to store the image and transfer the image
+	texID := win.CreateTexture()
+	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
+	return texID, float32(width), float32(height)
 }
 
 func createText(win *gux.Window, f *gux.Font, text string) (gb.TextureId, float32, float32) {

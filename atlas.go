@@ -92,13 +92,17 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	// Calculate UV coordinates for each char
 	imgWidth := float32(maxWidth)
 	imgHeight := float32(height)
-	fmt.Println("imgWidth:", imgWidth, "imgHeight:", imgHeight)
+	//fmt.Println("imgWidth:", imgWidth, "imgHeight:", imgHeight)
 	for i := 0; i < len(a.Chars); i++ {
 		char := &a.Chars[i]
-		char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
-		char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
-		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
-		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
+		//char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
+		//char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
+		//char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
+		//char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
+		char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y) / imgHeight)}
+		char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
+		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
+		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
 		if i >= 65 {
 			fmt.Printf("i:%d char:%+v\n", i, char)
 		}

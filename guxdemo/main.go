@@ -30,6 +30,7 @@ func main() {
 
 	// Create atlas
 	fa := gux.NewFontAtlas(f, ' ', '~')
+	//fa := gux.NewFontAtlas(f, 'Z', 'f')
 	err = fa.SavePNG("atlas.png")
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
@@ -45,7 +46,7 @@ func main() {
 	//events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
-		testAtlas(win, fa, texId, "Aa")
+		testAtlas(win, fa, texId, "$1AQap")
 		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
@@ -65,7 +66,7 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 	for _, c := range codes {
 
 		charInfo := fa.Chars[c]
-		fmt.Printf("char: %v Info:%+v\n", c, charInfo)
+		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
 		dl := w.DrawList()
 		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
 		cmd.TexId = texId

@@ -63,15 +63,17 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	lines := ""
 	maxWidth := 0
 	lastX := 0
-	//lastY := a.Descent
-	lastY := 0
+	lastY := a.Descent
+	//lastY := 0
 	nlines := 1
+
 	for code := first; code <= last; code++ {
 
 		// Encodes rune into UTF8, appends to current line and measure line width
 		count := utf8.EncodeRune(encoded, code)
 		line = append(line, encoded[:count]...)
-		lineWidth, _ := font.MeasureText(string(line))
+		lineWidth, lineHeight := font.MeasureText(string(line))
+		fmt.Println("lineHeight", lineHeight)
 
 		// Sets current code fields
 		cinfo := &a.Chars[code]
@@ -100,6 +102,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 			col = 0
 			lastX = 0
 			lastY += a.Height
+			//lastY += lineHeight
 		}
 	}
 	height := (nlines * a.Height) + a.Descent
@@ -119,7 +122,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
 		if i >= 65 {
-			fmt.Printf("i:%d char:%+v\n", i, char)
+			//fmt.Printf("i:%d char:%+v\n", i, char)
 		}
 	}
 

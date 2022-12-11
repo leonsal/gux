@@ -61,6 +61,7 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 	white := gb.MakeColor(255, 255, 255, 255)
 	codes := []rune(text)
 	posX := float32(0)
+	posY := float32(fa.Height)
 	for _, c := range codes {
 
 		charInfo := fa.Chars[c]
@@ -68,19 +69,19 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 		dl := w.DrawList()
 		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
 		cmd.TexId = texId
-		bufVtx[0].Pos = gb.Vec2{posX, 0}
+		bufVtx[0].Pos = gb.Vec2{posX, posY}
 		bufVtx[0].UV = charInfo.UV[0]
 		bufVtx[0].Col = white
 
-		bufVtx[1].Pos = gb.Vec2{posX, float32(charInfo.Height) - 1}
+		bufVtx[1].Pos = gb.Vec2{posX, posY + float32(charInfo.Height) - 1}
 		bufVtx[1].UV = charInfo.UV[1]
 		bufVtx[1].Col = white
 
-		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width) - 1, float32(charInfo.Height - 1)}
+		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width) - 1, posY + float32(charInfo.Height-1)}
 		bufVtx[2].UV = charInfo.UV[2]
 		bufVtx[2].Col = white
 
-		bufVtx[3].Pos = gb.Vec2{posX + float32(charInfo.Width-1), 0}
+		bufVtx[3].Pos = gb.Vec2{posX + float32(charInfo.Width-1), posY}
 		bufVtx[3].UV = charInfo.UV[3]
 		bufVtx[3].Col = white
 

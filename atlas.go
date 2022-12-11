@@ -32,6 +32,20 @@ type FontAtlas struct {
 // NewFontAtlas returns a pointer to a new FontAtlas object
 func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
+	//     Vertices indices for for each character quad
+	//
+	//     0       3
+	//     +-------+
+	//     |\      |
+	//     | \     |
+	//     |  \    |
+	//     |   \   |
+	//     |    \  |
+	//     |     \ |
+	//     |      \|
+	//     +-------+
+	//     1       2
+
 	a := new(FontAtlas)
 	a.Chars = make([]CharInfo, last+1)
 
@@ -49,7 +63,8 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	lines := ""
 	maxWidth := 0
 	lastX := 0
-	lastY := a.Descent
+	//lastY := a.Descent
+	lastY := 0
 	nlines := 1
 	for code := first; code <= last; code++ {
 

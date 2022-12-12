@@ -27,9 +27,6 @@ func main() {
 	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(148)
-	//for x := rune(0); x <= rune(255); x++ {
-	//	fmt.Printf("%v -> %v \n", x, f.Index(x))
-	//}
 
 	// Create atlas
 	//fa := gux.NewFontAtlas(f, 0, 0xff)
@@ -38,7 +35,7 @@ func main() {
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
 	}
-	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Height:", fa.Height, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
+	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
 
 	texId, _, _ := createAtlasTexture(win, fa)
 
@@ -111,7 +108,7 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, pos gb.Vec2
 	case TextVAlignBase:
 		posY = pos.Y - float32(fa.Ascent)
 	case TextVAlignBottom:
-		posY = pos.Y - float32(fa.LineHeight-1)
+		posY = pos.Y - float32(fa.LineHeight)
 	}
 
 	// For each rune in the text
@@ -120,7 +117,7 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, pos gb.Vec2
 		// Process new line
 		if c == 0x0A {
 			posX = pos.X
-			posY += float32(fa.LineHeight - 1)
+			posY += float32(fa.LineHeight)
 			continue
 		}
 

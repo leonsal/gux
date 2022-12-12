@@ -25,7 +25,6 @@ type FontAtlas struct {
 	Chars      map[rune]CharInfo // Maps rune code to correspondent CharInfo
 	Image      *image.RGBA       // Font atlas generated image
 	LineHeight int               // Total line height
-	Height     int               // Recommended vertical space between two lines of text
 	Ascent     int               // Distance from the top of a line to its base line
 	Descent    int               // Distance from the bottom of a line to its baseline
 }
@@ -52,9 +51,9 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
 	// Get font metrics
 	metrics := font.Metrics()
-	a.Height = int(metrics.Height >> 6)
-	a.Ascent = int(metrics.Ascent >> 6)
-	a.Descent = int(metrics.Descent >> 6)
+	a.Ascent = metrics.Ascent.Round()
+	a.Descent = metrics.Descent.Round()
+	a.LineHeight = a.Ascent + a.Descent
 
 	const maxCols = 32
 	col := 0
@@ -65,7 +64,6 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	lastX := 0
 	lastY := 0
 	nlines := 1
-	var lineHeight, lineWidth int
 	for code := first; code <= last; code++ {
 
 		// Ignore codes which doesn't have associate glyph in the font
@@ -76,14 +74,14 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		// Encodes rune into UTF8, appends to current line and measure line width
 		count := utf8.EncodeRune(encoded, code)
 		line = append(line, encoded[:count]...)
-		lineWidth, lineHeight = font.MeasureText(string(line))
+		lineWidth, _ := font.MeasureText(string(line))
 
 		// Sets current code fields
 		var cinfo CharInfo
 		cinfo.X = lastX
 		cinfo.Y = lastY
 		cinfo.Width = lineWidth - lastX - 1
-		cinfo.Height = lineHeight
+		cinfo.Height = a.LineHeight
 		lastX = lineWidth
 		a.Chars[code] = cinfo
 
@@ -106,11 +104,10 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 			line = []byte{}
 			col = 0
 			lastX = 0
-			lastY += lineHeight
+			lastY += a.LineHeight
 		}
 	}
-	height := nlines * lineHeight
-	a.LineHeight = lineHeight
+	height := nlines * a.LineHeight
 
 	// Calculate UV coordinates for each char
 	imgWidth := float32(maxWidth)

@@ -27,9 +27,9 @@ func main() {
 	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(148)
-	for x := rune(0); x <= rune(255); x++ {
-		fmt.Printf("%v -> %v \n", x, f.Index(x))
-	}
+	//for x := rune(0); x <= rune(255); x++ {
+	//	fmt.Printf("%v -> %v \n", x, f.Index(x))
+	//}
 
 	// Create atlas
 	fa := gux.NewFontAtlas(f, ' ', 'ÿ')

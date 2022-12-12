@@ -46,13 +46,13 @@ func main() {
 	//abcdefghijklmnopqrstuvwxyz
 	//ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
 
-	text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
-	1234567890()
-	abcdefghijklmnopqrstuvxyz
-	1234567890()
-	ABCDEFGHIJKLMNjPQRSTUVXYZ
-	éú
-	`
+	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
+	//1234567890()
+	//abcdefghijklmnopqrstuvxyz
+	//1234567890()
+	//ABCDEFGHIJKLMNjPQRSTUVXYZ
+	//éú
+	//`
 	//events := make([]gb.Event, 256)
 	// Render loop
 	var cgoCallsStart int64
@@ -61,7 +61,9 @@ func main() {
 
 	for win.StartFrame(0) {
 		//testAtlas(win, fa, texId, "$1AQap")
-		testAtlas(win, fa, texId, text)
+		testAtlas(win, fa, texId, gb.Vec2{50, 200}, TextVAlignTop, "top ")
+		testAtlas(win, fa, texId, gb.Vec2{250, 200}, TextVAlignBase, " base")
+		testAtlas(win, fa, texId, gb.Vec2{550, 200}, TextVAlignBottom, " bottom")
 		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
@@ -88,18 +90,35 @@ func main() {
 	win.Destroy()
 }
 
-func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string) {
+type TextVAlign int
+
+const (
+	TextVAlignTop    TextVAlign = 0
+	TextVAlignBase   TextVAlign = 1
+	TextVAlignBottom TextVAlign = 2
+)
+
+func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, pos gb.Vec2, align TextVAlign, text string) {
 
 	white := gb.MakeColor(255, 255, 255, 255)
-	posX := float32(0)
-	posY := float32(0)
+
+	posX := pos.X
+	var posY float32
+	switch align {
+	case TextVAlignTop:
+		posY = pos.Y
+	case TextVAlignBase:
+		posY = pos.Y - float32(fa.Ascent)
+	case TextVAlignBottom:
+		posY = pos.Y - float32(fa.LineHeight-1)
+	}
 
 	// For each rune in the text
 	for _, c := range text {
 
 		// Process new line
 		if c == 0x0A {
-			posX = float32(0)
+			posX = pos.X
 			posY += float32(fa.LineHeight - 1)
 			continue
 		}

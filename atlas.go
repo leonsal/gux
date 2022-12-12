@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/leonsal/gux/gb"
@@ -59,7 +60,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	col := 0
 	encoded := make([]byte, 4)
 	line := []byte{}
-	lines := ""
+	lines := strings.Builder{}
 	maxWidth := 0
 	lastX := 0
 	lastY := 0
@@ -92,7 +93,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		}
 
 		if code == last {
-			lines += string(line)
+			lines.WriteString(string(line))
 			break
 		}
 
@@ -100,7 +101,8 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		col++
 		if col >= maxCols {
 			nlines++
-			lines += string(line) + "\n"
+			lines.WriteString(string(line))
+			lines.WriteString("\n")
 			line = []byte{}
 			col = 0
 			lastX = 0
@@ -126,7 +128,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	}
 
 	// Generates atlas image
-	a.Image = font.DrawText(lines)
+	a.Image = font.DrawText(lines.String())
 	return a
 }
 

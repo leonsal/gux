@@ -29,8 +29,7 @@ func main() {
 	f.SetPointSize(148)
 
 	// Create atlas
-	//fa := gux.NewFontAtlas(f, ' ', 'ÿ')
-	fa := gux.NewFontAtlas(f, ' ', 0x400)
+	fa := gux.NewFontAtlas(f, ' ', 'ÿ')
 	err = fa.SavePNG("atlas.png")
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)

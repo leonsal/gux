@@ -89,14 +89,18 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 	white := gb.MakeColor(255, 255, 255, 255)
 	posX := float32(0)
 	posY := float32(0)
-	//lixo := make([]int, 2)
-	//fmt.Printf("%d", len(lixo))
 
+	// For each rune in the text
 	for _, c := range text {
 
+		// Process new line
 		if c == 0x0A {
 			posX = float32(0)
 			posY += float32(fa.LineHeight - 1)
+			continue
+		}
+		// Ignore other control charactes
+		if c < ' ' {
 			continue
 		}
 

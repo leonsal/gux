@@ -54,7 +54,6 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	a.Height = int(metrics.Height >> 6)
 	a.Ascent = int(metrics.Ascent >> 6)
 	a.Descent = int(metrics.Descent >> 6)
-	//fmt.Printf("Font height:%d Font ascent:%d Font descent:%d\n", a.Height, a.Ascent, a.Descent)
 
 	const maxCols = 32
 	col := 0
@@ -68,6 +67,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	var lineHeight, lineWidth int
 	for code := first; code <= last; code++ {
 
+		// Ignore codes which doesn't have associate glyph in the font
 		if font.Index(code) == 0 {
 			continue
 		}
@@ -114,10 +114,10 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	imgWidth := float32(maxWidth)
 	imgHeight := float32(height)
 	for code := first; code <= last; code++ {
-		if font.Index(code) == 0 {
+		char, ok := a.Chars[code]
+		if !ok {
 			continue
 		}
-		char := a.Chars[code]
 		char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y) / imgHeight)}
 		char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}

@@ -69,7 +69,7 @@ func main() {
 		//testPolygon(win)
 		win.Render()
 
-		// All the allocations are done in the first frame
+		// All the allocations should be done in the first frame
 		frameCount++
 		if frameCount == 1 {
 			cgoCallsStart = runtime.NumCgoCall()

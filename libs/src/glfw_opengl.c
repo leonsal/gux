@@ -313,6 +313,8 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glDisable(GL_STENCIL_TEST));
     GL_CALL(glEnable(GL_SCISSOR_TEST));
 
+    //GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+
     GL_CALL(glUseProgram(s->handle_shader));
     GL_CALL(glUniform1i(s->uni_tex, 0));
     

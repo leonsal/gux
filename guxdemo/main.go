@@ -26,7 +26,7 @@ func main() {
 	}
 	//f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
 	//f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
-	f.SetPointSize(32)
+	f.SetPointSize(148)
 
 	// Create atlas
 	fa := gux.NewFontAtlas(f, ' ', '~')
@@ -46,10 +46,15 @@ func main() {
 	text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
 1234567890()
 abcdefghijklmnopqrstuvxyz
+1234567890()
 ABCDEFGHIJKLMNjPQRSTUVXYZ
 `
 	//events := make([]gb.Event, 256)
 	// Render loop
+	var cgoCallsStart int64
+	var statsStart runtime.MemStats
+	frameCount := 0
+
 	for win.StartFrame(0) {
 		//testAtlas(win, fa, texId, "$1AQap")
 		testAtlas(win, fa, texId, text)
@@ -59,17 +64,35 @@ ABCDEFGHIJKLMNjPQRSTUVXYZ
 		//testLines(win)
 		//testPolygon(win)
 		win.Render()
+
+		// All the allocations are done in the first frame
+		frameCount++
+		if frameCount == 1 {
+			cgoCallsStart = runtime.NumCgoCall()
+			runtime.ReadMemStats(&statsStart)
+		}
 	}
+
+	// Calculates and shows allocations and cgo calls per frame
+	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
+	cgoPerFrame := float64(cgoCalls) / float64(frameCount)
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
+	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
+
 	win.Destroy()
 }
 
 func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string) {
 
 	white := gb.MakeColor(255, 255, 255, 255)
-	codes := []rune(text)
 	posX := float32(0)
 	posY := float32(0)
-	for _, c := range codes {
+	//lixo := make([]int, 2)
+	//fmt.Printf("%d", len(lixo))
+
+	for _, c := range text {
 
 		if c == 0x0A {
 			posX = float32(0)

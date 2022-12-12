@@ -157,6 +157,13 @@ func (f *Font) DrawTextOnImage(text string, x, y int, dst *image.RGBA) {
 	}
 }
 
+// Index returns a Font's index for the given rune.
+// If zero there is no associated Glyph for the rune.
+func (f *Font) Index(x rune) truetype.Index {
+
+	return f.ttf.Index(x)
+}
+
 // ConvRGBA converts an gb.RGBA color to image/color.RGBA
 func ConvRGBA(col gb.RGBA) color.RGBA {
 

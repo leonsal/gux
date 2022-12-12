@@ -326,9 +326,9 @@ static void _gb_set_state(gb_state_t* s) {
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_uv));
     GL_CALL(glEnableVertexAttribArray(s->attrib_vtx_color));
 
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
-    printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_pos, sizeof(gb_vertex_t), offsetof(gb_vertex_t, pos));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_uv, sizeof(gb_vertex_t), offsetof(gb_vertex_t, uv));
+    //printf("loc:%d sizeof:%ld, offset:%ld\n", s->attrib_vtx_color, sizeof(gb_vertex_t), offsetof(gb_vertex_t, col));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, pos)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, uv)));
     GL_CALL(glVertexAttribPointer(s->attrib_vtx_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(gb_vertex_t), (GLvoid*)offsetof(gb_vertex_t, col)));
@@ -429,7 +429,7 @@ static bool _gb_create_objects(gb_state_t* s) {
     s->attrib_vtx_pos = (GLuint)glGetAttribLocation(s->handle_shader, "Position");
     s->attrib_vtx_uv = (GLuint)glGetAttribLocation(s->handle_shader, "UV");
     s->attrib_vtx_color = (GLuint)glGetAttribLocation(s->handle_shader, "Color");
-    printf("LOCS: %d/%d/%d/%d/%d\n", s->uni_tex, s->uni_projmtx, s->attrib_vtx_pos, s->attrib_vtx_uv, s->attrib_vtx_color);
+    //printf("LOCS: %d/%d/%d/%d/%d\n", s->uni_tex, s->uni_projmtx, s->attrib_vtx_pos, s->attrib_vtx_uv, s->attrib_vtx_color);
 
     // Create buffers
     GL_CALL(glGenBuffers(1, &s->handle_vbo));

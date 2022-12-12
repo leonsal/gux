@@ -24,9 +24,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
-	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
-	f.SetPointSize(164)
+	//f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
+	//f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
+	f.SetPointSize(32)
 
 	// Create atlas
 	fa := gux.NewFontAtlas(f, ' ', '~')
@@ -43,10 +43,16 @@ func main() {
 	//abcdefghijklmnopqrstuvwxyz
 	//ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
 
+	text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
+1234567890()
+abcdefghijklmnopqrstuvxyz
+ABCDEFGHIJKLMNjPQRSTUVXYZ
+`
 	//events := make([]gb.Event, 256)
 	// Render loop
 	for win.StartFrame(0) {
-		testAtlas(win, fa, texId, "$1AQap")
+		//testAtlas(win, fa, texId, "$1AQap")
+		testAtlas(win, fa, texId, text)
 		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
@@ -62,8 +68,14 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 	white := gb.MakeColor(255, 255, 255, 255)
 	codes := []rune(text)
 	posX := float32(0)
-	posY := float32(fa.Height)
+	posY := float32(0)
 	for _, c := range codes {
+
+		if c == 0x0A {
+			posX = float32(0)
+			posY += float32(fa.LineHeight - 1)
+			continue
+		}
 
 		charInfo := fa.Chars[c]
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
@@ -74,11 +86,11 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 		bufVtx[0].UV = charInfo.UV[0]
 		bufVtx[0].Col = white
 
-		bufVtx[1].Pos = gb.Vec2{posX, posY + float32(charInfo.Height) - 1}
+		bufVtx[1].Pos = gb.Vec2{posX, posY + float32(charInfo.Height-1)}
 		bufVtx[1].UV = charInfo.UV[1]
 		bufVtx[1].Col = white
 
-		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width) - 1, posY + float32(charInfo.Height-1)}
+		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width-1), posY + float32(charInfo.Height-1)}
 		bufVtx[2].UV = charInfo.UV[2]
 		bufVtx[2].Col = white
 

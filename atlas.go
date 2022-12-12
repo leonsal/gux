@@ -16,17 +16,18 @@ type CharInfo struct {
 	X      int        // Position X in pixels in the sheet image from left to right
 	Y      int        // Position Y in pixels in the sheet image from top to bottom
 	Width  int        // Char width in pixels
-	Height int        // Char height in pixels
+	Height int        // Char height in pixels (LINE HEIGHT)
 	UV     [4]gb.Vec2 // UV coordinates for char quad vertices
 }
 
 // FontAtlas represents an image containing characters and the information about their location in the image
 type FontAtlas struct {
-	Chars   []CharInfo
-	Image   *image.RGBA
-	Height  int // Recommended vertical space between two lines of text
-	Ascent  int // Distance from the top of a line to its base line
-	Descent int // Distance from the bottom of a line to its baseline
+	Chars      []CharInfo  // Array of CharInfo indexed by its rune code
+	Image      *image.RGBA // Font atlas generated image
+	LineHeight int         // Total line height
+	Height     int         // Recommended vertical space between two lines of text
+	Ascent     int         // Distance from the top of a line to its base line
+	Descent    int         // Distance from the bottom of a line to its baseline
 }
 
 // NewFontAtlas returns a pointer to a new FontAtlas object
@@ -63,24 +64,23 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	lines := ""
 	maxWidth := 0
 	lastX := 0
-	lastY := a.Descent
-	//lastY := 0
+	lastY := 0
 	nlines := 1
-
+	var lineHeight, lineWidth int
 	for code := first; code <= last; code++ {
 
 		// Encodes rune into UTF8, appends to current line and measure line width
 		count := utf8.EncodeRune(encoded, code)
 		line = append(line, encoded[:count]...)
-		lineWidth, lineHeight := font.MeasureText(string(line))
-		fmt.Println("lineHeight", lineHeight)
+		lineWidth, lineHeight = font.MeasureText(string(line))
 
 		// Sets current code fields
 		cinfo := &a.Chars[code]
 		cinfo.X = lastX
 		cinfo.Y = lastY
-		cinfo.Width = lineWidth - lastX - 1
-		cinfo.Height += a.Height
+		//cinfo.Width = lineWidth - lastX - 1
+		cinfo.Width = lineWidth - lastX
+		cinfo.Height = lineHeight
 		lastX = lineWidth
 
 		// Updates maximum image width
@@ -101,28 +101,23 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 			line = []byte{}
 			col = 0
 			lastX = 0
-			lastY += a.Height
-			//lastY += lineHeight
+			lastY += lineHeight
 		}
 	}
-	height := (nlines * a.Height) + a.Descent
+	height := nlines * lineHeight
+	a.LineHeight = lineHeight
 
 	// Calculate UV coordinates for each char
 	imgWidth := float32(maxWidth)
 	imgHeight := float32(height)
-	//fmt.Println("imgWidth:", imgWidth, "imgHeight:", imgHeight)
 	for i := 0; i < len(a.Chars); i++ {
 		char := &a.Chars[i]
-		//char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
-		//char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
-		//char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y+char.Height) / imgHeight)}
-		//char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, 1 - (float32(char.Y) / imgHeight)}
 		char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y) / imgHeight)}
 		char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
 		if i >= 65 {
-			//fmt.Printf("i:%d char:%+v\n", i, char)
+			fmt.Printf("i:%d char:%+v\n", i, char)
 		}
 	}
 

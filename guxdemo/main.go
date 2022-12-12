@@ -38,6 +38,7 @@ func main() {
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
 	}
+	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Height:", fa.Height, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
 
 	texId, _, _ := createAtlasTexture(win, fa)
 

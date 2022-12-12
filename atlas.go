@@ -78,8 +78,7 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		cinfo := &a.Chars[code]
 		cinfo.X = lastX
 		cinfo.Y = lastY
-		//cinfo.Width = lineWidth - lastX - 1
-		cinfo.Width = lineWidth - lastX
+		cinfo.Width = lineWidth - lastX - 1
 		cinfo.Height = lineHeight
 		lastX = lineWidth
 

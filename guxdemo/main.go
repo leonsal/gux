@@ -24,8 +24,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
-	//f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
+	f.SetFgColor(gb.MakeColor(255, 255, 0, 255))
+	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(148)
 
 	// Create atlas

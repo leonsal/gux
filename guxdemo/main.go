@@ -32,7 +32,8 @@ func main() {
 	//}
 
 	// Create atlas
-	fa := gux.NewFontAtlas(f, ' ', 'ÿ')
+	//fa := gux.NewFontAtlas(f, 0, 0xff)
+	fa := gux.NewFontAtlas(f, 0x00, 0xFF)
 	err = fa.SavePNG("atlas.png")
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
@@ -46,12 +47,12 @@ func main() {
 	//ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
 
 	text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
-1234567890()
-abcdefghijklmnopqrstuvxyz
-1234567890()
-ABCDEFGHIJKLMNjPQRSTUVXYZ
-éú
-`
+	1234567890()
+	abcdefghijklmnopqrstuvxyz
+	1234567890()
+	ABCDEFGHIJKLMNjPQRSTUVXYZ
+	éú
+	`
 	//events := make([]gb.Event, 256)
 	// Render loop
 	var cgoCallsStart int64
@@ -102,12 +103,13 @@ func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, text string
 			posY += float32(fa.LineHeight - 1)
 			continue
 		}
-		// Ignore other control charactes
-		if c < ' ' {
+
+		// Ignore codes with no glyphs
+		charInfo, ok := fa.Chars[c]
+		if !ok {
 			continue
 		}
 
-		charInfo := fa.Chars[c]
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
 		dl := w.DrawList()
 		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)

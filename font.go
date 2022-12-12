@@ -48,8 +48,7 @@ func NewFontFromData(fontData []byte) (*Font, error) {
 	// Create font and initialize with default values
 	f := new(Font)
 	f.ttf = ttf
-	//f.pointSize = 18
-	f.pointSize = 60
+	f.pointSize = 18
 	f.dpi = 72
 	f.lineSpacing = 1.0
 	f.hinting = font.HintingNone

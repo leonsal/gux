@@ -29,8 +29,8 @@ func main() {
 	f.SetPointSize(148)
 
 	// Create atlas
-	fa := gux.NewFontAtlas(f, ' ', '~')
-	//fa := gux.NewFontAtlas(f, 'Z', 'f')
+	//fa := gux.NewFontAtlas(f, ' ', 'ÿ')
+	fa := gux.NewFontAtlas(f, ' ', 0x400)
 	err = fa.SavePNG("atlas.png")
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
@@ -48,6 +48,7 @@ func main() {
 abcdefghijklmnopqrstuvxyz
 1234567890()
 ABCDEFGHIJKLMNjPQRSTUVXYZ
+éú
 `
 	//events := make([]gb.Event, 256)
 	// Render loop

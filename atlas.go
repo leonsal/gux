@@ -2,7 +2,6 @@ package gux
 
 import (
 	"bufio"
-	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -55,9 +54,9 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	a.Height = int(metrics.Height >> 6)
 	a.Ascent = int(metrics.Ascent >> 6)
 	a.Descent = int(metrics.Descent >> 6)
-	fmt.Printf("Font height:%d Font ascent:%d Font descent:%d\n", a.Height, a.Ascent, a.Descent)
+	//fmt.Printf("Font height:%d Font ascent:%d Font descent:%d\n", a.Height, a.Ascent, a.Descent)
 
-	const maxCols = 16
+	const maxCols = 32
 	col := 0
 	encoded := make([]byte, 4)
 	line := []byte{}
@@ -116,12 +115,11 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
 		if i >= 65 {
-			fmt.Printf("i:%d char:%+v\n", i, char)
+			//fmt.Printf("i:%d char:%+v\n", i, char)
 		}
 	}
 
 	// Generates atlas image
-	fmt.Println("LINES:", lines)
 	a.Image = font.DrawText(lines)
 	return a
 }

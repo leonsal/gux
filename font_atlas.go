@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"unicode/utf8"
+	"unsafe"
 
 	"github.com/leonsal/gux/gb"
 )
@@ -27,10 +28,12 @@ type FontAtlas struct {
 	LineHeight int               // Total line height
 	Ascent     int               // Distance from the top of a line to its base line
 	Descent    int               // Distance from the bottom of a line to its baseline
+	TexID      gb.TextureID      // Texture ID of this atlas
 }
 
-// NewFontAtlas returns a pointer to a new FontAtlas object
-func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
+// NewFontAtlas creates a font atlas using the specified font and range of character codepoints.
+// A Texture is created and sent to the graphics backend.
+func (w *Window) NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
 	//     Vertices indices for for each character quad
 	//
@@ -126,6 +129,11 @@ func NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
 	// Generates atlas image
 	a.Image = font.DrawText(lines.String())
+
+	// Creates backend texture to store the image and transfer the image
+	bounds := a.Image.Bounds()
+	a.TexID = w.CreateTexture()
+	w.TransferTexture(a.TexID, bounds.Dx(), bounds.Dy(), (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
 	return a
 }
 

@@ -34,8 +34,8 @@ type Window struct {
 	gbw *gb.Window  // Graphics backend native window reference
 	dl  gb.DrawList // Draw list to render
 
-	TexWhiteId  gb.TextureId                  // Texture with white opaque pixel
-	TexLinesId  gb.TextureId                  // Texture for lines
+	TexWhiteId  gb.TextureID                  // Texture with white opaque pixel
+	TexLinesId  gb.TextureID                  // Texture for lines
 	TexUvLines  [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
 	FringeScale float32                       // Used for AA
 	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
@@ -101,12 +101,12 @@ func (w *Window) Destroy() {
 	w.gbw.Destroy()
 }
 
-func (w *Window) CreateTexture() gb.TextureId {
+func (w *Window) CreateTexture() gb.TextureID {
 
 	return w.gbw.CreateTexture()
 }
 
-func (w *Window) TransferTexture(texid gb.TextureId, width, height int, data *gb.RGBA) {
+func (w *Window) TransferTexture(texid gb.TextureID, width, height int, data *gb.RGBA) {
 
 	w.gbw.TransferTexture(texid, width, height, data)
 }

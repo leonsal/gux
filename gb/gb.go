@@ -41,7 +41,7 @@ const RGBAShiftB = 16
 const RGBAShiftA = 24
 
 // TextureId is the type for textures identifiers
-type TextureId uintptr
+type TextureID uintptr
 
 // Vertex specifies information about a single vertex
 type Vertex struct {
@@ -53,7 +53,7 @@ type Vertex struct {
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
 	ClipRect  Vec4      // Clip rectangle
-	TexId     TextureId // Texture ID
+	TexID     TextureID // Texture ID
 	idxOffset uint32    // Start offset in index buffer
 	vtxOffset uint32    // Start offset in vertex buffer
 	elemCount uint32    // Number of indices
@@ -102,7 +102,7 @@ func (dl *DrawList) ReserveCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 	// Reserve command
 	cmd := DrawCmd{
 		ClipRect:  Vec4{},
-		TexId:     1, // First texture allocated: white pixel
+		TexID:     1, // First texture allocated: white pixel
 		idxOffset: uint32(idxOffset),
 		vtxOffset: uint32(vtxOffset),
 		elemCount: uint32(idxCount),
@@ -120,13 +120,13 @@ func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
 }
 
 // AddCmd appends a new command to the Draw List
-func (dl *DrawList) AddCmd(clipRect Vec4, texId TextureId, indices []uint32, vertices []Vertex) {
+func (dl *DrawList) AddCmd(clipRect Vec4, texId TextureID, indices []uint32, vertices []Vertex) {
 
 	cmd, idx, vtx := dl.ReserveCmd(len(indices), len(vertices))
 	copy(idx, indices)
 	copy(vtx, vertices)
 	cmd.ClipRect = clipRect
-	cmd.TexId = texId
+	cmd.TexID = texId
 	dl.AdjustIdx(cmd)
 }
 
@@ -203,19 +203,19 @@ func (w *Window) RenderFrame(dl *DrawList) {
 }
 
 // CreateTexture creates an empty texture and returns its ID
-func (w *Window) CreateTexture() TextureId {
+func (w *Window) CreateTexture() TextureID {
 
-	return TextureId(C.gb_create_texture())
+	return TextureID(C.gb_create_texture())
 }
 
 // DeleteTexture deletes the specified texture
-func (w *Window) DeleteTexture(texid TextureId) {
+func (w *Window) DeleteTexture(texid TextureID) {
 
 	C.gb_delete_texture(C.gb_texid_t(texid))
 }
 
 // TransferTexture transfers data to the texture
-func (w *Window) TransferTexture(texid TextureId, width, height int, data *RGBA) {
+func (w *Window) TransferTexture(texid TextureID, width, height int, data *RGBA) {
 
 	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_rgba_t)(data))
 }

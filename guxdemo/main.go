@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"runtime"
-	"unsafe"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -28,21 +27,16 @@ func main() {
 	f.SetBgColor(gb.MakeColor(0, 0, 0, 100))
 	f.SetPointSize(148)
 
-	// Create atlas
+	// Create font atlas
 	//fa := gux.NewFontAtlas(f, 0, 0xff)
-	fa := gux.NewFontAtlas(f, 0x00, 0xFF)
+	fa := win.NewFontAtlas(f, 0x00, 0xFF)
 	err = fa.SavePNG("atlas.png")
 	if err != nil {
 		fmt.Println("SAVE ERROR:", err)
 	}
 	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
 
-	texId, _, _ := createAtlasTexture(win, fa)
-
-	//	// Create Texture with text
-	//	texID, width, height := createText(win, f, `Hello Text: 01234567890
-	//abcdefghijklmnopqrstuvwxyz
-	//ABCDEFGHIJKLMNOPQRSTUVWXYZ`)
+	texID, width, height := win.CreateTextImage(f, "text image")
 
 	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
 	//1234567890()
@@ -58,10 +52,12 @@ func main() {
 	frameCount := 0
 
 	for win.StartFrame(0) {
-		//testAtlas(win, fa, texId, "$1AQap")
-		testAtlas(win, fa, texId, gb.Vec2{50, 200}, TextVAlignTop, "top ")
-		testAtlas(win, fa, texId, gb.Vec2{250, 200}, TextVAlignBase, " base")
-		testAtlas(win, fa, texId, gb.Vec2{550, 200}, TextVAlignBottom, " bottom")
+
+		win.AddText(win.DrawList(), fa, gb.Vec2{50, 200}, gux.TextVAlignTop, "top ")
+		win.AddText(win.DrawList(), fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
+		win.AddText(win.DrawList(), fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
+		win.AddImage(win.DrawList(), texID, width, height, gb.Vec2{50, 400})
+
 		//testText(win, texID, width, height)
 		//count := win.GetEvents(events)
 		//fmt.Println("events:", count)
@@ -86,147 +82,6 @@ func main() {
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 
 	win.Destroy()
-}
-
-type TextVAlign int
-
-const (
-	TextVAlignTop    TextVAlign = 0
-	TextVAlignBase   TextVAlign = 1
-	TextVAlignBottom TextVAlign = 2
-)
-
-func testAtlas(w *gux.Window, fa *gux.FontAtlas, texId gb.TextureId, pos gb.Vec2, align TextVAlign, text string) {
-
-	white := gb.MakeColor(255, 255, 255, 255)
-
-	posX := pos.X
-	var posY float32
-	switch align {
-	case TextVAlignTop:
-		posY = pos.Y
-	case TextVAlignBase:
-		posY = pos.Y - float32(fa.Ascent)
-	case TextVAlignBottom:
-		posY = pos.Y - float32(fa.LineHeight)
-	}
-
-	// For each rune in the text
-	for _, c := range text {
-
-		// Process new line
-		if c == 0x0A {
-			posX = pos.X
-			posY += float32(fa.LineHeight)
-			continue
-		}
-
-		// Ignore codes with no glyphs
-		charInfo, ok := fa.Chars[c]
-		if !ok {
-			continue
-		}
-
-		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
-		dl := w.DrawList()
-		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
-		cmd.TexId = texId
-		bufVtx[0].Pos = gb.Vec2{posX, posY}
-		bufVtx[0].UV = charInfo.UV[0]
-		bufVtx[0].Col = white
-
-		bufVtx[1].Pos = gb.Vec2{posX, posY + float32(charInfo.Height-1)}
-		bufVtx[1].UV = charInfo.UV[1]
-		bufVtx[1].Col = white
-
-		bufVtx[2].Pos = gb.Vec2{posX + float32(charInfo.Width-1), posY + float32(charInfo.Height-1)}
-		bufVtx[2].UV = charInfo.UV[2]
-		bufVtx[2].Col = white
-
-		bufVtx[3].Pos = gb.Vec2{posX + float32(charInfo.Width-1), posY}
-		bufVtx[3].UV = charInfo.UV[3]
-		bufVtx[3].Col = white
-
-		bufIdx[0] = 0
-		bufIdx[1] = 1
-		bufIdx[2] = 2
-		bufIdx[3] = 2
-		bufIdx[4] = 3
-		bufIdx[5] = 0
-		dl.AdjustIdx(cmd)
-		posX += float32(charInfo.Width - 1)
-	}
-
-}
-func createAtlasTexture(win *gux.Window, fa *gux.FontAtlas) (gb.TextureId, float32, float32) {
-
-	img := fa.Image
-	b := img.Bounds()
-	width := b.Dx()
-	height := b.Dy()
-
-	// Creates backend texture to store the image and transfer the image
-	texID := win.CreateTexture()
-	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
-	return texID, float32(width), float32(height)
-}
-
-func createText(win *gux.Window, f *gux.Font, text string) (gb.TextureId, float32, float32) {
-
-	// Create image and draw text on it
-	img := f.DrawText(text)
-	b := img.Bounds()
-	width := b.Dx()
-	height := b.Dy()
-
-	// Creates backend texture to store the image and transfer the image
-	texID := win.CreateTexture()
-	win.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
-	return texID, float32(width), float32(height)
-}
-
-func testText(w *gux.Window, texID gb.TextureId, width, height float32) {
-	//
-	//    OpenGL UV coordinates adjustment
-	//
-	//	  0,1    1,1      0,0    1,0
-	// 0 +------+ 3       +------+
-	//	 |\     |         |\     |
-	//	 | \    |         | \    |
-	//	 |  \   |  --->   |  \   |
-	//	 |   \  |         |   \  |
-	//	 |    \ |         |    \ |
-	//	 |     \|         |     \|
-	// 1 +------+ 2       +------+
-	//	 0,0    1,0       0,1    1,1
-
-	dl := w.DrawList()
-	cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
-	cmd.TexId = texID
-	white := gb.MakeColor(255, 255, 255, 255)
-	bufVtx[0].Pos = gb.Vec2{0, 0}
-	bufVtx[0].UV = gb.Vec2{0, 0}
-	bufVtx[0].Col = white
-
-	bufVtx[1].Pos = gb.Vec2{0, height - 1}
-	bufVtx[1].UV = gb.Vec2{0, 1}
-	bufVtx[1].Col = white
-
-	bufVtx[2].Pos = gb.Vec2{width - 1, height - 1}
-	bufVtx[2].UV = gb.Vec2{1, 1}
-	bufVtx[2].Col = white
-
-	bufVtx[3].Pos = gb.Vec2{width - 1, 0}
-	bufVtx[3].UV = gb.Vec2{1, 0}
-	bufVtx[3].Col = white
-
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	bufIdx[3] = 2
-	bufIdx[4] = 3
-	bufIdx[5] = 0
-	dl.AdjustIdx(cmd)
 }
 
 func testLines(w *gux.Window) {

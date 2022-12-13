@@ -397,7 +397,7 @@ func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.R
 	texUv0 := gb.Vec2{}
 	texUv1 := gb.Vec2{}
 	if intThickness < TexLinesWidthMax {
-		cmd.TexId = w.TexLinesId
+		cmd.TexID = w.TexLinesId
 		texUvs := w.TexUvLines[intThickness]
 		texUv0 = gb.Vec2{texUvs.X, texUvs.Y}
 		texUv1 = gb.Vec2{texUvs.Z, texUvs.W}

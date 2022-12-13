@@ -30,11 +30,12 @@ func main() {
 	// Create font atlas
 	//fa := gux.NewFontAtlas(f, 0, 0xff)
 	fa := win.NewFontAtlas(f, 0x00, 0xFF)
-	err = fa.SavePNG("atlas.png")
-	if err != nil {
-		fmt.Println("SAVE ERROR:", err)
-	}
-	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
+
+	//err = fa.SavePNG("atlas.png")
+	//if err != nil {
+	//	fmt.Println("SAVE ERROR:", err)
+	//}
+	//fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
 
 	texID, width, height := win.CreateTextImage(f, "text image")
 

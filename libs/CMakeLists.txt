@@ -21,6 +21,7 @@ set(OPENGL_SOURCES
 )
 
 set(VULKAN_SOURCES
+    src/glfw_vulkan.c
 )
 
 # For windows use local copy of vulkan headers from SDK
@@ -29,6 +30,6 @@ if (WIN32)
 endif()
 
 add_library(guxgl STATIC ${OPENGL_SOURCES})
-#add_library(xxxvk STATIC ${VULKAN_SOURCES})
+add_library(guxvk STATIC ${VULKAN_SOURCES})
 
 

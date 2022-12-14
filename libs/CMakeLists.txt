@@ -30,6 +30,6 @@ if (WIN32)
 endif()
 
 add_library(guxgl STATIC ${OPENGL_SOURCES})
-add_library(guxvk STATIC ${VULKAN_SOURCES})
+#add_library(guxvk STATIC ${VULKAN_SOURCES})
 
 

@@ -115,6 +115,41 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     _gb_setup_vulkan_window(wd, surface, w, h);
 
 }
+void gb_window_destroy(gb_window_t win) {
+
+}
+
+bool gb_window_start_frame(gb_window_t bw, double timeout) {
+
+    return true;
+}
+
+void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
+
+}
+
+gb_texid_t gb_create_texture() {
+
+    return 1;
+}
+
+void gb_delete_texture(gb_texid_t texid) {
+
+}
+
+void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
+
+}
+
+int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
+
+}
+
+
+//-----------------------------------------------------------------------------
+// Internal functions
+//-----------------------------------------------------------------------------
+
 
 static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count) {
     VkResult err;

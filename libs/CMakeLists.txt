@@ -21,6 +21,8 @@ set(OPENGL_SOURCES
 )
 
 set(VULKAN_SOURCES
+    gl3w/src/gl3w.c
+    src/volk.c
     src/glfw_vulkan.c
 )
 
@@ -30,6 +32,6 @@ if (WIN32)
 endif()
 
 add_library(guxgl STATIC ${OPENGL_SOURCES})
-#add_library(guxvk STATIC ${VULKAN_SOURCES})
+add_library(guxvk STATIC ${VULKAN_SOURCES})
 
 

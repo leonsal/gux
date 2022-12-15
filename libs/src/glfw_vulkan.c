@@ -7,6 +7,7 @@
 #define VK_NO_PROTOTYPES
 #include "volk.h"
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include "libgux.h"
@@ -47,6 +48,13 @@ struct vulkan_window {
 
 };
 
+// Backend window state
+typedef struct {
+    GLFWwindow*             w;      // GLFW window pointer
+    struct vulkan_window    vwd;    // Vulkan window data
+} gb_state_t;
+
+// Global state
 static VkAllocationCallbacks*   g_Allocator = NULL;
 static VkInstance               g_Instance = VK_NULL_HANDLE;
 static VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
@@ -57,7 +65,6 @@ static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
 static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
 static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 
-static struct vulkan_window     g_MainWindowData;
 static int                      g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
 
@@ -77,8 +84,14 @@ static void _gb_check_vk_result(VkResult err) {
     }
 }
 
+// Forward declarations of internal functions
 static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count);
 static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
+static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+    const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
+VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+    const VkPresentModeKHR* request_modes, int request_modes_count);
+static void* _gb_alloc(size_t count);
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -109,6 +122,13 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         return NULL;
     }
 
+    // Creates and initializes backend state
+    gb_state_t* s = _gb_alloc(sizeof(gb_state_t));
+    memset(s, 0, sizeof(gb_state_t));
+    s->w = win;
+    glfwSetWindowUserPointer(win, s);
+
+    // Get required vulkan extensions from GLFW (WSI)
     uint32_t extensions_count = 0;
     const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
     _gb_setup_vulkan(extensions, extensions_count);
@@ -121,8 +141,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     // Create Framebuffers
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
-    struct vulkan_window* wd = &g_MainWindowData;
-    //_gb_setup_vulkan_window(wd, surface, w, h);
+    _gb_setup_vulkan_window(&s->vwd, surface, w, h);
     //
     //
     //
@@ -180,7 +199,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         create_info.ppEnabledLayerNames = layers;
 
         // Enable debug report extension (we need additional storage, so we duplicate the user array to add our new extension to it)
-        const char** extensions_ext = (const char**)malloc(sizeof(const char*) * (extensions_count + 1));
+        const char** extensions_ext = (const char**)_gb_alloc(sizeof(const char*) * (extensions_count + 1));
         memcpy(extensions_ext, extensions, extensions_count * sizeof(const char*));
         extensions_ext[extensions_count] = "VK_EXT_debug_report";
         create_info.enabledExtensionCount = extensions_count + 1;
@@ -221,7 +240,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         _gb_check_vk_result(err);
         assert(gpu_count > 0);
 
-        VkPhysicalDevice* gpus = (VkPhysicalDevice*)malloc(sizeof(VkPhysicalDevice) * gpu_count);
+        VkPhysicalDevice* gpus = (VkPhysicalDevice*)_gb_alloc(sizeof(VkPhysicalDevice) * gpu_count);
         err = vkEnumeratePhysicalDevices(g_Instance, &gpu_count, gpus);
         _gb_check_vk_result(err);
 
@@ -248,7 +267,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
     {
         uint32_t count;
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, NULL);
-        VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)malloc(sizeof(VkQueueFamilyProperties) * count);
+        VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)_gb_alloc(sizeof(VkQueueFamilyProperties) * count);
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
         for (uint32_t i = 0; i < count; i++)
             if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -308,35 +327,117 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
     }
 }
 
-//static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height) {
-//
-//    wd->Surface = surface;
-//
-//    // Check for WSI support
-//    VkBool32 res;
-//    vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, g_QueueFamily, wd->Surface, &res);
-//    if (res != VK_TRUE)
-//    {
-//        fprintf(stderr, "Error no WSI support on physical device 0\n");
-//        exit(-1);
-//    }
-//
-//    // Select Surface Format
-//    const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
-//    const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-//    wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
-//
-//    // Select Present Mode
-//#ifdef IMGUI_UNLIMITED_FRAME_RATE
-//    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-//#else
-//    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-//#endif
-//    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
-//    //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
-//
+static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height) {
+
+    wd->Surface = surface;
+
+    // Check for WSI support
+    VkBool32 res;
+    vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, g_QueueFamily, wd->Surface, &res);
+    if (res != VK_TRUE) {
+        fprintf(stderr, "Error no WSI support on physical device 0\n");
+        exit(-1);
+    }
+
+    // Select Surface Format
+    const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
+    const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+    wd->SurfaceFormat = _gb_select_surface_format(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)GB_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+
+    // Select Present Mode
+#ifdef GB_UNLIMITED_FRAME_RATE
+    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+#else
+    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
+#endif
+    wd->PresentMode = _gb_select_present_mode(g_PhysicalDevice, wd->Surface, &present_modes[0], GB_ARRAYSIZE(present_modes));
+    //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
+
 //    // Create SwapChain, RenderPass, Framebuffer, etc.
 //    assert(g_MinImageCount >= 2);
 //    ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
-//}
+}
+
+static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+    const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space) {
+
+    assert(request_formats != NULL);
+    assert(request_formats_count > 0);
+
+    // Per Spec Format and View Format are expected to be the same unless VK_IMAGE_CREATE_MUTABLE_BIT was set at image creation
+    // Assuming that the default behavior is without setting this bit, there is no need for separate Swapchain image and image view format
+    // Additionally several new color spaces were introduced with Vulkan Spec v1.0.40,
+    // hence we must make sure that a format with the mostly available color space, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, is found and used.
+    uint32_t avail_count;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &avail_count, NULL);
+    VkSurfaceFormatKHR* avail_format = _gb_alloc(sizeof(VkSurfaceFormatKHR) * avail_count);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &avail_count, avail_format);
+
+    // First check if only one format, VK_FORMAT_UNDEFINED, is available, which would imply that any format is available
+    if (avail_count == 1) {
+        if (avail_format[0].format == VK_FORMAT_UNDEFINED) {
+            VkSurfaceFormatKHR ret;
+            ret.format = request_formats[0];
+            ret.colorSpace = request_color_space;
+            free(avail_format);
+            return ret;
+        } else {
+            // No point in searching another format
+            free(avail_format);
+            return avail_format[0];
+        }
+    } else {
+        // Request several formats, the first found will be used
+        for (int request_i = 0; request_i < request_formats_count; request_i++) {
+            for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++) {
+                if (avail_format[avail_i].format == request_formats[request_i] && avail_format[avail_i].colorSpace == request_color_space) {
+                    free(avail_format);
+                    return avail_format[avail_i];
+                }
+            }
+        }
+        // If none of the requested image formats could be found, use the first available
+        free(avail_format);
+        return avail_format[0];
+    }
+}
+
+VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+    const VkPresentModeKHR* request_modes, int request_modes_count) {
+
+    assert(request_modes != NULL);
+    assert(request_modes_count > 0);
+
+    // Request a certain mode and confirm that it is available. If not use VK_PRESENT_MODE_FIFO_KHR which is mandatory
+    uint32_t avail_count = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &avail_count, NULL);
+    VkPresentModeKHR* avail_modes = _gb_alloc(sizeof(VkPresentModeKHR) * avail_count);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &avail_count, avail_modes);
+    //for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++)
+    //    printf("[vulkan] avail_modes[%d] = %d\n", avail_i, avail_modes[avail_i]);
+
+    for (int request_i = 0; request_i < request_modes_count; request_i++) {
+        for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++) {
+            if (request_modes[request_i] == avail_modes[avail_i]) {
+                free(avail_modes);
+                return request_modes[request_i];
+            }
+        }
+    }
+    free(avail_modes);
+    return VK_PRESENT_MODE_FIFO_KHR; // Always available
+}
+
+
+static void* _gb_alloc(size_t count) {
+
+    void *p = malloc(count);
+    if (p == NULL) {
+        fprintf(stderr, "NO MEMORY\n");
+        abort();
+    }
+    return p;
+}
+
+
 

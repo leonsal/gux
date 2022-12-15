@@ -7,8 +7,6 @@
 #define VK_NO_PROTOTYPES
 #include "volk.h"
 
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include "libgux.h"

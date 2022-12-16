@@ -14,6 +14,7 @@
 
 // Size of a static C-style array. Don't use on pointers!
 #define GB_ARRAYSIZE(_ARR)          ((int)(sizeof(_ARR) / sizeof(*(_ARR))))
+#define GB_VULKAN_DEBUG_REPORT 1
 
 struct vulkan_frame {
     VkCommandPool       CommandPool;
@@ -88,6 +89,10 @@ static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, 
 static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
+#ifdef GB_VULKAN_DEBUG_REPORT
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
+    uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
+#endif // IMGUI_VULKAN_DEBUG_REPORT
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -207,7 +212,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         free(extensions_ext);
 
         // Get the function pointer (required for any extensions)
-        auto vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
+        PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
         assert(vkCreateDebugReportCallbackEXT != NULL);
 
         // Setup the debug report callback
@@ -710,4 +715,13 @@ static void _gb_check_vk_result(VkResult err) {
     }
 }
 
+#ifdef GB_VULKAN_DEBUG_REPORT
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
+    uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
+
+    (void)flags; (void)object; (void)location; (void)messageCode; (void)pUserData; (void)pLayerPrefix; // Unused arguments
+    fprintf(stderr, "[vulkan] Debug report from ObjectType: %i\nMessage: %s\n\n", objectType, pMessage);
+    return VK_FALSE;
+}
+#endif // IMGUI_VULKAN_DEBUG_REPORT
 

@@ -90,7 +90,7 @@ static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mo
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
 #ifdef GB_VULKAN_DEBUG_REPORT
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
+static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
 #endif // IMGUI_VULKAN_DEBUG_REPORT
 
@@ -211,6 +211,9 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         _gb_check_vk_result(err);
         free(extensions_ext);
 
+        // Load Vulkan functions for the instance
+        volkLoadInstance(g_Instance);
+
         // Get the function pointer (required for any extensions)
         PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
         assert(vkCreateDebugReportCallbackEXT != NULL);
@@ -219,7 +222,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
         debug_report_ci.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
         debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-        debug_report_ci.pfnCallback = debug_report;
+        debug_report_ci.pfnCallback = _gb_debug_report;
         debug_report_ci.pUserData = NULL;
         err = vkCreateDebugReportCallbackEXT(g_Instance, &debug_report_ci, g_Allocator, &g_DebugReport);
         _gb_check_vk_result(err);
@@ -343,7 +346,8 @@ static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surfa
     // Select Surface Format
     const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
     const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    wd->SurfaceFormat = _gb_select_surface_format(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)GB_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+    wd->SurfaceFormat = _gb_select_surface_format(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat,
+        (size_t)GB_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
     // Select Present Mode
 #ifdef GB_UNLIMITED_FRAME_RATE
@@ -375,31 +379,34 @@ static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_de
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &avail_count, avail_format);
 
     // First check if only one format, VK_FORMAT_UNDEFINED, is available, which would imply that any format is available
+    VkSurfaceFormatKHR ret;
     if (avail_count == 1) {
         if (avail_format[0].format == VK_FORMAT_UNDEFINED) {
-            VkSurfaceFormatKHR ret;
             ret.format = request_formats[0];
             ret.colorSpace = request_color_space;
             free(avail_format);
             return ret;
         } else {
             // No point in searching another format
+            ret = avail_format[0];
             free(avail_format);
-            return avail_format[0];
+            return ret;
         }
     } else {
         // Request several formats, the first found will be used
         for (int request_i = 0; request_i < request_formats_count; request_i++) {
             for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++) {
                 if (avail_format[avail_i].format == request_formats[request_i] && avail_format[avail_i].colorSpace == request_color_space) {
+                    ret = avail_format[avail_i];
                     free(avail_format);
-                    return avail_format[avail_i];
+                    return ret;
                 }
             }
         }
         // If none of the requested image formats could be found, use the first available
+        ret = avail_format[0];
         free(avail_format);
-        return avail_format[0];
+        return ret;
     }
 }
 
@@ -716,7 +723,7 @@ static void _gb_check_vk_result(VkResult err) {
 }
 
 #ifdef GB_VULKAN_DEBUG_REPORT
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
+static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
 
     (void)flags; (void)object; (void)location; (void)messageCode; (void)pUserData; (void)pLayerPrefix; // Unused arguments

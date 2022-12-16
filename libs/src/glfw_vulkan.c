@@ -31,50 +31,96 @@ struct vulkan_frame_semaphores {
 };
 
 struct vulkan_window {
-    int                         Width;
-    int                         Height;
-    VkSwapchainKHR              Swapchain;
-    VkSurfaceKHR                Surface;
-    VkSurfaceFormatKHR          SurfaceFormat;
-    VkPresentModeKHR            PresentMode;
-    VkRenderPass                RenderPass;
-    VkPipeline                  Pipeline;               // The window pipeline may uses a different VkRenderPass than the one passed in ImGui_ImplVulkan_InitInfo
-    bool                        ClearEnable;
-    VkClearValue                ClearValue;
-    uint32_t                    FrameIndex;             // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
-    uint32_t                    ImageCount;             // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
-    uint32_t                    SemaphoreIndex;         // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
-    struct vulkan_frame*               Frames;
+    int                 Width;
+    int                 Height;
+    VkSwapchainKHR      Swapchain;
+    VkSurfaceKHR        Surface;
+    VkSurfaceFormatKHR  SurfaceFormat;
+    VkPresentModeKHR    PresentMode;
+    VkRenderPass        RenderPass;
+    VkPipeline          Pipeline;               // The window pipeline may uses a different VkRenderPass than the one passed in ImGui_ImplVulkan_InitInfo
+    bool                ClearEnable;
+    VkClearValue        ClearValue;
+    uint32_t            FrameIndex;             // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
+    uint32_t            ImageCount;             // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
+    uint32_t            SemaphoreIndex;         // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
+    struct vulkan_frame*    Frames;
     struct vulkan_frame_semaphores*    FrameSemaphores;
+    bool                SwapChainRebuild;
+};
 
+struct vulkan_init {
+    VkInstance                      Instance;
+    VkPhysicalDevice                PhysicalDevice;
+    VkDevice                        Device;
+    uint32_t                        QueueFamily;
+    VkQueue                         Queue;
+    VkPipelineCache                 PipelineCache;
+    VkDescriptorPool                DescriptorPool;
+    uint32_t                        Subpass;
+    uint32_t                        MinImageCount;          // >= 2
+    uint32_t                        ImageCount;             // >= MinImageCount
+    VkSampleCountFlagBits           MSAASamples;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
+    const VkAllocationCallbacks*    Allocator;
+    //void                            (*CheckVkResultFn)(VkResult err);
+};
+
+struct vulkan_data {
+    VkRenderPass                RenderPass;
+    VkDeviceSize                BufferMemoryAlignment;
+    VkPipelineCreateFlags       PipelineCreateFlags;
+    VkDescriptorSetLayout       DescriptorSetLayout;
+    VkPipelineLayout            PipelineLayout;
+    VkPipeline                  Pipeline;
+    uint32_t                    Subpass;
+    VkShaderModule              ShaderModuleVert;
+    VkShaderModule              ShaderModuleFrag;
+
+    // Font data
+    VkSampler                   FontSampler;
+    VkDeviceMemory              FontMemory;
+    VkImage                     FontImage;
+    VkImageView                 FontView;
+    VkDescriptorSet             FontDescriptorSet;
+    VkDeviceMemory              UploadBufferMemory;
+    VkBuffer                    UploadBuffer;
+    //// Render buffers for main window
+    //ImGui_ImplVulkanH_WindowRenderBuffers MainWindowRenderBuffers;
+
+    //ImGui_ImplVulkan_Data()
+    //{
+    //    memset((void*)this, 0, sizeof(*this));
+    //    BufferMemoryAlignment = 256;
+    //}
 };
 
 // Backend window state
 typedef struct {
     GLFWwindow*             w;      // GLFW window pointer
-    struct vulkan_window    vwd;    // Vulkan window data
+    struct vulkan_init      vi;     // Vulkan initialization info                                    
+    struct vulkan_window    vw;     // Vulkan window data
+    struct vulkan_data      vd;     // Vulkan data
 } gb_state_t;
 
 // Global state
-static VkAllocationCallbacks*   g_Allocator = NULL;
-static VkInstance               g_Instance = VK_NULL_HANDLE;
-static VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
-static VkDevice                 g_Device = VK_NULL_HANDLE;
-static uint32_t                 g_QueueFamily = (uint32_t)-1;
-static VkQueue                  g_Queue = VK_NULL_HANDLE;
+//static VkAllocationCallbacks*   g_Allocator = NULL;
+//static VkInstance               g_Instance = VK_NULL_HANDLE;
+//static VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
+//static VkDevice                 g_Device = VK_NULL_HANDLE;
+//static uint32_t                 g_QueueFamily = (uint32_t)-1;
+//static VkQueue                  g_Queue = VK_NULL_HANDLE;
 static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
-static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
-static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
-
-static int                      g_MinImageCount = 2;
-static bool                     g_SwapChainRebuild = false;
+//static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
+//static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
+//static int                      g_MinImageCount = 2;
+//static bool                     g_SwapChainRebuild = false;
 
 
 // Forward declarations of internal functions
 static void _gb_glfw_error_callback(int error, const char* description);
 static void _gb_check_vk_result(VkResult err);
-static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count);
-static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
+static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count);
+static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
 static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
@@ -87,8 +133,10 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
 static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
     uint32_t queue_family, const VkAllocationCallbacks* allocator);
 static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
+static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
+static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator);
 #ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
@@ -127,33 +175,59 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     gb_state_t* s = _gb_alloc(sizeof(gb_state_t));
     memset(s, 0, sizeof(gb_state_t));
     s->w = win;
+    s->vi.MinImageCount = 2;
+    s->vi.QueueFamily = (uint32_t)-1;
     glfwSetWindowUserPointer(win, s);
 
     // Get required vulkan extensions from GLFW (WSI)
     uint32_t extensions_count = 0;
     const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
-    _gb_setup_vulkan(extensions, extensions_count);
+    _gb_setup_vulkan(s, extensions, extensions_count);
 
     // Create Window Surface
     VkSurfaceKHR surface;
-    VkResult err = glfwCreateWindowSurface(g_Instance, win, g_Allocator, &surface);
+    VkResult err = glfwCreateWindowSurface(s->vi.Instance, win, s->vi.Allocator, &surface);
     _gb_check_vk_result(err);
 
     // Create Framebuffers
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
-    _gb_setup_vulkan_window(&s->vwd, surface, w, h);
-    //
-    //
-    //
-    return NULL;
+    _gb_setup_vulkan_window(s, &s->vw, surface, w, h);
+    return s;
 }
+
 void gb_window_destroy(gb_window_t win) {
+
+    gb_state_t* s = (gb_state_t*)(win);
+    VkResult err = vkDeviceWaitIdle(s->vi.Device);
+    _gb_check_vk_result(err);
 
 }
 
 bool gb_window_start_frame(gb_window_t bw, double timeout) {
 
+    // Checks if user requested window close
+    gb_state_t* s = (gb_state_t*)(bw);
+    if (glfwWindowShouldClose(s->w)) {
+        return false;
+    }
+
+    // Poll and handle events, blocking if no events for the specified timeout
+    glfwWaitEventsTimeout(timeout);
+
+    // Resize swap chain?
+    if (s->vw.SwapChainRebuild) {
+        int width, height;
+        glfwGetFramebufferSize(s->w, &width, &height);
+        if (width > 0 && height > 0) {
+            _gb_set_min_image_count(s, s->vi.MinImageCount);
+            _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, &s->vw, s->vi.QueueFamily,
+                    s->vi.Allocator, width, height, s->vi.MinImageCount);
+            //g_MainWindowData.FrameIndex = 0;
+            s->vw.FrameIndex = 0;
+            s->vw.SwapChainRebuild = false;
+        }
+    }
     return true;
 }
 
@@ -184,7 +258,7 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 //-----------------------------------------------------------------------------
 
 
-static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count) {
+static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count) {
     VkResult err;
 
     // Create Vulkan Instance
@@ -207,15 +281,15 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         create_info.ppEnabledExtensionNames = extensions_ext;
 
         // Create Vulkan Instance
-        err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
+        err = vkCreateInstance(&create_info, s->vi.Allocator, &s->vi.Instance);
         _gb_check_vk_result(err);
         free(extensions_ext);
 
         // Load Vulkan functions for the instance
-        volkLoadInstance(g_Instance);
+        volkLoadInstance(s->vi.Instance);
 
         // Get the function pointer (required for any extensions)
-        PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
+        PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vi.Instance, "vkCreateDebugReportCallbackEXT");
         assert(vkCreateDebugReportCallbackEXT != NULL);
 
         // Setup the debug report callback
@@ -224,7 +298,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
         debug_report_ci.pfnCallback = _gb_debug_report;
         debug_report_ci.pUserData = NULL;
-        err = vkCreateDebugReportCallbackEXT(g_Instance, &debug_report_ci, g_Allocator, &g_DebugReport);
+        err = vkCreateDebugReportCallbackEXT(s->vi.Instance, &debug_report_ci, s->vi.Allocator, &g_DebugReport);
         _gb_check_vk_result(err);
 #else
         // Create Vulkan Instance without any debug feature
@@ -240,12 +314,12 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
     // Select GPU
     {
         uint32_t gpu_count;
-        err = vkEnumeratePhysicalDevices(g_Instance, &gpu_count, NULL);
+        err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, NULL);
         _gb_check_vk_result(err);
         assert(gpu_count > 0);
 
         VkPhysicalDevice* gpus = (VkPhysicalDevice*)_gb_alloc(sizeof(VkPhysicalDevice) * gpu_count);
-        err = vkEnumeratePhysicalDevices(g_Instance, &gpu_count, gpus);
+        err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, gpus);
         _gb_check_vk_result(err);
 
         // If a number >1 of GPUs got reported, find discrete GPU if present, or use first one available. This covers
@@ -263,24 +337,24 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
             }
         }
 
-        g_PhysicalDevice = gpus[use_gpu];
+        s->vi.PhysicalDevice = gpus[use_gpu];
         free(gpus);
     }
 
     // Select graphics queue family
     {
         uint32_t count;
-        vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, NULL);
+        vkGetPhysicalDeviceQueueFamilyProperties(s->vi.PhysicalDevice, &count, NULL);
         VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)_gb_alloc(sizeof(VkQueueFamilyProperties) * count);
-        vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
+        vkGetPhysicalDeviceQueueFamilyProperties(s->vi.PhysicalDevice, &count, queues);
         for (uint32_t i = 0; i < count; i++) {
             if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                g_QueueFamily = i;
+                s->vi.QueueFamily = i;
                 break;
             }
         }
         free(queues);
-        assert(g_QueueFamily != (uint32_t)-1);
+        assert(s->vi.QueueFamily != (uint32_t)-1);
     }
 
     // Create Logical Device (with 1 queue)
@@ -290,7 +364,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         const float queue_priority[] = { 1.0f };
         VkDeviceQueueCreateInfo queue_info[1] = {};
         queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_info[0].queueFamilyIndex = g_QueueFamily;
+        queue_info[0].queueFamilyIndex = s->vi.QueueFamily;
         queue_info[0].queueCount = 1;
         queue_info[0].pQueuePriorities = queue_priority;
         VkDeviceCreateInfo create_info = {};
@@ -299,9 +373,9 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         create_info.pQueueCreateInfos = queue_info;
         create_info.enabledExtensionCount = device_extension_count;
         create_info.ppEnabledExtensionNames = device_extensions;
-        err = vkCreateDevice(g_PhysicalDevice, &create_info, g_Allocator, &g_Device);
+        err = vkCreateDevice(s->vi.PhysicalDevice, &create_info, s->vi.Allocator, &s->vi.Device);
         _gb_check_vk_result(err);
-        vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &g_Queue);
+        vkGetDeviceQueue(s->vi.Device, s->vi.QueueFamily, 0, &s->vi.Queue);
     }
 
     // Create Descriptor Pool
@@ -326,18 +400,18 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         pool_info.maxSets = 1000 * GB_ARRAYSIZE(pool_sizes);
         pool_info.poolSizeCount = (uint32_t)GB_ARRAYSIZE(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
-        err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator, &g_DescriptorPool);
+        err = vkCreateDescriptorPool(s->vi.Device, &pool_info, s->vi.Allocator, &s->vi.DescriptorPool);
         _gb_check_vk_result(err);
     }
 }
 
-static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height) {
+static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height) {
 
     wd->Surface = surface;
 
     // Check for WSI support
     VkBool32 res;
-    vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, g_QueueFamily, wd->Surface, &res);
+    vkGetPhysicalDeviceSurfaceSupportKHR(s->vi.PhysicalDevice, s->vi.QueueFamily, wd->Surface, &res);
     if (res != VK_TRUE) {
         fprintf(stderr, "Error no WSI support on physical device 0\n");
         exit(-1);
@@ -346,7 +420,7 @@ static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surfa
     // Select Surface Format
     const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
     const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    wd->SurfaceFormat = _gb_select_surface_format(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat,
+    wd->SurfaceFormat = _gb_select_surface_format(s->vi.PhysicalDevice, wd->Surface, requestSurfaceImageFormat,
         (size_t)GB_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
     // Select Present Mode
@@ -355,12 +429,13 @@ static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surfa
 #else
     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
 #endif
-    wd->PresentMode = _gb_select_present_mode(g_PhysicalDevice, wd->Surface, &present_modes[0], GB_ARRAYSIZE(present_modes));
+    wd->PresentMode = _gb_select_present_mode(s->vi.PhysicalDevice, wd->Surface, &present_modes[0], GB_ARRAYSIZE(present_modes));
     //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
 
     // Create SwapChain, RenderPass, Framebuffer, etc.
-    assert(g_MinImageCount >= 2);
-    _gb_create_or_resize_window(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
+    assert(s->vi.MinImageCount >= 2);
+    _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, wd, s->vi.QueueFamily,
+        s->vi.Allocator, width, height, s->vi.MinImageCount);
 }
 
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
@@ -676,6 +751,151 @@ static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mo
     return 1;
 }
 
+static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
+
+    assert(min_image_count >= 2);
+    if (s->vi.MinImageCount == min_image_count) {
+        return;
+    }
+
+    assert(0); // FIXME-VIEWPORT: Unsupported. Need to recreate all swap chains!
+    VkResult err = vkDeviceWaitIdle(s->vi.Device);
+    _gb_check_vk_result(err);
+    _gb_destroy_all_viewports_render_buffers(s->vi.Device, s->vi.Allocator);
+    s->vi.MinImageCount = min_image_count;
+}
+
+static void _gb_create_pipeline(VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
+    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass) {
+
+//    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+//    ImGui_ImplVulkan_CreateShaderModules(device, allocator);
+//
+//    VkPipelineShaderStageCreateInfo stage[2] = {};
+//    stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+//    stage[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+//    stage[0].module = bd->ShaderModuleVert;
+//    stage[0].pName = "main";
+//    stage[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+//    stage[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+//    stage[1].module = bd->ShaderModuleFrag;
+//    stage[1].pName = "main";
+//
+//    VkVertexInputBindingDescription binding_desc[1] = {};
+//    binding_desc[0].stride = sizeof(ImDrawVert);
+//    binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+//
+//    VkVertexInputAttributeDescription attribute_desc[3] = {};
+//    attribute_desc[0].location = 0;
+//    attribute_desc[0].binding = binding_desc[0].binding;
+//    attribute_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
+//    attribute_desc[0].offset = IM_OFFSETOF(ImDrawVert, pos);
+//    attribute_desc[1].location = 1;
+//    attribute_desc[1].binding = binding_desc[0].binding;
+//    attribute_desc[1].format = VK_FORMAT_R32G32_SFLOAT;
+//    attribute_desc[1].offset = IM_OFFSETOF(ImDrawVert, uv);
+//    attribute_desc[2].location = 2;
+//    attribute_desc[2].binding = binding_desc[0].binding;
+//    attribute_desc[2].format = VK_FORMAT_R8G8B8A8_UNORM;
+//    attribute_desc[2].offset = IM_OFFSETOF(ImDrawVert, col);
+//
+//    VkPipelineVertexInputStateCreateInfo vertex_info = {};
+//    vertex_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+//    vertex_info.vertexBindingDescriptionCount = 1;
+//    vertex_info.pVertexBindingDescriptions = binding_desc;
+//    vertex_info.vertexAttributeDescriptionCount = 3;
+//    vertex_info.pVertexAttributeDescriptions = attribute_desc;
+//
+//    VkPipelineInputAssemblyStateCreateInfo ia_info = {};
+//    ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+//    ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+//
+//    VkPipelineViewportStateCreateInfo viewport_info = {};
+//    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+//    viewport_info.viewportCount = 1;
+//    viewport_info.scissorCount = 1;
+//
+//    VkPipelineRasterizationStateCreateInfo raster_info = {};
+//    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+//    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+//    raster_info.cullMode = VK_CULL_MODE_NONE;
+//    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+//    raster_info.lineWidth = 1.0f;
+//
+//    VkPipelineMultisampleStateCreateInfo ms_info = {};
+//    ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+//    ms_info.rasterizationSamples = (MSAASamples != 0) ? MSAASamples : VK_SAMPLE_COUNT_1_BIT;
+//
+//    VkPipelineColorBlendAttachmentState color_attachment[1] = {};
+//    color_attachment[0].blendEnable = VK_TRUE;
+//    color_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+//    color_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+//    color_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+//    color_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+//    color_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+//    color_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+//    color_attachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+//
+//    VkPipelineDepthStencilStateCreateInfo depth_info = {};
+//    depth_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+//
+//    VkPipelineColorBlendStateCreateInfo blend_info = {};
+//    blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+//    blend_info.attachmentCount = 1;
+//    blend_info.pAttachments = color_attachment;
+//
+//    VkDynamicState dynamic_states[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+//    VkPipelineDynamicStateCreateInfo dynamic_state = {};
+//    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+//    dynamic_state.dynamicStateCount = (uint32_t)IM_ARRAYSIZE(dynamic_states);
+//    dynamic_state.pDynamicStates = dynamic_states;
+//
+//    ImGui_ImplVulkan_CreatePipelineLayout(device, allocator);
+//
+//    VkGraphicsPipelineCreateInfo info = {};
+//    info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+//    info.flags = bd->PipelineCreateFlags;
+//    info.stageCount = 2;
+//    info.pStages = stage;
+//    info.pVertexInputState = &vertex_info;
+//    info.pInputAssemblyState = &ia_info;
+//    info.pViewportState = &viewport_info;
+//    info.pRasterizationState = &raster_info;
+//    info.pMultisampleState = &ms_info;
+//    info.pDepthStencilState = &depth_info;
+//    info.pColorBlendState = &blend_info;
+//    info.pDynamicState = &dynamic_state;
+//    info.layout = bd->PipelineLayout;
+//    info.renderPass = renderPass;
+//    info.subpass = subpass;
+//    VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &info, allocator, pipeline);
+//    check_vk_result(err);
+}
+
+static void _gb_create_shader_modules(VkDevice device, const VkAllocationCallbacks* allocator) {
+
+//    // Create the shader modules
+//    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+//    if (bd->ShaderModuleVert == VK_NULL_HANDLE)
+//    {
+//        VkShaderModuleCreateInfo vert_info = {};
+//        vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+//        vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
+//        vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
+//        VkResult err = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
+//        check_vk_result(err);
+//    }
+//    if (bd->ShaderModuleFrag == VK_NULL_HANDLE)
+//    {
+//        VkShaderModuleCreateInfo frag_info = {};
+//        frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+//        frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
+//        frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
+//        VkResult err = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
+//        check_vk_result(err);
+//    }
+}
+
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator) {
 
     vkDestroyFence(device, fd->Fence, allocator);
@@ -694,6 +914,15 @@ static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_se
     vkDestroySemaphore(device, fsd->ImageAcquiredSemaphore, allocator);
     vkDestroySemaphore(device, fsd->RenderCompleteSemaphore, allocator);
     fsd->ImageAcquiredSemaphore = fsd->RenderCompleteSemaphore = VK_NULL_HANDLE;
+}
+
+static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator) {
+
+//  TODO
+//    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+//    for (int n = 0; n < platform_io.Viewports.Size; n++)
+//        if (ImGui_ImplVulkan_ViewportData* vd = (ImGui_ImplVulkan_ViewportData*)platform_io.Viewports[n]->RendererUserData)
+//            ImGui_ImplVulkanH_DestroyWindowRenderBuffers(device, &vd->RenderBuffers, allocator);
 }
 
 static void* _gb_alloc(size_t count) {

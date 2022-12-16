@@ -182,7 +182,9 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, &s->vw, surface, w, h);
 
-    // Create device objects
+    // Initialize Vulkan
+    s->vd.RenderPass = s->vw.RenderPass;
+    s->vd.Subpass = s->vi.Subpass;
     _gb_create_device_objects(s);
     return s;
 }

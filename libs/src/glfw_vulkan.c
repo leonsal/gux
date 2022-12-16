@@ -94,18 +94,34 @@ typedef struct {
     struct vulkan_data      vd;     // Vulkan data
 } gb_state_t;
 
+struct vulkan_frame_render_buffers {
+    VkDeviceMemory      VertexBufferMemory;
+    VkDeviceMemory      IndexBufferMemory;
+    VkDeviceSize        VertexBufferSize;
+    VkDeviceSize        IndexBufferSize;
+    VkBuffer            VertexBuffer;
+    VkBuffer            IndexBuffer;
+};
 
+// Each viewport will hold 1 vulkan_window_render_buffers
+struct vulkan_window_render_buffers {
+    uint32_t    Index;
+    uint32_t    Count;
+    struct vulkan_frame_render_buffers* FrameRenderBuffers;
+};
 
 // Forward declarations of internal functions
-static void _gb_glfw_error_callback(int error, const char* description);
-static void _gb_check_vk_result(VkResult err);
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+    struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height);
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDeviceMemory buffer_memory,
+    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
+static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count);
 static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
 static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkPresentModeKHR* request_modes, int request_modes_count);
-static void* _gb_alloc(size_t count);
 static void _gb_create_or_resize_window(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
     uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count);
 static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
@@ -121,9 +137,15 @@ static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkA
 static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
+static void _gb_destroy_frame_render_buffers(VkDevice device, struct vulkan_frame_render_buffers* buffers, const VkAllocationCallbacks* allocator);
+static void _gb_destroy_window_render_buffers(VkDevice device, struct vulkan_window_render_buffers* buffers, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator);
+static void* _gb_alloc(size_t count);
+static void _gb_glfw_error_callback(int error, const char* description);
+static void _gb_check_vk_result(VkResult err);
 #ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
@@ -250,6 +272,96 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 // Internal functions
 //-----------------------------------------------------------------------------
 
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+    struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height) {
+
+    // Bind pipeline:
+    {
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    }
+
+    // Bind Vertex And Index Buffer:
+    if (dl.vtx_count > 0) {
+        VkBuffer vertex_buffers[1] = { rb->VertexBuffer };
+        VkDeviceSize vertex_offset[1] = { 0 };
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
+        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, sizeof(uint32_t) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+    }
+
+    // Setup viewport:
+    {
+        VkViewport viewport;
+        viewport.x = 0;
+        viewport.y = 0;
+        viewport.width = (float)fb_width;
+        viewport.height = (float)fb_height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    }
+
+    // Setup scale and translation:
+    // Our visible imgui space lies from draw_data->DisplayPps (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
+    {
+        float scale[2];
+        scale[0] = 2.0f / draw_data->DisplaySize.x;
+        scale[1] = 2.0f / draw_data->DisplaySize.y;
+        float translate[2];
+        translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
+        translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
+        vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 0, sizeof(float) * 2, scale);
+        vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, sizeof(float) * 2, translate);
+    }
+}
+
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDeviceMemory buffer_memory,
+    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage) {
+
+    //ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    //ImGui_ImplVulkan_InitInfo* v = &bd->VulkanInitInfo;
+    VkResult err;
+    if (buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(s->vi.Device, buffer, s->vi.Allocator);
+    }
+    if (buffer_memory != VK_NULL_HANDLE) {
+        vkFreeMemory(s->vi.Device, buffer_memory, s->vi.Allocator);
+    }
+
+    VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / s->vd.BufferMemoryAlignment + 1) * s->vd.BufferMemoryAlignment;
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = vertex_buffer_size_aligned;
+    buffer_info.usage = usage;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, &buffer);
+    _gb_check_vk_result(err);
+
+    VkMemoryRequirements req;
+    vkGetBufferMemoryRequirements(s->vi.Device, buffer, &req);
+    s->vd.BufferMemoryAlignment = (s->vd.BufferMemoryAlignment > req.alignment) ? s->vd.BufferMemoryAlignment : req.alignment;
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = req.size;
+    alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
+    err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &buffer_memory);
+    _gb_check_vk_result(err);
+
+    err = vkBindBufferMemory(s->vi.Device, buffer, buffer_memory, 0);
+    _gb_check_vk_result(err);
+    *p_buffer_size = req.size;
+}
+
+static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits) {
+
+    VkPhysicalDeviceMemoryProperties prop;
+    vkGetPhysicalDeviceMemoryProperties(s->vi.PhysicalDevice, &prop);
+    for (uint32_t i = 0; i < prop.memoryTypeCount; i++) {
+        if ((prop.memoryTypes[i].propertyFlags & properties) == properties && type_bits & (1 << i)) {
+            return i;
+        }
+    }
+    return 0xFFFFFFFF; // Unable to find memoryType
+}
 
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count) {
     VkResult err;
@@ -1113,6 +1225,27 @@ static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAl
     }
 }
 
+static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator) {
+
+    vkDeviceWaitIdle(device); // FIXME: We could wait on the Queue if we had the queue in wd-> (otherwise VulkanH functions can't use globals)
+    //vkQueueWaitIdle(bd->Queue);
+
+    for (uint32_t i = 0; i < wd->ImageCount; i++) {
+        _gb_destroy_frame(device, &wd->Frames[i], allocator);
+        _gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
+    }
+    free(wd->Frames);
+    free(wd->FrameSemaphores);
+    wd->Frames = NULL;
+    wd->FrameSemaphores = NULL;
+    vkDestroyPipeline(device, wd->Pipeline, allocator);
+    vkDestroyRenderPass(device, wd->RenderPass, allocator);
+    vkDestroySwapchainKHR(device, wd->Swapchain, allocator);
+    vkDestroySurfaceKHR(instance, wd->Surface, allocator);
+
+    //*wd = ImGui_ImplVulkanH_Window();
+}
+
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator) {
 
     vkDestroyFence(device, fd->Fence, allocator);
@@ -1131,6 +1264,27 @@ static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_se
     vkDestroySemaphore(device, fsd->ImageAcquiredSemaphore, allocator);
     vkDestroySemaphore(device, fsd->RenderCompleteSemaphore, allocator);
     fsd->ImageAcquiredSemaphore = fsd->RenderCompleteSemaphore = VK_NULL_HANDLE;
+}
+
+static void _gb_destroy_frame_render_buffers(VkDevice device, struct vulkan_frame_render_buffers* buffers, const VkAllocationCallbacks* allocator) {
+
+    if (buffers->VertexBuffer) { vkDestroyBuffer(device, buffers->VertexBuffer, allocator); buffers->VertexBuffer = VK_NULL_HANDLE; }
+    if (buffers->VertexBufferMemory) { vkFreeMemory(device, buffers->VertexBufferMemory, allocator); buffers->VertexBufferMemory = VK_NULL_HANDLE; }
+    if (buffers->IndexBuffer) { vkDestroyBuffer(device, buffers->IndexBuffer, allocator); buffers->IndexBuffer = VK_NULL_HANDLE; }
+    if (buffers->IndexBufferMemory) { vkFreeMemory(device, buffers->IndexBufferMemory, allocator); buffers->IndexBufferMemory = VK_NULL_HANDLE; }
+    buffers->VertexBufferSize = 0;
+    buffers->IndexBufferSize = 0;
+}
+
+static void _gb_destroy_window_render_buffers(VkDevice device, struct vulkan_window_render_buffers* buffers, const VkAllocationCallbacks* allocator) {
+
+    for (uint32_t n = 0; n < buffers->Count; n++) {
+        _gb_destroy_frame_render_buffers(device, &buffers->FrameRenderBuffers[n], allocator);
+    }
+    free(buffers->FrameRenderBuffers);
+    buffers->FrameRenderBuffers = NULL;
+    buffers->Index = 0;
+    buffers->Count = 0;
 }
 
 static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator) {

@@ -68,30 +68,24 @@ static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 static int                      g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
 
-static void _gb_glfw_error_callback(int error, const char* description) {
-
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
-
-static void _gb_check_vk_result(VkResult err) {
-
-    if (err == 0) {
-        return;
-    }
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-    if (err < 0) {
-        abort();
-    }
-}
 
 // Forward declarations of internal functions
+static void _gb_glfw_error_callback(int error, const char* description);
+static void _gb_check_vk_result(VkResult err);
 static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count);
 static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
-VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkPresentModeKHR* request_modes, int request_modes_count);
 static void* _gb_alloc(size_t count);
+static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count);
+static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    uint32_t queue_family, const VkAllocationCallbacks* allocator);
+static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
+static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
+static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -207,12 +201,12 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
 
         // Create Vulkan Instance
         err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
-        check_vk_result(err);
+        _gb_check_vk_result(err);
         free(extensions_ext);
 
         // Get the function pointer (required for any extensions)
         auto vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT");
-        IM_ASSERT(vkCreateDebugReportCallbackEXT != NULL);
+        assert(vkCreateDebugReportCallbackEXT != NULL);
 
         // Setup the debug report callback
         VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
@@ -221,7 +215,7 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         debug_report_ci.pfnCallback = debug_report;
         debug_report_ci.pUserData = NULL;
         err = vkCreateDebugReportCallbackEXT(g_Instance, &debug_report_ci, g_Allocator, &g_DebugReport);
-        check_vk_result(err);
+        _gb_check_vk_result(err);
 #else
         // Create Vulkan Instance without any debug feature
         err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
@@ -269,12 +263,12 @@ static void _gb_setup_vulkan(const char** extensions, uint32_t extensions_count)
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, NULL);
         VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)_gb_alloc(sizeof(VkQueueFamilyProperties) * count);
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
-        for (uint32_t i = 0; i < count; i++)
-            if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            {
+        for (uint32_t i = 0; i < count; i++) {
+            if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 g_QueueFamily = i;
                 break;
             }
+        }
         free(queues);
         assert(g_QueueFamily != (uint32_t)-1);
     }
@@ -402,7 +396,7 @@ static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_de
     }
 }
 
-VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkPresentModeKHR* request_modes, int request_modes_count) {
 
     assert(request_modes != NULL);
@@ -428,6 +422,265 @@ VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSur
     return VK_PRESENT_MODE_FIFO_KHR; // Always available
 }
 
+static void _gb_create_or_resize_window(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count) {
+
+    _gb_create_window_swap_chain(physical_device, device, wd, allocator, width, height, min_image_count);
+    //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, g_VulkanInitInfo.Subpass);
+    _gb_create_window_command_buffers(physical_device, device, wd, queue_family, allocator);
+}
+
+// Also destroy old swap chain and in-flight frames data, if any.
+static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count) {
+
+    VkResult err;
+    VkSwapchainKHR old_swapchain = wd->Swapchain;
+    wd->Swapchain = VK_NULL_HANDLE;
+    err = vkDeviceWaitIdle(device);
+    _gb_check_vk_result(err);
+
+    // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
+    // Destroy old Framebuffer
+    for (uint32_t i = 0; i < wd->ImageCount; i++) {
+        _gb_destroy_frame(device, &wd->Frames[i], allocator);
+        _gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
+    }
+    free(wd->Frames);
+    free(wd->FrameSemaphores);
+    wd->Frames = NULL;
+    wd->FrameSemaphores = NULL;
+    wd->ImageCount = 0;
+    if (wd->RenderPass) {
+        vkDestroyRenderPass(device, wd->RenderPass, allocator);
+    }
+    if (wd->Pipeline) {
+        vkDestroyPipeline(device, wd->Pipeline, allocator);
+    }
+
+    // If min image count was not specified, request different count of images dependent on selected present mode
+    if (min_image_count == 0) {
+        min_image_count = _gb_get_min_image_count_from_present_mode(wd->PresentMode);
+    }
+
+    // Create Swapchain
+    {
+        VkSwapchainCreateInfoKHR info = {};
+        info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        info.surface = wd->Surface;
+        info.minImageCount = min_image_count;
+        info.imageFormat = wd->SurfaceFormat.format;
+        info.imageColorSpace = wd->SurfaceFormat.colorSpace;
+        info.imageArrayLayers = 1;
+        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;           // Assume that graphics family == present family
+        info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        info.presentMode = wd->PresentMode;
+        info.clipped = VK_TRUE;
+        info.oldSwapchain = old_swapchain;
+        VkSurfaceCapabilitiesKHR cap;
+        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, wd->Surface, &cap);
+        _gb_check_vk_result(err);
+        if (info.minImageCount < cap.minImageCount)
+            info.minImageCount = cap.minImageCount;
+        else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
+            info.minImageCount = cap.maxImageCount;
+
+        if (cap.currentExtent.width == 0xffffffff)
+        {
+            info.imageExtent.width = wd->Width = w;
+            info.imageExtent.height = wd->Height = h;
+        }
+        else
+        {
+            info.imageExtent.width = wd->Width = cap.currentExtent.width;
+            info.imageExtent.height = wd->Height = cap.currentExtent.height;
+        }
+        err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
+        _gb_check_vk_result(err);
+        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, NULL);
+        _gb_check_vk_result(err);
+        VkImage backbuffers[16] = {};
+        assert(wd->ImageCount >= min_image_count);
+        assert(wd->ImageCount < GB_ARRAYSIZE(backbuffers));
+        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
+        _gb_check_vk_result(err);
+
+        assert(wd->Frames == NULL);
+        wd->Frames = _gb_alloc(sizeof(struct vulkan_frame) * wd->ImageCount);
+        wd->FrameSemaphores = _gb_alloc(sizeof(struct vulkan_frame_semaphores) * wd->ImageCount);
+        memset(wd->Frames, 0, sizeof(wd->Frames[0]) * wd->ImageCount);
+        memset(wd->FrameSemaphores, 0, sizeof(wd->FrameSemaphores[0]) * wd->ImageCount);
+        for (uint32_t i = 0; i < wd->ImageCount; i++) {
+            wd->Frames[i].Backbuffer = backbuffers[i];
+        }
+    }
+    if (old_swapchain) {
+        vkDestroySwapchainKHR(device, old_swapchain, allocator);
+    }
+
+    // Create the Render Pass
+    {
+        VkAttachmentDescription attachment = {};
+        attachment.format = wd->SurfaceFormat.format;
+        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp = wd->ClearEnable ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        VkAttachmentReference color_attachment = {};
+        color_attachment.attachment = 0;
+        color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_attachment;
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        VkRenderPassCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        info.attachmentCount = 1;
+        info.pAttachments = &attachment;
+        info.subpassCount = 1;
+        info.pSubpasses = &subpass;
+        info.dependencyCount = 1;
+        info.pDependencies = &dependency;
+        err = vkCreateRenderPass(device, &info, allocator, &wd->RenderPass);
+        _gb_check_vk_result(err);
+
+        // We do not create a pipeline by default as this is also used by examples' main.cpp,
+        // but secondary viewport in multi-viewport mode may want to create one with:
+        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, bd->Subpass);
+    }
+
+    // Create The Image Views
+    {
+        VkImageViewCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        info.format = wd->SurfaceFormat.format;
+        info.components.r = VK_COMPONENT_SWIZZLE_R;
+        info.components.g = VK_COMPONENT_SWIZZLE_G;
+        info.components.b = VK_COMPONENT_SWIZZLE_B;
+        info.components.a = VK_COMPONENT_SWIZZLE_A;
+        VkImageSubresourceRange image_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+        info.subresourceRange = image_range;
+        for (uint32_t i = 0; i < wd->ImageCount; i++)
+        {
+            struct vulkan_frame* fd = &wd->Frames[i];
+            info.image = fd->Backbuffer;
+            err = vkCreateImageView(device, &info, allocator, &fd->BackbufferView);
+            _gb_check_vk_result(err);
+        }
+    }
+
+    // Create Framebuffer
+    {
+        VkImageView attachment[1];
+        VkFramebufferCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        info.renderPass = wd->RenderPass;
+        info.attachmentCount = 1;
+        info.pAttachments = attachment;
+        info.width = wd->Width;
+        info.height = wd->Height;
+        info.layers = 1;
+        for (uint32_t i = 0; i < wd->ImageCount; i++) {
+            struct vulkan_frame* fd = &wd->Frames[i];
+            attachment[0] = fd->BackbufferView;
+            err = vkCreateFramebuffer(device, &info, allocator, &fd->Framebuffer);
+            _gb_check_vk_result(err);
+        }
+    }
+}
+
+static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    uint32_t queue_family, const VkAllocationCallbacks* allocator) {
+
+    assert(physical_device != VK_NULL_HANDLE && device != VK_NULL_HANDLE);
+
+    // Create Command Buffers
+    VkResult err;
+    for (uint32_t i = 0; i < wd->ImageCount; i++) {
+        struct vulkan_frame* fd = &wd->Frames[i];
+        struct vulkan_frame_semaphores* fsd = &wd->FrameSemaphores[i];
+        {
+            VkCommandPoolCreateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            info.queueFamilyIndex = queue_family;
+            err = vkCreateCommandPool(device, &info, allocator, &fd->CommandPool);
+            _gb_check_vk_result(err);
+        }
+        {
+            VkCommandBufferAllocateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            info.commandPool = fd->CommandPool;
+            info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            info.commandBufferCount = 1;
+            err = vkAllocateCommandBuffers(device, &info, &fd->CommandBuffer);
+            _gb_check_vk_result(err);
+        }
+        {
+            VkFenceCreateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+            err = vkCreateFence(device, &info, allocator, &fd->Fence);
+            _gb_check_vk_result(err);
+        }
+        {
+            VkSemaphoreCreateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            err = vkCreateSemaphore(device, &info, allocator, &fsd->ImageAcquiredSemaphore);
+            _gb_check_vk_result(err);
+            err = vkCreateSemaphore(device, &info, allocator, &fsd->RenderCompleteSemaphore);
+            _gb_check_vk_result(err);
+        }
+    }
+}
+
+static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode) {
+
+    if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        return 3;
+    }
+    if (present_mode == VK_PRESENT_MODE_FIFO_KHR || present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+        return 2;
+    }
+    if (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        return 1;
+    }
+    assert(0);
+    return 1;
+}
+
+static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator) {
+
+    vkDestroyFence(device, fd->Fence, allocator);
+    vkFreeCommandBuffers(device, fd->CommandPool, 1, &fd->CommandBuffer);
+    vkDestroyCommandPool(device, fd->CommandPool, allocator);
+    fd->Fence = VK_NULL_HANDLE;
+    fd->CommandBuffer = VK_NULL_HANDLE;
+    fd->CommandPool = VK_NULL_HANDLE;
+
+    vkDestroyImageView(device, fd->BackbufferView, allocator);
+    vkDestroyFramebuffer(device, fd->Framebuffer, allocator);
+}
+
+static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator) {
+
+    vkDestroySemaphore(device, fsd->ImageAcquiredSemaphore, allocator);
+    vkDestroySemaphore(device, fsd->RenderCompleteSemaphore, allocator);
+    fsd->ImageAcquiredSemaphore = fsd->RenderCompleteSemaphore = VK_NULL_HANDLE;
+}
 
 static void* _gb_alloc(size_t count) {
 
@@ -439,5 +692,20 @@ static void* _gb_alloc(size_t count) {
     return p;
 }
 
+static void _gb_glfw_error_callback(int error, const char* description) {
+
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+}
+
+static void _gb_check_vk_result(VkResult err) {
+
+    if (err == 0) {
+        return;
+    }
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0) {
+        abort();
+    }
+}
 
 

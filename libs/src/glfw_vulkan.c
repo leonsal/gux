@@ -79,6 +79,8 @@ static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_de
 static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkPresentModeKHR* request_modes, int request_modes_count);
 static void* _gb_alloc(size_t count);
+static void _gb_create_or_resize_window(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
+    uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count);
 static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
     const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count);
 static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
@@ -347,9 +349,9 @@ static void _gb_setup_vulkan_window(struct vulkan_window* wd, VkSurfaceKHR surfa
     wd->PresentMode = _gb_select_present_mode(g_PhysicalDevice, wd->Surface, &present_modes[0], GB_ARRAYSIZE(present_modes));
     //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
 
-//    // Create SwapChain, RenderPass, Framebuffer, etc.
-//    assert(g_MinImageCount >= 2);
-//    ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
+    // Create SwapChain, RenderPass, Framebuffer, etc.
+    assert(g_MinImageCount >= 2);
+    _gb_create_or_resize_window(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
 }
 
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,

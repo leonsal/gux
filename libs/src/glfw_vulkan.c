@@ -51,6 +51,7 @@ struct vulkan_window {
 
 struct vulkan_init {
     VkInstance                      Instance;
+    VkDebugReportCallbackEXT        DebugReport;
     VkPhysicalDevice                PhysicalDevice;
     VkDevice                        Device;
     uint32_t                        QueueFamily;
@@ -62,36 +63,27 @@ struct vulkan_init {
     uint32_t                        ImageCount;             // >= MinImageCount
     VkSampleCountFlagBits           MSAASamples;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
     const VkAllocationCallbacks*    Allocator;
-    //void                            (*CheckVkResultFn)(VkResult err);
 };
 
 struct vulkan_data {
-    VkRenderPass                RenderPass;
-    VkDeviceSize                BufferMemoryAlignment;
-    VkPipelineCreateFlags       PipelineCreateFlags;
-    VkDescriptorSetLayout       DescriptorSetLayout;
-    VkPipelineLayout            PipelineLayout;
-    VkPipeline                  Pipeline;
-    uint32_t                    Subpass;
-    VkShaderModule              ShaderModuleVert;
-    VkShaderModule              ShaderModuleFrag;
+    VkRenderPass            RenderPass;
+    VkDeviceSize            BufferMemoryAlignment;
+    VkPipelineCreateFlags   PipelineCreateFlags;
+    VkDescriptorSetLayout   DescriptorSetLayout;
+    VkPipelineLayout        PipelineLayout;
+    VkPipeline              Pipeline;
+    uint32_t                Subpass;
+    VkShaderModule          ShaderModuleVert;
+    VkShaderModule          ShaderModuleFrag;
 
     // Font data
-    VkSampler                   FontSampler;
-    VkDeviceMemory              FontMemory;
-    VkImage                     FontImage;
-    VkImageView                 FontView;
-    VkDescriptorSet             FontDescriptorSet;
-    VkDeviceMemory              UploadBufferMemory;
-    VkBuffer                    UploadBuffer;
-    //// Render buffers for main window
-    //ImGui_ImplVulkanH_WindowRenderBuffers MainWindowRenderBuffers;
-
-    //ImGui_ImplVulkan_Data()
-    //{
-    //    memset((void*)this, 0, sizeof(*this));
-    //    BufferMemoryAlignment = 256;
-    //}
+    VkSampler               FontSampler;
+    VkDeviceMemory          FontMemory;
+    VkImage                 FontImage;
+    VkImageView             FontView;
+    VkDescriptorSet         FontDescriptorSet;
+    VkDeviceMemory          UploadBufferMemory;
+    VkBuffer                UploadBuffer;
 };
 
 // Backend window state
@@ -102,18 +94,6 @@ typedef struct {
     struct vulkan_data      vd;     // Vulkan data
 } gb_state_t;
 
-// Global state
-//static VkAllocationCallbacks*   g_Allocator = NULL;
-//static VkInstance               g_Instance = VK_NULL_HANDLE;
-//static VkPhysicalDevice         g_PhysicalDevice = VK_NULL_HANDLE;
-//static VkDevice                 g_Device = VK_NULL_HANDLE;
-//static uint32_t                 g_QueueFamily = (uint32_t)-1;
-//static VkQueue                  g_Queue = VK_NULL_HANDLE;
-static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
-//static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
-//static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
-//static int                      g_MinImageCount = 2;
-//static bool                     g_SwapChainRebuild = false;
 
 
 // Forward declarations of internal functions
@@ -134,6 +114,13 @@ static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, 
     uint32_t queue_family, const VkAllocationCallbacks* allocator);
 static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
+static bool _gb_create_device_objects(gb_state_t* s);
+static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
+    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass);
+static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator);
@@ -177,6 +164,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->w = win;
     s->vi.MinImageCount = 2;
     s->vi.QueueFamily = (uint32_t)-1;
+    s->vd.BufferMemoryAlignment = 256;
     glfwSetWindowUserPointer(win, s);
 
     // Get required vulkan extensions from GLFW (WSI)
@@ -298,16 +286,15 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
         debug_report_ci.pfnCallback = _gb_debug_report;
         debug_report_ci.pUserData = NULL;
-        err = vkCreateDebugReportCallbackEXT(s->vi.Instance, &debug_report_ci, s->vi.Allocator, &g_DebugReport);
+        err = vkCreateDebugReportCallbackEXT(s->vi.Instance, &debug_report_ci, s->vi.Allocator, &s->vi.DebugReport);
         _gb_check_vk_result(err);
 #else
         // Create Vulkan Instance without any debug feature
-        err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
+        err = vkCreateInstance(&create_info, s->vi.Allocator, &s->vi.Instance);
         _gb_check_vk_result(err);
-        //IM_UNUSED(g_DebugReport);
         
         // Load Vulkan functions for the instance
-        volkLoadInstance(g_Instance);
+        volkLoadInstance(s->vi.Instance);
 #endif
     }
 
@@ -765,135 +752,360 @@ static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
     s->vi.MinImageCount = min_image_count;
 }
 
-static void _gb_create_pipeline(VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
-    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass) {
+static bool _gb_create_device_objects(gb_state_t* s) {
 
-//    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
-//    ImGui_ImplVulkan_CreateShaderModules(device, allocator);
-//
-//    VkPipelineShaderStageCreateInfo stage[2] = {};
-//    stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    stage[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-//    stage[0].module = bd->ShaderModuleVert;
-//    stage[0].pName = "main";
-//    stage[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    stage[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-//    stage[1].module = bd->ShaderModuleFrag;
-//    stage[1].pName = "main";
-//
-//    VkVertexInputBindingDescription binding_desc[1] = {};
-//    binding_desc[0].stride = sizeof(ImDrawVert);
-//    binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-//
-//    VkVertexInputAttributeDescription attribute_desc[3] = {};
-//    attribute_desc[0].location = 0;
-//    attribute_desc[0].binding = binding_desc[0].binding;
-//    attribute_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
-//    attribute_desc[0].offset = IM_OFFSETOF(ImDrawVert, pos);
-//    attribute_desc[1].location = 1;
-//    attribute_desc[1].binding = binding_desc[0].binding;
-//    attribute_desc[1].format = VK_FORMAT_R32G32_SFLOAT;
-//    attribute_desc[1].offset = IM_OFFSETOF(ImDrawVert, uv);
-//    attribute_desc[2].location = 2;
-//    attribute_desc[2].binding = binding_desc[0].binding;
-//    attribute_desc[2].format = VK_FORMAT_R8G8B8A8_UNORM;
-//    attribute_desc[2].offset = IM_OFFSETOF(ImDrawVert, col);
-//
-//    VkPipelineVertexInputStateCreateInfo vertex_info = {};
-//    vertex_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-//    vertex_info.vertexBindingDescriptionCount = 1;
-//    vertex_info.pVertexBindingDescriptions = binding_desc;
-//    vertex_info.vertexAttributeDescriptionCount = 3;
-//    vertex_info.pVertexAttributeDescriptions = attribute_desc;
-//
-//    VkPipelineInputAssemblyStateCreateInfo ia_info = {};
-//    ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-//    ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-//
-//    VkPipelineViewportStateCreateInfo viewport_info = {};
-//    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-//    viewport_info.viewportCount = 1;
-//    viewport_info.scissorCount = 1;
-//
-//    VkPipelineRasterizationStateCreateInfo raster_info = {};
-//    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-//    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
-//    raster_info.cullMode = VK_CULL_MODE_NONE;
-//    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-//    raster_info.lineWidth = 1.0f;
-//
-//    VkPipelineMultisampleStateCreateInfo ms_info = {};
-//    ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-//    ms_info.rasterizationSamples = (MSAASamples != 0) ? MSAASamples : VK_SAMPLE_COUNT_1_BIT;
-//
-//    VkPipelineColorBlendAttachmentState color_attachment[1] = {};
-//    color_attachment[0].blendEnable = VK_TRUE;
-//    color_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-//    color_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    color_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-//    color_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-//    color_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    color_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-//    color_attachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-//
-//    VkPipelineDepthStencilStateCreateInfo depth_info = {};
-//    depth_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-//
-//    VkPipelineColorBlendStateCreateInfo blend_info = {};
-//    blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-//    blend_info.attachmentCount = 1;
-//    blend_info.pAttachments = color_attachment;
-//
-//    VkDynamicState dynamic_states[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-//    VkPipelineDynamicStateCreateInfo dynamic_state = {};
-//    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-//    dynamic_state.dynamicStateCount = (uint32_t)IM_ARRAYSIZE(dynamic_states);
-//    dynamic_state.pDynamicStates = dynamic_states;
-//
-//    ImGui_ImplVulkan_CreatePipelineLayout(device, allocator);
-//
-//    VkGraphicsPipelineCreateInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-//    info.flags = bd->PipelineCreateFlags;
-//    info.stageCount = 2;
-//    info.pStages = stage;
-//    info.pVertexInputState = &vertex_info;
-//    info.pInputAssemblyState = &ia_info;
-//    info.pViewportState = &viewport_info;
-//    info.pRasterizationState = &raster_info;
-//    info.pMultisampleState = &ms_info;
-//    info.pDepthStencilState = &depth_info;
-//    info.pColorBlendState = &blend_info;
-//    info.pDynamicState = &dynamic_state;
-//    info.layout = bd->PipelineLayout;
-//    info.renderPass = renderPass;
-//    info.subpass = subpass;
-//    VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &info, allocator, pipeline);
-//    check_vk_result(err);
+    VkResult err;
+
+    if (!s->vd.FontSampler) {
+        VkSamplerCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        info.magFilter = VK_FILTER_LINEAR;
+        info.minFilter = VK_FILTER_LINEAR;
+        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.minLod = -1000;
+        info.maxLod = 1000;
+        info.maxAnisotropy = 1.0f;
+        err = vkCreateSampler(s->vi.Device, &info, s->vi.Allocator, &s->vd.FontSampler);
+        _gb_check_vk_result(err);
+    }
+
+    if (!s->vd.DescriptorSetLayout) {
+        VkSampler sampler[1] = {s->vd.FontSampler};
+        VkDescriptorSetLayoutBinding binding[1] = {};
+        binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding[0].descriptorCount = 1;
+        binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        binding[0].pImmutableSamplers = sampler;
+        VkDescriptorSetLayoutCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        info.bindingCount = 1;
+        info.pBindings = binding;
+        err = vkCreateDescriptorSetLayout(s->vi.Device, &info, s->vi.Allocator, &s->vd.DescriptorSetLayout);
+        _gb_check_vk_result(err);
+    }
+
+    if (!s->vd.PipelineLayout) {
+        // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+        VkPushConstantRange push_constants[1] = {};
+        push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        push_constants[0].offset = sizeof(float) * 0;
+        push_constants[0].size = sizeof(float) * 4;
+        VkDescriptorSetLayout set_layout[1] = { s->vd.DescriptorSetLayout };
+        VkPipelineLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_info.setLayoutCount = 1;
+        layout_info.pSetLayouts = set_layout;
+        layout_info.pushConstantRangeCount = 1;
+        layout_info.pPushConstantRanges = push_constants;
+        err = vkCreatePipelineLayout(s->vi.Device, &layout_info, s->vi.Allocator, &s->vd.PipelineLayout);
+        _gb_check_vk_result(err);
+    }
+
+    _gb_create_pipeline(s, s->vi.Device, s->vi.Allocator, s->vi.PipelineCache, s->vd.RenderPass, s->vi.MSAASamples, &s->vd.Pipeline, s->vd.Subpass);
+
+    return true;
 }
 
-static void _gb_create_shader_modules(VkDevice device, const VkAllocationCallbacks* allocator) {
+static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
+    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass) {
 
-//    // Create the shader modules
-//    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
-//    if (bd->ShaderModuleVert == VK_NULL_HANDLE)
-//    {
-//        VkShaderModuleCreateInfo vert_info = {};
-//        vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//        vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
-//        vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
-//        VkResult err = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
-//        check_vk_result(err);
-//    }
-//    if (bd->ShaderModuleFrag == VK_NULL_HANDLE)
-//    {
-//        VkShaderModuleCreateInfo frag_info = {};
-//        frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//        frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
-//        frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
-//        VkResult err = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
-//        check_vk_result(err);
-//    }
+    _gb_create_shader_modules(s, device, allocator);
+
+    VkPipelineShaderStageCreateInfo stage[2] = {};
+    stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    stage[0].module = s->vd.ShaderModuleVert;
+    stage[0].pName = "main";
+    stage[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stage[1].module = s->vd.ShaderModuleFrag;
+    stage[1].pName = "main";
+
+    VkVertexInputBindingDescription binding_desc[1] = {};
+    binding_desc[0].stride = sizeof(gb_vertex_t);
+    binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription attribute_desc[3] = {};
+    attribute_desc[0].location = 0;
+    attribute_desc[0].binding = binding_desc[0].binding;
+    attribute_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attribute_desc[0].offset = offsetof(gb_vertex_t, pos);
+    attribute_desc[1].location = 1;
+    attribute_desc[1].binding = binding_desc[0].binding;
+    attribute_desc[1].format = VK_FORMAT_R32G32_SFLOAT;
+    attribute_desc[1].offset = offsetof(gb_vertex_t, uv);
+    attribute_desc[2].location = 2;
+    attribute_desc[2].binding = binding_desc[0].binding;
+    attribute_desc[2].format = VK_FORMAT_R8G8B8A8_UNORM;
+    attribute_desc[2].offset = offsetof(gb_vertex_t, col);
+
+    VkPipelineVertexInputStateCreateInfo vertex_info = {};
+    vertex_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertex_info.vertexBindingDescriptionCount = 1;
+    vertex_info.pVertexBindingDescriptions = binding_desc;
+    vertex_info.vertexAttributeDescriptionCount = 3;
+    vertex_info.pVertexAttributeDescriptions = attribute_desc;
+
+    VkPipelineInputAssemblyStateCreateInfo ia_info = {};
+    ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkPipelineViewportStateCreateInfo viewport_info = {};
+    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewport_info.viewportCount = 1;
+    viewport_info.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo raster_info = {};
+    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+    raster_info.cullMode = VK_CULL_MODE_NONE;
+    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    raster_info.lineWidth = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo ms_info = {};
+    ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    ms_info.rasterizationSamples = (MSAASamples != 0) ? MSAASamples : VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineColorBlendAttachmentState color_attachment[1] = {};
+    color_attachment[0].blendEnable = VK_TRUE;
+    color_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+    color_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    color_attachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depth_info = {};
+    depth_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+    VkPipelineColorBlendStateCreateInfo blend_info = {};
+    blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    blend_info.attachmentCount = 1;
+    blend_info.pAttachments = color_attachment;
+
+    VkDynamicState dynamic_states[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamic_state = {};
+    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamic_state.dynamicStateCount = (uint32_t)GB_ARRAYSIZE(dynamic_states);
+    dynamic_state.pDynamicStates = dynamic_states;
+
+    _gb_create_pipeline_layout(s, device, allocator);
+
+    VkGraphicsPipelineCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    info.flags = s->vd.PipelineCreateFlags;
+    info.stageCount = 2;
+    info.pStages = stage;
+    info.pVertexInputState = &vertex_info;
+    info.pInputAssemblyState = &ia_info;
+    info.pViewportState = &viewport_info;
+    info.pRasterizationState = &raster_info;
+    info.pMultisampleState = &ms_info;
+    info.pDepthStencilState = &depth_info;
+    info.pColorBlendState = &blend_info;
+    info.pDynamicState = &dynamic_state;
+    info.layout = s->vd.PipelineLayout;
+    info.renderPass = renderPass;
+    info.subpass = subpass;
+    VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &info, allocator, pipeline);
+    _gb_check_vk_result(err);
+}
+
+static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
+
+    if (s->vd.PipelineLayout) {
+        return;
+    }
+
+    // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+    _gb_create_descriptor_set_layout(s, device, allocator);
+    VkPushConstantRange push_constants[1] = {};
+    push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    push_constants[0].offset = sizeof(float) * 0;
+    push_constants[0].size = sizeof(float) * 4;
+    VkDescriptorSetLayout set_layout[1] = { s->vd.DescriptorSetLayout };
+    VkPipelineLayoutCreateInfo layout_info = {};
+    layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout_info.setLayoutCount = 1;
+    layout_info.pSetLayouts = set_layout;
+    layout_info.pushConstantRangeCount = 1;
+    layout_info.pPushConstantRanges = push_constants;
+    VkResult  err = vkCreatePipelineLayout(device, &layout_info, allocator, &s->vd.PipelineLayout);
+    _gb_check_vk_result(err);
+}
+
+static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
+
+    if (s->vd.DescriptorSetLayout) {
+        return;
+    }
+
+    _gb_create_font_sampler(s, device, allocator);
+    VkSampler sampler[1] = { s->vd.FontSampler };
+    VkDescriptorSetLayoutBinding binding[1] = {};
+    binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    binding[0].descriptorCount = 1;
+    binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    binding[0].pImmutableSamplers = sampler;
+    VkDescriptorSetLayoutCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.bindingCount = 1;
+    info.pBindings = binding;
+    VkResult err = vkCreateDescriptorSetLayout(device, &info, allocator, &s->vd.DescriptorSetLayout);
+    _gb_check_vk_result(err);
+}
+
+static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
+
+    if (s->vd.FontSampler) {
+        return;
+    }
+
+    // Bilinear sampling is required by default.
+    VkSamplerCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.magFilter = VK_FILTER_LINEAR;
+    info.minFilter = VK_FILTER_LINEAR;
+    info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.minLod = -1000;
+    info.maxLod = 1000;
+    info.maxAnisotropy = 1.0f;
+    VkResult err = vkCreateSampler(device, &info, allocator, &s->vd.FontSampler);
+    _gb_check_vk_result(err);
+}
+
+
+// glsl_shader.vert, compiled with:
+// # glslangValidator -V -x -o glsl_shader.vert.u32 glsl_shader.vert
+/*
+#version 450 core
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUV;
+layout(location = 2) in vec4 aColor;
+layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
+
+out gl_PerVertex { vec4 gl_Position; };
+layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
+
+void main()
+{
+    Out.Color = aColor;
+    Out.UV = aUV;
+    gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
+}
+*/
+static uint32_t __glsl_shader_vert_spv[] =
+{
+    0x07230203,0x00010000,0x00080001,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
+    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
+    0x000a000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000b,0x0000000f,0x00000015,
+    0x0000001b,0x0000001c,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
+    0x00000000,0x00030005,0x00000009,0x00000000,0x00050006,0x00000009,0x00000000,0x6f6c6f43,
+    0x00000072,0x00040006,0x00000009,0x00000001,0x00005655,0x00030005,0x0000000b,0x0074754f,
+    0x00040005,0x0000000f,0x6c6f4361,0x0000726f,0x00030005,0x00000015,0x00565561,0x00060005,
+    0x00000019,0x505f6c67,0x65567265,0x78657472,0x00000000,0x00060006,0x00000019,0x00000000,
+    0x505f6c67,0x7469736f,0x006e6f69,0x00030005,0x0000001b,0x00000000,0x00040005,0x0000001c,
+    0x736f5061,0x00000000,0x00060005,0x0000001e,0x73755075,0x6e6f4368,0x6e617473,0x00000074,
+    0x00050006,0x0000001e,0x00000000,0x61635375,0x0000656c,0x00060006,0x0000001e,0x00000001,
+    0x61725475,0x616c736e,0x00006574,0x00030005,0x00000020,0x00006370,0x00040047,0x0000000b,
+    0x0000001e,0x00000000,0x00040047,0x0000000f,0x0000001e,0x00000002,0x00040047,0x00000015,
+    0x0000001e,0x00000001,0x00050048,0x00000019,0x00000000,0x0000000b,0x00000000,0x00030047,
+    0x00000019,0x00000002,0x00040047,0x0000001c,0x0000001e,0x00000000,0x00050048,0x0000001e,
+    0x00000000,0x00000023,0x00000000,0x00050048,0x0000001e,0x00000001,0x00000023,0x00000008,
+    0x00030047,0x0000001e,0x00000002,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,
+    0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040017,
+    0x00000008,0x00000006,0x00000002,0x0004001e,0x00000009,0x00000007,0x00000008,0x00040020,
+    0x0000000a,0x00000003,0x00000009,0x0004003b,0x0000000a,0x0000000b,0x00000003,0x00040015,
+    0x0000000c,0x00000020,0x00000001,0x0004002b,0x0000000c,0x0000000d,0x00000000,0x00040020,
+    0x0000000e,0x00000001,0x00000007,0x0004003b,0x0000000e,0x0000000f,0x00000001,0x00040020,
+    0x00000011,0x00000003,0x00000007,0x0004002b,0x0000000c,0x00000013,0x00000001,0x00040020,
+    0x00000014,0x00000001,0x00000008,0x0004003b,0x00000014,0x00000015,0x00000001,0x00040020,
+    0x00000017,0x00000003,0x00000008,0x0003001e,0x00000019,0x00000007,0x00040020,0x0000001a,
+    0x00000003,0x00000019,0x0004003b,0x0000001a,0x0000001b,0x00000003,0x0004003b,0x00000014,
+    0x0000001c,0x00000001,0x0004001e,0x0000001e,0x00000008,0x00000008,0x00040020,0x0000001f,
+    0x00000009,0x0000001e,0x0004003b,0x0000001f,0x00000020,0x00000009,0x00040020,0x00000021,
+    0x00000009,0x00000008,0x0004002b,0x00000006,0x00000028,0x00000000,0x0004002b,0x00000006,
+    0x00000029,0x3f800000,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,
+    0x00000005,0x0004003d,0x00000007,0x00000010,0x0000000f,0x00050041,0x00000011,0x00000012,
+    0x0000000b,0x0000000d,0x0003003e,0x00000012,0x00000010,0x0004003d,0x00000008,0x00000016,
+    0x00000015,0x00050041,0x00000017,0x00000018,0x0000000b,0x00000013,0x0003003e,0x00000018,
+    0x00000016,0x0004003d,0x00000008,0x0000001d,0x0000001c,0x00050041,0x00000021,0x00000022,
+    0x00000020,0x0000000d,0x0004003d,0x00000008,0x00000023,0x00000022,0x00050085,0x00000008,
+    0x00000024,0x0000001d,0x00000023,0x00050041,0x00000021,0x00000025,0x00000020,0x00000013,
+    0x0004003d,0x00000008,0x00000026,0x00000025,0x00050081,0x00000008,0x00000027,0x00000024,
+    0x00000026,0x00050051,0x00000006,0x0000002a,0x00000027,0x00000000,0x00050051,0x00000006,
+    0x0000002b,0x00000027,0x00000001,0x00070050,0x00000007,0x0000002c,0x0000002a,0x0000002b,
+    0x00000028,0x00000029,0x00050041,0x00000011,0x0000002d,0x0000001b,0x0000000d,0x0003003e,
+    0x0000002d,0x0000002c,0x000100fd,0x00010038
+};
+
+// glsl_shader.frag, compiled with:
+// # glslangValidator -V -x -o glsl_shader.frag.u32 glsl_shader.frag
+/*
+#version 450 core
+layout(location = 0) out vec4 fColor;
+layout(set=0, binding=0) uniform sampler2D sTexture;
+layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+void main()
+{
+    fColor = In.Color * texture(sTexture, In.UV.st);
+}
+*/
+static uint32_t __glsl_shader_frag_spv[] =
+{
+    0x07230203,0x00010000,0x00080001,0x0000001e,0x00000000,0x00020011,0x00000001,0x0006000b,
+    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
+    0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x0000000d,0x00030010,
+    0x00000004,0x00000007,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
+    0x00000000,0x00040005,0x00000009,0x6c6f4366,0x0000726f,0x00030005,0x0000000b,0x00000000,
+    0x00050006,0x0000000b,0x00000000,0x6f6c6f43,0x00000072,0x00040006,0x0000000b,0x00000001,
+    0x00005655,0x00030005,0x0000000d,0x00006e49,0x00050005,0x00000016,0x78655473,0x65727574,
+    0x00000000,0x00040047,0x00000009,0x0000001e,0x00000000,0x00040047,0x0000000d,0x0000001e,
+    0x00000000,0x00040047,0x00000016,0x00000022,0x00000000,0x00040047,0x00000016,0x00000021,
+    0x00000000,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,
+    0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040020,0x00000008,0x00000003,
+    0x00000007,0x0004003b,0x00000008,0x00000009,0x00000003,0x00040017,0x0000000a,0x00000006,
+    0x00000002,0x0004001e,0x0000000b,0x00000007,0x0000000a,0x00040020,0x0000000c,0x00000001,
+    0x0000000b,0x0004003b,0x0000000c,0x0000000d,0x00000001,0x00040015,0x0000000e,0x00000020,
+    0x00000001,0x0004002b,0x0000000e,0x0000000f,0x00000000,0x00040020,0x00000010,0x00000001,
+    0x00000007,0x00090019,0x00000013,0x00000006,0x00000001,0x00000000,0x00000000,0x00000000,
+    0x00000001,0x00000000,0x0003001b,0x00000014,0x00000013,0x00040020,0x00000015,0x00000000,
+    0x00000014,0x0004003b,0x00000015,0x00000016,0x00000000,0x0004002b,0x0000000e,0x00000018,
+    0x00000001,0x00040020,0x00000019,0x00000001,0x0000000a,0x00050036,0x00000002,0x00000004,
+    0x00000000,0x00000003,0x000200f8,0x00000005,0x00050041,0x00000010,0x00000011,0x0000000d,
+    0x0000000f,0x0004003d,0x00000007,0x00000012,0x00000011,0x0004003d,0x00000014,0x00000017,
+    0x00000016,0x00050041,0x00000019,0x0000001a,0x0000000d,0x00000018,0x0004003d,0x0000000a,
+    0x0000001b,0x0000001a,0x00050057,0x00000007,0x0000001c,0x00000017,0x0000001b,0x00050085,
+    0x00000007,0x0000001d,0x00000012,0x0000001c,0x0003003e,0x00000009,0x0000001d,0x000100fd,
+    0x00010038
+};
+
+static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
+
+    // Create the shader modules
+    if (s->vd.ShaderModuleVert == VK_NULL_HANDLE) {
+        VkShaderModuleCreateInfo vert_info = {};
+        vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
+        vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
+        VkResult err = vkCreateShaderModule(device, &vert_info, allocator, &s->vd.ShaderModuleVert);
+        _gb_check_vk_result(err);
+    }
+    if (s->vd.ShaderModuleFrag == VK_NULL_HANDLE) {
+        VkShaderModuleCreateInfo frag_info = {};
+        frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
+        frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
+        VkResult err = vkCreateShaderModule(device, &frag_info, allocator, &s->vd.ShaderModuleFrag);
+        _gb_check_vk_result(err);
+    }
 }
 
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator) {

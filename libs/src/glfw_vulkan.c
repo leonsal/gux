@@ -181,6 +181,9 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, &s->vw, surface, w, h);
+
+    // Create device objects
+    _gb_create_device_objects(s);
     return s;
 }
 

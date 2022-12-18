@@ -267,7 +267,7 @@ void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
         .disp_size  = {(float)width, (float)height},
         .fb_scale   = {1.0f, 1.0f},
     };
-
+    _gb_render(s, &dd);
 }
 
 gb_texid_t gb_create_texture() {
@@ -386,11 +386,11 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
     struct vulkan_window_render_buffers* wrb = &s->vw.RenderBuffers;
     if (wrb->FrameRenderBuffers == NULL)  {
         wrb->Index = 0;
-        wrb->Count = s->vi.ImageCount;
+        wrb->Count = s->vw.ImageCount;  // CHANGED from s->vi.ImageCount
         wrb->FrameRenderBuffers = (struct vulkan_frame_render_buffers*)_gb_alloc(sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
         memset(wrb->FrameRenderBuffers, 0, sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
     }
-    assert(wrb->Count == s->vi.ImageCount);
+    assert(wrb->Count == s->vw.ImageCount); // CHANGED from s->vi.ImageCount
     wrb->Index = (wrb->Index + 1) % wrb->Count;
     struct vulkan_frame_render_buffers* rb = &wrb->FrameRenderBuffers[wrb->Index];
 
@@ -410,116 +410,62 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         uint32_t* idx_dst = NULL;
         VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
         _gb_check_vk_result(err);
+        err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
+        _gb_check_vk_result(err);
+        memcpy(vtx_dst, dd->dl.buf_vtx, dd->dl.vtx_count * sizeof(gb_vertex_t));
+        memcpy(idx_dst, dd->dl.buf_idx, dd->dl.idx_count * sizeof(uint32_t));
+        VkMappedMemoryRange range[2] = {};
+        range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range[0].memory = rb->VertexBufferMemory;
+        range[0].size = VK_WHOLE_SIZE;
+        range[1].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range[1].memory = rb->IndexBufferMemory;
+        range[1].size = VK_WHOLE_SIZE;
+        err = vkFlushMappedMemoryRanges(s->vi.Device, 2, range);
+        _gb_check_vk_result(err);
+        vkUnmapMemory(s->vi.Device, rb->VertexBufferMemory);
+        vkUnmapMemory(s->vi.Device, rb->IndexBufferMemory);
     }
 
+    // Setup desired Vulkan state
+    _gb_vulkan_setup_render_state(s, dd, pipeline, command_buffer, rb, fb_width, fb_height);
 
-}
+    // Will project scissor/clipping rectangles into framebuffer space
+    gb_vec2_t clip_off = dd->disp_pos;      // (0,0) unless using multi-viewports
+    gb_vec2_t clip_scale = dd->fb_scale;    // (1,1) unless using retina display which are often (2,2)
 
-//
-//    if (draw_data->TotalVtxCount > 0)
-//    {
-//        // Create or resize the vertex/index buffers
-//        size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
-//        size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
-//        if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size)
-//            CreateOrResizeBuffer(rb->VertexBuffer, rb->VertexBufferMemory, rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-//        if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size)
-//            CreateOrResizeBuffer(rb->IndexBuffer, rb->IndexBufferMemory, rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-//
-//        // Upload vertex/index data into a single contiguous GPU buffer
-//        ImDrawVert* vtx_dst = nullptr;
-//        ImDrawIdx* idx_dst = nullptr;
-//        VkResult err = vkMapMemory(v->Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
-//        check_vk_result(err);
-//        err = vkMapMemory(v->Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
-//        check_vk_result(err);
-//        for (int n = 0; n < draw_data->CmdListsCount; n++)
-//        {
-//            const ImDrawList* cmd_list = draw_data->CmdLists[n];
-//            memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-//            memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-//            vtx_dst += cmd_list->VtxBuffer.Size;
-//            idx_dst += cmd_list->IdxBuffer.Size;
-//        }
-//        VkMappedMemoryRange range[2] = {};
-//        range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-//        range[0].memory = rb->VertexBufferMemory;
-//        range[0].size = VK_WHOLE_SIZE;
-//        range[1].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-//        range[1].memory = rb->IndexBufferMemory;
-//        range[1].size = VK_WHOLE_SIZE;
-//        err = vkFlushMappedMemoryRanges(v->Device, 2, range);
-//        check_vk_result(err);
-//        vkUnmapMemory(v->Device, rb->VertexBufferMemory);
-//        vkUnmapMemory(v->Device, rb->IndexBufferMemory);
-//    }
-//
-//    // Setup desired Vulkan state
-//    ImGui_ImplVulkan_SetupRenderState(draw_data, pipeline, command_buffer, rb, fb_width, fb_height);
-//
-//    // Will project scissor/clipping rectangles into framebuffer space
-//    ImVec2 clip_off = draw_data->DisplayPos;         // (0,0) unless using multi-viewports
-//    ImVec2 clip_scale = draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
-//
-//    // Render command lists
-//    // (Because we merged all buffers into a single one, we maintain our own offset into them)
-//    int global_vtx_offset = 0;
-//    int global_idx_offset = 0;
-//    for (int n = 0; n < draw_data->CmdListsCount; n++)
-//    {
-//        const ImDrawList* cmd_list = draw_data->CmdLists[n];
-//        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
-//        {
-//            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-//            if (pcmd->UserCallback != nullptr)
-//            {
-//                // User callback, registered via ImDrawList::AddCallback()
-//                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-//                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-//                    ImGui_ImplVulkan_SetupRenderState(draw_data, pipeline, command_buffer, rb, fb_width, fb_height);
-//                else
-//                    pcmd->UserCallback(cmd_list, pcmd);
-//            }
-//            else
-//            {
-//                // Project scissor/clipping rectangles into framebuffer space
-//                ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
-//                ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
-//
-//                // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
-//                if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
-//                if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
-//                if (clip_max.x > fb_width) { clip_max.x = (float)fb_width; }
-//                if (clip_max.y > fb_height) { clip_max.y = (float)fb_height; }
-//                if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
-//                    continue;
-//
-//                // Apply scissor/clipping rectangle
-//                VkRect2D scissor;
-//                scissor.offset.x = (int32_t)(clip_min.x);
-//                scissor.offset.y = (int32_t)(clip_min.y);
-//                scissor.extent.width = (uint32_t)(clip_max.x - clip_min.x);
-//                scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
-//                vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-//
-//                // Bind DescriptorSet with font or user texture
-//                VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };
-//                if (sizeof(ImTextureID) < sizeof(ImU64))
-//                {
-//                    // We don't support texture switches if ImTextureID hasn't been redefined to be 64-bit. Do a flaky check that other textures haven't been used.
-//                    IM_ASSERT(pcmd->TextureId == (ImTextureID)bd->FontDescriptorSet);
-//                    desc_set[0] = bd->FontDescriptorSet;
-//                }
-//                vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, nullptr);
-//
-//                // Draw
-//                vkCmdDrawIndexed(command_buffer, pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
-//            }
-//        }
-//        global_idx_offset += cmd_list->IdxBuffer.Size;
-//        global_vtx_offset += cmd_list->VtxBuffer.Size;
-//    }
-//
+    // Apply draw commands
+    for (int cmd_i = 0; cmd_i < dd->dl.cmd_count; cmd_i++) {
+        gb_draw_cmd_t* pcmd = &dd->dl.buf_cmd[cmd_i];
+        // Project scissor/clipping rectangles into framebuffer space
+        gb_vec2_t clip_min = {(pcmd->clip_rect.x - clip_off.x) * clip_scale.x, (pcmd->clip_rect.y - clip_off.y) * clip_scale.y};
+        gb_vec2_t clip_max = {(pcmd->clip_rect.z - clip_off.x) * clip_scale.x, (pcmd->clip_rect.w - clip_off.y) * clip_scale.y};
+
+        // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
+        if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
+        if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
+        if (clip_max.x > fb_width) { clip_max.x = (float)fb_width; }
+        if (clip_max.y > fb_height) { clip_max.y = (float)fb_height; }
+        if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) {
+            continue;
+        }
+
+        // Apply scissor/clipping rectangle
+        VkRect2D scissor;
+        scissor.offset.x = (int32_t)(clip_min.x);
+        scissor.offset.y = (int32_t)(clip_min.y);
+        scissor.extent.width = (uint32_t)(clip_max.x - clip_min.x);
+        scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        // Bind DescriptorSet with font or user texture
+        VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->texid };
+        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
+        // Draw
+        vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
+
+    }
+
 //    // Note: at this point both vkCmdSetViewport() and vkCmdSetScissor() have been called.
 //    // Our last values will leak into user/application rendering IF:
 //    // - Your app uses a pipeline with VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR dynamic state
@@ -529,9 +475,7 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
 //    // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
 //    VkRect2D scissor = { { 0, 0 }, { (uint32_t)fb_width, (uint32_t)fb_height } };
 //    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-//
-//
-//}
+}
 
 
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,

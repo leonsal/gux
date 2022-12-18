@@ -66,13 +66,6 @@ typedef struct gb_draw_list {
     uint32_t        vtx_count;      // Total number of vertices
 } gb_draw_list_t;
 
-// Draw data to be passed to renderer engine
-typedef struct gb_draw_data {
-    gb_draw_list_t  dl;             // Combined draw lists
-    gb_vec2_t       display_pos;    // Top-left position of the viewport to render (== (0.0) in most single-viewport applications)
-    gb_vec2_t       display_size;   // Size of the viewport to render
-};
-
 // Single generic event
 typedef struct gb_event {
     uint32_t        type;           // Event type

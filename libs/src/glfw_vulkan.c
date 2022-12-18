@@ -86,6 +86,12 @@ struct vulkan_data {
     VkBuffer                UploadBuffer;
 };
 
+typedef struct gb_draw_data {
+    gb_draw_list_t  dl;
+    gb_vec2_t       disp_pos;
+    gb_vec2_t       disp_size;
+} gb_draw_data_t;
+
 // Backend window state
 typedef struct {
     GLFWwindow*             w;      // GLFW window pointer
@@ -111,7 +117,7 @@ struct vulkan_window_render_buffers {
 };
 
 // Forward declarations of internal functions
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height);
 static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDeviceMemory buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
@@ -248,6 +254,15 @@ bool gb_window_start_frame(gb_window_t bw, double timeout) {
 
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
 
+    gb_state_t* s = (gb_state_t*)(win);
+    int width, height;
+    glfwGetFramebufferSize(s->w, &width, &height);
+    gb_draw_data_t dd = {
+        .dl         = dl,
+        .disp_pos   = {0,0},
+        .disp_size  = {(float)width, (float)height},
+    };
+
 }
 
 gb_texid_t gb_create_texture() {
@@ -273,7 +288,8 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 //-----------------------------------------------------------------------------
 
 // Executes draw commands
-static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
+//static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
+static void _gb_render(gb_state_t* s, gb_draw_data_t dd)  {
 
     VkResult err;
 
@@ -346,9 +362,16 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
     }
 
 }
+//void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer, VkPipeline pipeline)
+
+static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t dd, VkCommandBuffer command_buffer, VkPipeline pipeline) {
 
 
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+
+}
+
+
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height) {
 
     // Bind pipeline:
@@ -357,7 +380,7 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPi
     }
 
     // Bind Vertex And Index Buffer:
-    if (dl.vtx_count > 0) {
+    if (dd->dl.vtx_count > 0) {
         VkBuffer vertex_buffers[1] = { rb->VertexBuffer };
         VkDeviceSize vertex_offset[1] = { 0 };
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
@@ -380,11 +403,11 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPi
     // Our visible imgui space lies from draw_data->DisplayPps (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
     {
         float scale[2];
-        scale[0] = 2.0f / draw_data->DisplaySize.x;
-        scale[1] = 2.0f / draw_data->DisplaySize.y;
+        scale[0] = 2.0f / dd->disp_size.x;
+        scale[1] = 2.0f / dd->disp_size.y;
         float translate[2];
-        translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
-        translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
+        translate[0] = -1.0f - dd->disp_pos.x * scale[0];
+        translate[1] = -1.0f - dd->disp_pos.y * scale[1];
         vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 0, sizeof(float) * 2, scale);
         vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, sizeof(float) * 2, translate);
     }

@@ -123,7 +123,7 @@ static void _gb_render(gb_state_t* s, gb_draw_data_t* dd);
 static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCommandBuffer command_buffer, VkPipeline pipeline);
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height);
-static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDeviceMemory buffer_memory,
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
 static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count);
@@ -399,10 +399,10 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         size_t vertex_size = dd->dl.vtx_count * sizeof(gb_vertex_t);
         size_t index_size = dd->dl.idx_count * sizeof(uint32_t);
         if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size) {
-            _gb_create_or_resize_buffer(s, rb->VertexBuffer, rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+            _gb_create_or_resize_buffer(s, &rb->VertexBuffer, &rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         }
         if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size) {
-            _gb_create_or_resize_buffer(s, rb->IndexBuffer, rb->IndexBufferMemory, &rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+            _gb_create_or_resize_buffer(s, &rb->IndexBuffer, &rb->IndexBufferMemory, &rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         }
 
         // Upload vertex/index data into a single contiguous GPU buffer
@@ -520,17 +520,17 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkP
     }
 }
 
-static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDeviceMemory buffer_memory,
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage) {
 
     //ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
     //ImGui_ImplVulkan_InitInfo* v = &bd->VulkanInitInfo;
     VkResult err;
     if (buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(s->vi.Device, buffer, s->vi.Allocator);
+        vkDestroyBuffer(s->vi.Device, *buffer, s->vi.Allocator);
     }
     if (buffer_memory != VK_NULL_HANDLE) {
-        vkFreeMemory(s->vi.Device, buffer_memory, s->vi.Allocator);
+        vkFreeMemory(s->vi.Device, *buffer_memory, s->vi.Allocator);
     }
 
     VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / s->vd.BufferMemoryAlignment + 1) * s->vd.BufferMemoryAlignment;
@@ -539,20 +539,20 @@ static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer buffer, VkDevice
     buffer_info.size = vertex_buffer_size_aligned;
     buffer_info.usage = usage;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, &buffer);
+    err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, buffer);
     _gb_check_vk_result(err);
 
     VkMemoryRequirements req;
-    vkGetBufferMemoryRequirements(s->vi.Device, buffer, &req);
+    vkGetBufferMemoryRequirements(s->vi.Device, *buffer, &req);
     s->vd.BufferMemoryAlignment = (s->vd.BufferMemoryAlignment > req.alignment) ? s->vd.BufferMemoryAlignment : req.alignment;
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
-    err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &buffer_memory);
+    err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, buffer_memory);
     _gb_check_vk_result(err);
 
-    err = vkBindBufferMemory(s->vi.Device, buffer, buffer_memory, 0);
+    err = vkBindBufferMemory(s->vi.Device, *buffer, *buffer_memory, 0);
     _gb_check_vk_result(err);
     *p_buffer_size = req.size;
 }

@@ -1,3 +1,10 @@
+- TODO
+    - initialize gb_draw_cmd_t clip rectangle coordinates
+        - test with OpenGL
+    - Vulkan create texture
+    - Vulkan render
+    - Vulkan destroy
+
 - DrawList
     - Use Go types
     - Consolidate

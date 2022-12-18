@@ -272,6 +272,82 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 // Internal functions
 //-----------------------------------------------------------------------------
 
+// Executes draw commands
+static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
+
+    VkResult err;
+
+    struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];
+    struct vulkan_frame_semaphores* fsd = &s->vw.FrameSemaphores[s->vw.SemaphoreIndex];
+
+    {
+        {
+          err = vkAcquireNextImageKHR(s->vi.Device, s->vw.Swapchain, UINT64_MAX, fsd->ImageAcquiredSemaphore, VK_NULL_HANDLE, &s->vw.FrameIndex);
+          _gb_check_vk_result(err);
+          fd = &s->vw.Frames[s->vw.FrameIndex];
+        }
+        for (;;)
+        {
+            err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, 100);
+            if (err == VK_SUCCESS) break;
+            if (err == VK_TIMEOUT) continue;
+            _gb_check_vk_result(err);
+        }
+        {
+            err = vkResetCommandPool(s->vi.Device, fd->CommandPool, 0);
+            _gb_check_vk_result(err);
+            VkCommandBufferBeginInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
+            _gb_check_vk_result(err);
+        }
+        {
+            gb_vec4_t clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
+            memcpy(&s->vw.ClearValue.color.float32[0], &clear_color, 4 * sizeof(float));
+
+            VkRenderPassBeginInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            info.renderPass = s->vw.RenderPass;
+            info.framebuffer = fd->Framebuffer;
+            info.renderArea.extent.width = s->vw.Width;
+            info.renderArea.extent.height = s->vw.Height;
+            //info.clearValueCount = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? 0 : 1;
+            info.clearValueCount = 1;
+            //info.pClearValues = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? NULL : &s->vw.ClearValue;
+            info.pClearValues = &s->vw.ClearValue;
+            vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+        }
+    }
+
+    //ImGui_ImplVulkan_RenderDrawData(viewport->DrawData, fd->CommandBuffer, wd->Pipeline);
+
+    {
+        vkCmdEndRenderPass(fd->CommandBuffer);
+        {
+            VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            VkSubmitInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            info.waitSemaphoreCount = 1;
+            info.pWaitSemaphores = &fsd->ImageAcquiredSemaphore;
+            info.pWaitDstStageMask = &wait_stage;
+            info.commandBufferCount = 1;
+            info.pCommandBuffers = &fd->CommandBuffer;
+            info.signalSemaphoreCount = 1;
+            info.pSignalSemaphores = &fsd->RenderCompleteSemaphore;
+
+            err = vkEndCommandBuffer(fd->CommandBuffer);
+            _gb_check_vk_result(err);
+            err = vkResetFences(s->vi.Device, 1, &fd->Fence);
+            _gb_check_vk_result(err);
+            err = vkQueueSubmit(s->vi.Queue, 1, &info, fd->Fence);
+            _gb_check_vk_result(err);
+        }
+    }
+
+}
+
+
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height) {
 

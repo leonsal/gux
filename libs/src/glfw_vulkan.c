@@ -12,8 +12,9 @@
 
 #include "libgux.h"
 
-// Size of a static C-style array. Don't use on pointers!
+// Size of a static C-style array.
 #define GB_ARRAYSIZE(_ARR)          ((int)(sizeof(_ARR) / sizeof(*(_ARR))))
+// Enable vulkan debug
 #define GB_VULKAN_DEBUG_REPORT 1
 
 struct vulkan_frame {
@@ -43,6 +44,14 @@ struct vulkan_window_render_buffers {
     uint32_t    Index;
     uint32_t    Count;
     struct vulkan_frame_render_buffers* FrameRenderBuffers;
+};
+
+struct vulkan_texinfo {
+    VkSampler               sampler;
+    VkImage                 image;
+    VkImageView             image_view;
+    VkDeviceMemory          memory;
+    VkDescriptorSet         descriptor_set;
 };
 
 struct vulkan_window {
@@ -146,6 +155,12 @@ static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocati
 static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+
+static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels);
+static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex);
+VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
+void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set);
+
 static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
 static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
@@ -154,6 +169,7 @@ static void _gb_destroy_frame_render_buffers(VkDevice device, struct vulkan_fram
 static void _gb_destroy_window_render_buffers(VkDevice device, struct vulkan_window_render_buffers* buffers, const VkAllocationCallbacks* allocator);
 static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAllocationCallbacks* allocator);
 static void* _gb_alloc(size_t count);
+static void _gb_free(void* p);
 static void _gb_glfw_error_callback(int error, const char* description);
 static void _gb_check_vk_result(VkResult err);
 #ifdef GB_VULKAN_DEBUG_REPORT
@@ -594,7 +610,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         // Create Vulkan Instance
         err = vkCreateInstance(&create_info, s->vi.Allocator, &s->vi.Instance);
         _gb_check_vk_result(err);
-        free(extensions_ext);
+        _gb_free(extensions_ext);
 
         // Load Vulkan functions for the instance
         volkLoadInstance(s->vi.Instance);
@@ -648,7 +664,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         }
 
         s->vi.PhysicalDevice = gpus[use_gpu];
-        free(gpus);
+        _gb_free(gpus);
     }
 
     // Select graphics queue family
@@ -663,7 +679,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
                 break;
             }
         }
-        free(queues);
+        _gb_free(queues);
         assert(s->vi.QueueFamily != (uint32_t)-1);
     }
 
@@ -769,12 +785,12 @@ static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_de
         if (avail_format[0].format == VK_FORMAT_UNDEFINED) {
             ret.format = request_formats[0];
             ret.colorSpace = request_color_space;
-            free(avail_format);
+            _gb_free(avail_format);
             return ret;
         } else {
             // No point in searching another format
             ret = avail_format[0];
-            free(avail_format);
+            _gb_free(avail_format);
             return ret;
         }
     } else {
@@ -783,14 +799,14 @@ static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_de
             for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++) {
                 if (avail_format[avail_i].format == request_formats[request_i] && avail_format[avail_i].colorSpace == request_color_space) {
                     ret = avail_format[avail_i];
-                    free(avail_format);
+                    _gb_free(avail_format);
                     return ret;
                 }
             }
         }
         // If none of the requested image formats could be found, use the first available
         ret = avail_format[0];
-        free(avail_format);
+        _gb_free(avail_format);
         return ret;
     }
 }
@@ -812,12 +828,12 @@ static VkPresentModeKHR _gb_select_present_mode(VkPhysicalDevice physical_device
     for (int request_i = 0; request_i < request_modes_count; request_i++) {
         for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++) {
             if (request_modes[request_i] == avail_modes[avail_i]) {
-                free(avail_modes);
+                _gb_free(avail_modes);
                 return request_modes[request_i];
             }
         }
     }
-    free(avail_modes);
+    _gb_free(avail_modes);
     return VK_PRESENT_MODE_FIFO_KHR; // Always available
 }
 
@@ -845,8 +861,8 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
         _gb_destroy_frame(device, &wd->Frames[i], allocator);
         _gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
     }
-    free(wd->Frames);
-    free(wd->FrameSemaphores);
+    _gb_free(wd->Frames);
+    _gb_free(wd->FrameSemaphores);
     wd->Frames = NULL;
     wd->FrameSemaphores = NULL;
     wd->ImageCount = 0;
@@ -1304,6 +1320,229 @@ static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllo
     _gb_check_vk_result(err);
 }
 
+static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels)  {
+
+    VkResult        err;
+    VkDeviceMemory  uploadBufferMemory;
+    VkBuffer        uploadBuffer;
+
+    size_t upload_size = width * height * 4 * sizeof(char);
+
+    // Use any command queue
+    VkCommandPool command_pool = s->vw.Frames[s->vw.FrameIndex].CommandPool;
+    VkCommandBuffer command_buffer = s->vw.Frames[s->vw.FrameIndex].CommandBuffer;
+    err = vkResetCommandPool(s->vi.Device, command_pool, 0);
+    _gb_check_vk_result(err);
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    err = vkBeginCommandBuffer(command_buffer, &begin_info);
+    _gb_check_vk_result(err);
+
+    // Allocate texture info
+    struct vulkan_texinfo* tex = _gb_alloc(sizeof(struct vulkan_texinfo));
+
+    // Create the Image:
+    {
+        VkImageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = VK_FORMAT_R8G8B8A8_UNORM;
+        info.extent.width = width;
+        info.extent.height = height;
+        info.extent.depth = 1;
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        err = vkCreateImage(s->vi.Device, &info, s->vi.Allocator, &tex->image);
+        _gb_check_vk_result(err);
+        VkMemoryRequirements req;
+        vkGetImageMemoryRequirements(s->vi.Device, tex->image, &req);
+        VkMemoryAllocateInfo alloc_info = {};
+        alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc_info.allocationSize = req.size;
+        alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, req.memoryTypeBits);
+        err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &tex->memory);
+        _gb_check_vk_result(err);
+        err = vkBindImageMemory(s->vi.Device, tex->image, tex->memory, 0);
+        _gb_check_vk_result(err);
+    }
+
+    // Create the Image View:
+    {
+        VkImageViewCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        info.image = tex->image;
+        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        info.format = VK_FORMAT_R8G8B8A8_UNORM;
+        info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        info.subresourceRange.levelCount = 1;
+        info.subresourceRange.layerCount = 1;
+        err = vkCreateImageView(s->vi.Device, &info, s->vi.Allocator, &tex->image_view);
+        _gb_check_vk_result(err);
+    }
+
+    // Create the Descriptor Set
+    tex->descriptor_set = _gb_create_tex_descriptor_set(s, s->vd.FontSampler, tex->image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    // Create the Upload Buffer:
+    {
+        VkBufferCreateInfo buffer_info = {};
+        buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        buffer_info.size = upload_size;
+        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, &uploadBuffer);
+        _gb_check_vk_result(err);
+        VkMemoryRequirements req;
+        vkGetBufferMemoryRequirements(s->vi.Device, uploadBuffer, &req);
+        s->vd.BufferMemoryAlignment = (s->vd.BufferMemoryAlignment > req.alignment) ? s->vd.BufferMemoryAlignment : req.alignment;
+        VkMemoryAllocateInfo alloc_info = {};
+        alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc_info.allocationSize = req.size;
+        alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
+        err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &uploadBufferMemory);
+        _gb_check_vk_result(err);
+        err = vkBindBufferMemory(s->vi.Device, uploadBuffer, uploadBufferMemory, 0);
+        _gb_check_vk_result(err);
+    }
+
+    // Upload to Buffer:
+    {
+        char* map = NULL;
+        err = vkMapMemory(s->vi.Device, uploadBufferMemory, 0, upload_size, 0, (void**)(&map));
+        _gb_check_vk_result(err);
+        memcpy(map, pixels, upload_size);
+        VkMappedMemoryRange range[1] = {};
+        range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range[0].memory = uploadBufferMemory;
+        range[0].size = upload_size;
+        err = vkFlushMappedMemoryRanges(s->vi.Device, 1, range);
+        _gb_check_vk_result(err);
+        vkUnmapMemory(s->vi.Device, uploadBufferMemory);
+    }
+
+    // Copy to Image:
+    {
+        VkImageMemoryBarrier copy_barrier[1] = {};
+        copy_barrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        copy_barrier[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        copy_barrier[0].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        copy_barrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        copy_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        copy_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        copy_barrier[0].image = tex->image;
+        copy_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copy_barrier[0].subresourceRange.levelCount = 1;
+        copy_barrier[0].subresourceRange.layerCount = 1;
+        vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, copy_barrier);
+
+        VkBufferImageCopy region = {};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent.width = width;
+        region.imageExtent.height = height;
+        region.imageExtent.depth = 1;
+        vkCmdCopyBufferToImage(command_buffer, uploadBuffer, tex->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        VkImageMemoryBarrier use_barrier[1] = {};
+        use_barrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        use_barrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        use_barrier[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        use_barrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        use_barrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        use_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        use_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        use_barrier[0].image = tex->image;
+        use_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        use_barrier[0].subresourceRange.levelCount = 1;
+        use_barrier[0].subresourceRange.layerCount = 1;
+        vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, use_barrier);
+    }
+
+    VkSubmitInfo end_info = {};
+    end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    end_info.commandBufferCount = 1;
+    end_info.pCommandBuffers = &command_buffer;
+    err = vkEndCommandBuffer(command_buffer);
+    _gb_check_vk_result(err);
+    err = vkQueueSubmit(s->vi.Queue, 1, &end_info, VK_NULL_HANDLE);
+    _gb_check_vk_result(err);
+    err = vkDeviceWaitIdle(s->vi.Device);
+    _gb_check_vk_result(err);
+    
+    if (uploadBuffer) {
+        vkDestroyBuffer(s->vi.Device, uploadBuffer, s->vi.Allocator);
+    }
+    if (uploadBufferMemory) {
+        vkFreeMemory(s->vi.Device, uploadBufferMemory, s->vi.Allocator);
+    }
+    return (gb_texid_t)(tex);
+}
+
+static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex)  {
+
+    if (tex == NULL) {
+        return;
+    }
+    if (tex->image_view) {
+        vkDestroyImageView(s->vi.Device, tex->image_view, s->vi.Allocator);
+        tex->image_view = VK_NULL_HANDLE;
+    }
+    if (tex->image) {
+        vkDestroyImage(s->vi.Device, tex->image, s->vi.Allocator);
+        tex->image = VK_NULL_HANDLE;
+    }
+    if (tex->memory) {
+        vkFreeMemory(s->vi.Device, tex->memory, s->vi.Allocator);
+        tex->memory = VK_NULL_HANDLE;
+    }
+    // TODO
+    // delete sampler ?????
+    _gb_free(tex);
+}
+
+VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, VkImageView image_view, VkImageLayout image_layout) {
+
+    // Create Descriptor Set:
+    VkDescriptorSet descriptor_set;
+    {
+        VkDescriptorSetAllocateInfo alloc_info = {};
+        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc_info.descriptorPool = s->vi.DescriptorPool;
+        alloc_info.descriptorSetCount = 1;
+        alloc_info.pSetLayouts = &s->vd.DescriptorSetLayout;
+        VkResult err = vkAllocateDescriptorSets(s->vi.Device, &alloc_info, &descriptor_set);
+        _gb_check_vk_result(err);
+    }
+
+    // Update the Descriptor Set:
+    {
+        VkDescriptorImageInfo desc_image[1] = {};
+        desc_image[0].sampler = sampler;
+        desc_image[0].imageView = image_view;
+        desc_image[0].imageLayout = image_layout;
+        VkWriteDescriptorSet write_desc[1] = {};
+        write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_desc[0].dstSet = descriptor_set;
+        write_desc[0].descriptorCount = 1;
+        write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write_desc[0].pImageInfo = desc_image;
+        vkUpdateDescriptorSets(s->vi.Device, 1, write_desc, 0, NULL);
+    }
+    return descriptor_set;
+}
+
+void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set) {
+
+    vkFreeDescriptorSets(s->vi.Device, s->vi.DescriptorPool, 1, &descriptor_set);
+}
+
+
 
 // glsl_shader.vert, compiled with:
 // # glslangValidator -V -x -o glsl_shader.vert.u32 glsl_shader.vert
@@ -1502,6 +1741,7 @@ static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAl
 //            ImGui_ImplVulkanH_DestroyWindowRenderBuffers(device, &vd->RenderBuffers, allocator);
 }
 
+// Allocates and clears memory 
 static void* _gb_alloc(size_t count) {
 
     void *p = malloc(count);
@@ -1509,7 +1749,14 @@ static void* _gb_alloc(size_t count) {
         fprintf(stderr, "NO MEMORY\n");
         abort();
     }
+    memset(p, 0, count);
     return p;
+}
+
+// Free previous allocated memory
+static void _gb_free(void* p) {
+
+    free(p);
 }
 
 static void _gb_glfw_error_callback(int error, const char* description) {

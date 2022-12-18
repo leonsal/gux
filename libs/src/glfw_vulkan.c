@@ -404,6 +404,12 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size) {
             _gb_create_or_resize_buffer(s, rb->IndexBuffer, rb->IndexBufferMemory, &rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         }
+
+        // Upload vertex/index data into a single contiguous GPU buffer
+        gb_vertex_t* vtx_dst = NULL;
+        uint32_t* idx_dst = NULL;
+        VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
+        _gb_check_vk_result(err);
     }
 
 

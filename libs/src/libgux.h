@@ -43,8 +43,8 @@ typedef intptr_t gb_texid_t;
 // Vertex info
 typedef struct gb_vertex {
     gb_vec2_t  pos;                 // Vertex position in screen coordinates
-    gb_vec2_t  uv;                  // Texture coordinates
-    gb_rgba_t col;                 // Color as an uint32
+    gb_vec2_t  uv;                  // Vertex texture coordinates
+    gb_rgba_t col;                  // Vertex color
 } gb_vertex_t;
 
 // Single draw command
@@ -83,12 +83,12 @@ enum {
     EVENT_SCROLL,                   // Scroll event (mouse wheel)
 };
 
+// Public API
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
 bool gb_window_start_frame(gb_window_t bw, double timeout);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
-gb_texid_t gb_create_texture();
-void gb_delete_texture(gb_texid_t texid);
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data);
+gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rgba_t* data);
+void gb_delete_texture(gb_window_t win, gb_texid_t texid);
 int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count);
 

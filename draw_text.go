@@ -85,8 +85,7 @@ func (w *Window) CreateTextImage(f *Font, text string) (gb.TextureID, float32, f
 	height := b.Dy()
 
 	// Creates backend texture to store the image and transfer the image
-	texID := w.CreateTexture()
-	w.TransferTexture(texID, width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
+	texID := w.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
 	return texID, float32(width), float32(height)
 }
 

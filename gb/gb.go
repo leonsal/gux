@@ -202,23 +202,23 @@ func (w *Window) RenderFrame(dl *DrawList) {
 	C.gb_window_render_frame(w.c, cdl)
 }
 
-// CreateTexture creates an empty texture and returns its ID
-func (w *Window) CreateTexture() TextureID {
+// CreateTexture creates texture with the specified image data and returns the texture id.
+func (w *Window) CreateTexture(width, height int, data *RGBA) TextureID {
 
-	return TextureID(C.gb_create_texture())
+	return TextureID(C.gb_create_texture(w.c, C.int(width), C.int(height), (*C.gb_rgba_t)(data)))
 }
 
 // DeleteTexture deletes the specified texture
 func (w *Window) DeleteTexture(texid TextureID) {
 
-	C.gb_delete_texture(C.gb_texid_t(texid))
+	C.gb_delete_texture(w.c, C.gb_texid_t(texid))
 }
 
-// TransferTexture transfers data to the texture
-func (w *Window) TransferTexture(texid TextureID, width, height int, data *RGBA) {
-
-	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_rgba_t)(data))
-}
+//// TransferTexture transfers data to the texture
+//func (w *Window) TransferTexture(texid TextureID, width, height int, data *RGBA) {
+//
+//	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_rgba_t)(data))
+//}
 
 func (w *Window) GetEvents(events []Event) int {
 

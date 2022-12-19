@@ -132,8 +132,7 @@ func (w *Window) NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 
 	// Creates backend texture to store the image and transfer the image
 	bounds := a.Image.Bounds()
-	a.TexID = w.CreateTexture()
-	w.TransferTexture(a.TexID, bounds.Dx(), bounds.Dy(), (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
+	a.TexID = w.CreateTexture(bounds.Dx(), bounds.Dy(), (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
 	return a
 }
 

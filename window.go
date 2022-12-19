@@ -101,14 +101,14 @@ func (w *Window) Destroy() {
 	w.gbw.Destroy()
 }
 
-func (w *Window) CreateTexture() gb.TextureID {
+func (w *Window) CreateTexture(width, height int, data *gb.RGBA) gb.TextureID {
 
-	return w.gbw.CreateTexture()
+	return w.gbw.CreateTexture(width, height, data)
 }
 
-func (w *Window) TransferTexture(texid gb.TextureID, width, height int, data *gb.RGBA) {
+func (w *Window) DeleteTexture(texid gb.TextureID) {
 
-	w.gbw.TransferTexture(texid, width, height, data)
+	w.gbw.DeleteTexture(texid)
 }
 
 // ReserveVec2 reserves 'count' gb.Vec2 entries in internal Vec2 buffer
@@ -131,8 +131,7 @@ func (w *Window) buildTexWhite() {
 	rect[0] = gb.MakeColor(255, 255, 255, 255)
 
 	// Creates and transfer texture
-	w.TexWhiteId = w.gbw.CreateTexture()
-	w.gbw.TransferTexture(w.TexWhiteId, 1, 1, &rect[0])
+	w.TexWhiteId = w.gbw.CreateTexture(1, 1, &rect[0])
 	//fmt.Println("texWhiteId", w.TexWhiteId)
 }
 
@@ -189,8 +188,7 @@ func (w *Window) buildTexLines() {
 	}
 
 	// Creates and transfer texture
-	w.TexLinesId = w.gbw.CreateTexture()
-	w.gbw.TransferTexture(w.TexLinesId, width, height, &rect[0])
+	w.TexLinesId = w.gbw.CreateTexture(width, height, &rect[0])
 	//fmt.Println("texture id", w.TexLinesId)
 
 	// // Print image data

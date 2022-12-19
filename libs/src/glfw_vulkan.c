@@ -13,7 +13,11 @@
 #include "libgux.h"
 
 // Size of a static C-style array.
-#define GB_ARRAYSIZE(_ARR)          ((int)(sizeof(_ARR) / sizeof(*(_ARR))))
+#define GB_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR) / sizeof(*(_ARR))))
+
+// Assert macro
+#define GB_ASSERT(_EXPR)    assert(_EXPR)
+
 // Enable vulkan debug
 #define GB_VULKAN_DEBUG_REPORT 1
 
@@ -286,16 +290,14 @@ void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
     _gb_render(s, &dd);
 }
 
-gb_texid_t gb_create_texture() {
+// Creates and returns texture
+gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rgba_t* data) {
 
-    return 1;
+    gb_state_t* s = (gb_state_t*)(win);
+    return _gb_create_texture(s, width, height, data);
 }
 
-void gb_delete_texture(gb_texid_t texid) {
-
-}
-
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
+void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 
 }
 
@@ -406,7 +408,7 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         wrb->FrameRenderBuffers = (struct vulkan_frame_render_buffers*)_gb_alloc(sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
         memset(wrb->FrameRenderBuffers, 0, sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
     }
-    assert(wrb->Count == s->vw.ImageCount); // CHANGED from s->vi.ImageCount
+    GB_ASSERT(wrb->Count == s->vw.ImageCount); // CHANGED from s->vi.ImageCount
     wrb->Index = (wrb->Index + 1) % wrb->Count;
     struct vulkan_frame_render_buffers* rb = &wrb->FrameRenderBuffers[wrb->Index];
 
@@ -617,7 +619,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
 
         // Get the function pointer (required for any extensions)
         PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vi.Instance, "vkCreateDebugReportCallbackEXT");
-        assert(vkCreateDebugReportCallbackEXT != NULL);
+        GB_ASSERT(vkCreateDebugReportCallbackEXT != NULL);
 
         // Setup the debug report callback
         VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
@@ -642,7 +644,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         uint32_t gpu_count;
         err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, NULL);
         _gb_check_vk_result(err);
-        assert(gpu_count > 0);
+        GB_ASSERT(gpu_count > 0);
 
         VkPhysicalDevice* gpus = (VkPhysicalDevice*)_gb_alloc(sizeof(VkPhysicalDevice) * gpu_count);
         err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, gpus);
@@ -680,7 +682,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
             }
         }
         _gb_free(queues);
-        assert(s->vi.QueueFamily != (uint32_t)-1);
+        GB_ASSERT(s->vi.QueueFamily != (uint32_t)-1);
     }
 
     // Create Logical Device (with 1 queue)
@@ -759,7 +761,7 @@ static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkS
     //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
 
     // Create SwapChain, RenderPass, Framebuffer, etc.
-    assert(s->vi.MinImageCount >= 2);
+    GB_ASSERT(s->vi.MinImageCount >= 2);
     _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, wd, s->vi.QueueFamily,
         s->vi.Allocator, width, height, s->vi.MinImageCount);
 }
@@ -767,8 +769,8 @@ static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkS
 static VkSurfaceFormatKHR _gb_select_surface_format(VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space) {
 
-    assert(request_formats != NULL);
-    assert(request_formats_count > 0);
+    GB_ASSERT(request_formats != NULL);
+    GB_ASSERT(request_formats_count > 0);
 
     // Per Spec Format and View Format are expected to be the same unless VK_IMAGE_CREATE_MUTABLE_BIT was set at image creation
     // Assuming that the default behavior is without setting this bit, there is no need for separate Swapchain image and image view format

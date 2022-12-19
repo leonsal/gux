@@ -32,6 +32,9 @@ typedef struct {
     gb_event_t*     events;             // Pointer to events array
     int             ev_count;           // Current number of valid events in the events array
     int             ev_cap;             // Current capacity of events array
+    gb_vec2_t       win_size;           // Window size at the start of the frame
+    gb_vec2_t       fb_size;            // Framebuffer size at the start of the frame
+    gb_vec2_t       fb_scale;           // Framebuffer scale at the start of the frame
 } gb_state_t;
 
 
@@ -154,6 +157,19 @@ bool gb_window_start_frame(gb_window_t bw, double timeout) {
         return false;
     }
 
+    // Get window and framebuffer sizes and calculates framebuffer scale
+    int width, height;
+    glfwGetWindowSize(s->w, &width, &height);
+    s->win_size.x = (float)width;
+    s->win_size.y = (float)height;
+    glfwGetFramebufferSize(s->w, &width, &height);
+    s->fb_size.x = (float)width;
+    s->fb_size.y = (float)height;
+    if (s->win_size.x > 0 && s->win_size.y > 0) {
+        s->fb_scale.x = s->fb_size.x / s->win_size.x;
+        s->fb_scale.y = s->fb_size.y / s->win_size.y;
+    }
+
     // Poll and handle events, blocking if no events for the specified timeout
     glfwWaitEventsTimeout(timeout);
     return true;
@@ -181,7 +197,7 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 }
 
 // Creates and returns an OpenGL texture idenfifier
-gb_texid_t gb_create_texture() {
+gb_texid_t gb_create_texture(gb_window_t w, int width, int height, const gb_rgba_t* data) {
 
     // Create a OpenGL texture identifier
     GLuint image_texture;
@@ -192,24 +208,27 @@ gb_texid_t gb_create_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    // Transfer data
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     return (intptr_t)image_texture;
 }
 
 // Deletes previously created texture
-void gb_delete_texture(gb_texid_t texid) {
+void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 
     GLuint tex = (GLuint)texid;
     glDeleteTextures(1, &tex); 
 }
 
-// Transfer data for the specified texture
-void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
-
-    GLuint tex = (GLuint)(texid);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-}
+//// Transfer data for the specified texture
+//void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
+//
+//    GLuint tex = (GLuint)(texid);
+//    glBindTexture(GL_TEXTURE_2D, tex);
+//    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+//}
 
 int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 

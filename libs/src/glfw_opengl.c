@@ -221,15 +221,6 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
     glDeleteTextures(1, &tex); 
 }
 
-//// Transfer data for the specified texture
-//void gb_transfer_texture(gb_texid_t texid, int width, int height, const gb_rgba_t* data) {
-//
-//    GLuint tex = (GLuint)(texid);
-//    glBindTexture(GL_TEXTURE_2D, tex);
-//    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-//}
-
 int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 
     // Transfer specified number of events

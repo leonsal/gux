@@ -214,12 +214,6 @@ func (w *Window) DeleteTexture(texid TextureID) {
 	C.gb_delete_texture(w.c, C.gb_texid_t(texid))
 }
 
-//// TransferTexture transfers data to the texture
-//func (w *Window) TransferTexture(texid TextureID, width, height int, data *RGBA) {
-//
-//	C.gb_transfer_texture(C.gb_texid_t(texid), C.int(width), C.int(height), (*C.gb_rgba_t)(data))
-//}
-
 func (w *Window) GetEvents(events []Event) int {
 
 	count := C.gb_get_events(w.c, (*C.gb_event_t)(unsafe.Pointer(&events[0])), C.int(len(events)))

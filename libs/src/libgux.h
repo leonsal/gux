@@ -34,6 +34,7 @@ typedef struct gb_vec4 {
     float w;
 } gb_vec4_t;
 
+
 // Packed color containg RGBA components each as an unsigned byte
 typedef uint32_t gb_rgba_t;
 
@@ -72,6 +73,11 @@ typedef struct gb_event {
     int32_t         argint[4];      // Integer arguments
     float           argfloat[2];    // Float parameters
 } gb_event_t;
+
+typedef struct gb_frame_info {
+    gb_vec2_t  size;    // Window size
+    gb_vec2_t  fbsize;  // Framebuffer size
+} gb_frame_info_t;
 
 // Event types
 enum {

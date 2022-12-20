@@ -6,13 +6,19 @@
 #include <GLFW/glfw3.h>
 #include "libgux.h"
 
-// Uncomment next line to enable error checking after each OpenGL call.
+// Uncomment next line to enable check for OpenGL calls return errors.
 #define GUX_GB_DEBUG
 #ifdef GUX_GB_DEBUG
 #include <stdio.h>
-#define GL_CALL(_CALL) do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
+#define GL_CALL(_CALL) do { \
+    _CALL; \
+    GLenum gl_err = glGetError(); \
+    if (gl_err != 0) { \
+        fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); \
+        abort(); \
+    }} while (0);
 #else
-#define GL_CALL(_CALL) _CALL   // Call without error check
+#define GL_CALL(_CALL) _CALL
 #endif
 
 
@@ -41,6 +47,7 @@ static bool _gb_create_objects(gb_state_t* s);
 static void _gb_destroy_objects(gb_state_t* s);
 static bool _gb_check_shader(GLuint handle, const char* desc, const char* src);
 static bool _gb_check_program(GLuint handle, const char* desc);
+
 static void _gb_print_draw_list(gb_draw_list_t dl);
 static void _gb_set_ev_handlers(gb_state_t* s);
 static gb_event_t* _gb_ev_reserve(gb_state_t* s);

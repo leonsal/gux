@@ -74,9 +74,15 @@ typedef struct gb_event {
     float           argfloat[2];    // Float parameters
 } gb_event_t;
 
+// Frame information returned by gb_start_frame()
 typedef struct gb_frame_info {
-    gb_vec2_t  size;    // Window size
-    gb_vec2_t  fbsize;  // Framebuffer size
+    uint32_t        win_close;      // Window close request
+    gb_vec2_t       win_size;       // Window size
+    gb_vec2_t       fb_size;        // Framebuffer size
+    gb_vec2_t       fb_scale;       // Framebuffer scale
+    uint32_t        ev_cap;         // Event buffer current capacity
+    uint32_t        ev_count;       // Number of frame events in the following array
+    gb_event_t*     events;         // Pointer to array of events
 } gb_frame_info_t;
 
 // Event types
@@ -92,9 +98,9 @@ enum {
 // Public API
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
-bool gb_window_start_frame(gb_window_t bw, double timeout);
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
 gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rgba_t* data);
 void gb_delete_texture(gb_window_t win, gb_texid_t texid);
-int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count);
+//int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count);
 

@@ -74,6 +74,15 @@ type Event struct {
 	ArgFloat [2]float32 // Float arguments
 }
 
+// FrameInfo contains frame information returned by start_frame()
+type FrameInfo struct {
+	WinClose bool    // Window close request
+	WinSize  Vec2    // Window size
+	FbSize   Vec2    // Framebuffer size
+	FbScale  Vec2    // Framebuffer scale
+	Events   []Event // Events array
+}
+
 // MakeColor makes and returns an RGBA packed color from the specified components
 func MakeColor(r, g, b, a byte) RGBA {
 
@@ -182,9 +191,18 @@ func (w *Window) Destroy() {
 	C.gb_window_destroy(w.c)
 }
 
-func (w *Window) StartFrame(timeout float64) bool {
+func (w *Window) StartFrame(timeout float64) FrameInfo {
 
-	return bool(C.gb_window_start_frame(w.c, C.double(timeout)))
+	finfo := FrameInfo{}
+	cframe := C.gb_window_start_frame(w.c, C.double(timeout))
+	if cframe.win_close != 0 {
+		finfo.WinClose = true
+	}
+	finfo.WinSize = Vec2{float32(cframe.win_size.x), float32(cframe.win_size.y)}
+	finfo.FbSize = Vec2{float32(cframe.fb_size.x), float32(cframe.fb_size.y)}
+	finfo.FbScale = Vec2{float32(cframe.fb_scale.x), float32(cframe.fb_scale.y)}
+	finfo.Events = (*[1 << 30]Event)(unsafe.Pointer(cframe.events))[:cframe.ev_count]
+	return finfo
 }
 
 func (w *Window) RenderFrame(dl *DrawList) {
@@ -214,8 +232,8 @@ func (w *Window) DeleteTexture(texid TextureID) {
 	C.gb_delete_texture(w.c, C.gb_texid_t(texid))
 }
 
-func (w *Window) GetEvents(events []Event) int {
-
-	count := C.gb_get_events(w.c, (*C.gb_event_t)(unsafe.Pointer(&events[0])), C.int(len(events)))
-	return int(count)
-}
+//func (w *Window) GetEvents(events []Event) int {
+//
+//	count := C.gb_get_events(w.c, (*C.gb_event_t)(unsafe.Pointer(&events[0])), C.int(len(events)))
+//	return int(count)
+//}

@@ -29,12 +29,14 @@ typedef struct {
     unsigned int    handle_vbo;         // Handle of vertex buffer object
     unsigned int    handle_elems;       // Handle of vertex elements object
     GLint           vao;
-    gb_event_t*     events;             // Pointer to events array
-    int             ev_count;           // Current number of valid events in the events array
-    int             ev_cap;             // Current capacity of events array
-    gb_vec2_t       win_size;           // Window size at the start of the frame
-    gb_vec2_t       fb_size;            // Framebuffer size at the start of the frame
-    gb_vec2_t       fb_scale;           // Framebuffer scale at the start of the frame
+    gb_frame_info_t frame;              // Frame info
+
+    //gb_event_t*     events;             // Pointer to events array
+    //int             ev_count;           // Current number of valid events in the events array
+    //int             ev_cap;             // Current capacity of events array
+    //gb_vec2_t       win_size;           // Window size at the start of the frame
+    //gb_vec2_t       fb_size;            // Framebuffer size at the start of the frame
+    //gb_vec2_t       fb_scale;           // Framebuffer scale at the start of the frame
 } gb_state_t;
 
 
@@ -125,10 +127,10 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->clear_color.w = 1.0;
 
     // Allocates initial events array
-    s->ev_count = 0;
-    s->ev_cap = 1024;
-    s->events = malloc(sizeof(gb_event_t) * s->ev_cap);
-    if (s->events == NULL) {
+    s->frame.ev_count = 0;
+    s->frame.ev_cap = 1024;
+    s->frame.events = malloc(sizeof(gb_event_t) * s->frame.ev_cap);
+    if (s->frame.events == NULL) {
         fprintf(stderr, "No memory for events array");
         return NULL;
     }
@@ -141,38 +143,39 @@ void gb_window_destroy(gb_window_t bw) {
 
     gb_state_t* s = (gb_state_t*)(bw);
     glfwDestroyWindow(s->w);
-    free(s->events);
-    s->events = NULL;
+    free(s->frame.events);
+    s->frame.events = NULL;
 
     glfwTerminate();
     free(s);
 }
 
 // Starts the frame or returns false if the window should be closed
-bool gb_window_start_frame(gb_window_t bw, double timeout) {
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
 
     // Checks if user requested window close
     gb_state_t* s = (gb_state_t*)(bw);
+    s->frame.win_close = 0;
     if (glfwWindowShouldClose(s->w)) {
-        return false;
+        s->frame.win_close = 1;
     }
 
     // Get window and framebuffer sizes and calculates framebuffer scale
     int width, height;
     glfwGetWindowSize(s->w, &width, &height);
-    s->win_size.x = (float)width;
-    s->win_size.y = (float)height;
+    s->frame.win_size.x = (float)width;
+    s->frame.win_size.y = (float)height;
     glfwGetFramebufferSize(s->w, &width, &height);
-    s->fb_size.x = (float)width;
-    s->fb_size.y = (float)height;
-    if (s->win_size.x > 0 && s->win_size.y > 0) {
-        s->fb_scale.x = s->fb_size.x / s->win_size.x;
-        s->fb_scale.y = s->fb_size.y / s->win_size.y;
+    s->frame.fb_size.x = (float)width;
+    s->frame.fb_size.y = (float)height;
+    if (s->frame.win_size.x > 0 && s->frame.win_size.y > 0) {
+        s->frame.fb_scale.x = s->frame.fb_size.x / s->frame.win_size.x;
+        s->frame.fb_scale.y = s->frame.fb_size.y / s->frame.win_size.y;
     }
 
     // Poll and handle events, blocking if no events for the specified timeout
     glfwWaitEventsTimeout(timeout);
-    return true;
+    return &s->frame;
 }
 
 // Renders the frame
@@ -221,26 +224,26 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
     glDeleteTextures(1, &tex); 
 }
 
-int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
-
-    // Transfer specified number of events
-    gb_state_t* s = (gb_state_t*)(win);
-    if (s->ev_count == 0) {
-        return 0;
-    }
-    if (ev_count > s->ev_count) {
-        ev_count = s->ev_count;
-    }
-    memcpy(events, s->events, sizeof(gb_event_t) * ev_count);
-
-    // Shift remaining events to the start of the buffer
-    int remain = s->ev_count - ev_count;
-    if (remain > 0) {
-        memmove(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
-    }
-    s->ev_count = remain;
-    return ev_count;
-}
+//int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
+//
+//    // Transfer specified number of events
+//    gb_state_t* s = (gb_state_t*)(win);
+//    if (s->ev_count == 0) {
+//        return 0;
+//    }
+//    if (ev_count > s->ev_count) {
+//        ev_count = s->ev_count;
+//    }
+//    memcpy(events, s->events, sizeof(gb_event_t) * ev_count);
+//
+//    // Shift remaining events to the start of the buffer
+//    int remain = s->ev_count - ev_count;
+//    if (remain > 0) {
+//        memmove(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
+//    }
+//    s->ev_count = remain;
+//    return ev_count;
+//}
 
 
 //-----------------------------------------------------------------------------
@@ -549,17 +552,17 @@ static void _gb_set_ev_handlers(gb_state_t* s) {
 // Reserve event at the end of events array allocating memory if necessary and returns its pointer
 static gb_event_t* _gb_ev_reserve(gb_state_t* s) {
 
-    if (s->ev_count >= s->ev_cap) {
-        int new_cap = s->ev_cap + 128;
-        s->events = realloc(s->events, sizeof(gb_event_t) * new_cap);
-        if (s->events == NULL) {
+    if (s->frame.ev_count >= s->frame.ev_cap) {
+        int new_cap = s->frame.ev_cap + 128;
+        s->frame.events = realloc(s->frame.events, sizeof(gb_event_t) * new_cap);
+        if (s->frame.events == NULL) {
             fprintf(stderr, "No memory for events array");
             return NULL;
         }
-        s->ev_cap = new_cap;
+        s->frame.ev_cap = new_cap;
     }
     //printf("events:%d\n", s->ev_count + 1);
-    return &s->events[s->ev_count++];
+    return &s->frame.events[s->frame.ev_count++];
 }
 
 // Appends GLFW key event to events array

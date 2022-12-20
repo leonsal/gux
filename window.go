@@ -40,8 +40,8 @@ type Window struct {
 	FringeScale float32                       // Used for AA
 	bufVec2     []gb.Vec2                     // Temporary Vec2 buffer used by drawing functions (to avoid allocations)
 	drawFlags   DrawListFlags                 // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
-
-	dlData *DrawListSharedData
+	frameInfo   gb.FrameInfo
+	dlData      *DrawListSharedData
 }
 
 // New creates and returns a new Window
@@ -71,7 +71,8 @@ func (w *Window) StartFrame(timeout float64) bool {
 
 	w.dl.Clear()
 	w.bufVec2 = w.bufVec2[:0]
-	return w.gbw.StartFrame(timeout)
+	w.frameInfo = w.gbw.StartFrame(timeout)
+	return !w.frameInfo.WinClose
 }
 
 func (w *Window) RenderFrame(view IView) {
@@ -91,10 +92,10 @@ func (w *Window) AddList(src gb.DrawList) {
 	w.dl.AddList(src)
 }
 
-func (w *Window) GetEvents(events []gb.Event) int {
-
-	return w.gbw.GetEvents(events)
-}
+//func (w *Window) GetEvents(events []gb.Event) int {
+//
+//	return w.gbw.GetEvents(events)
+//}
 
 func (w *Window) Destroy() {
 

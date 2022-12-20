@@ -89,12 +89,12 @@ func MakeColor(r, g, b, a byte) RGBA {
 	return RGBA(uint32(a)<<24 | uint32(b)<<16 | uint32(g)<<8 | uint32(r))
 }
 
-// ReserveCmd creates and appends a DrawCmd into the DrawList
+// NewDrawCmd creates and appends a DrawCmd into the DrawList
 // reserving space for the specified number of indices and vertices.
 // Returns pointer to the command and slices for direct access to the indices and vertices.
 // After the indices were set (starting from 0) 'AdjustIdx()' must be called to adjust
 // the indices considering the command idx offset.
-func (dl *DrawList) ReserveCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Vertex) {
+func (dl *DrawList) NewDrawCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Vertex) {
 
 	// Reserve space for indices
 	idxOffset := len(dl.bufIdx)
@@ -131,7 +131,7 @@ func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
 // AddCmd appends a new command to the Draw List
 func (dl *DrawList) AddCmd(clipRect Vec4, texId TextureID, indices []uint32, vertices []Vertex) {
 
-	cmd, idx, vtx := dl.ReserveCmd(len(indices), len(vertices))
+	cmd, idx, vtx := dl.NewDrawCmd(len(indices), len(vertices))
 	copy(idx, indices)
 	copy(vtx, vertices)
 	cmd.ClipRect = clipRect

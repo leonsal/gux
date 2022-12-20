@@ -201,6 +201,7 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
 
     //printf("render-> cmd_count:%d idx_count:%d vtx_count:%d\n", dl.cmd_count, dl.idx_count, dl.vtx_count);
+    //_gb_print_draw_list(dl);
 
     // Do not render when minimized
     int fb_width = (int)disp_size.x;
@@ -229,17 +230,26 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
     };
     glUniformMatrix4fv(s->uni_projmtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
-    //_gb_print_draw_list(dl);
+    gb_vec2_t clip_off = {0,0};
+    gb_vec2_t clip_scale = s->frame.fb_scale;
 
+    // DrawCmd loop
     for (int i = 0; i < dl.cmd_count; i++) {
-        gb_draw_cmd_t cmd = dl.buf_cmd[i];
+        gb_draw_cmd_t* pcmd = &dl.buf_cmd[i];
+
+        // Project scissor/clipping rectangles into framebuffer space
+        gb_vec2_t clip_min = {(pcmd->clip_rect.x - clip_off.x) * clip_scale.x, (pcmd->clip_rect.y - clip_off.y) * clip_scale.y};
+        gb_vec2_t clip_max = {(pcmd->clip_rect.z - clip_off.x) * clip_scale.x, (pcmd->clip_rect.w - clip_off.y) * clip_scale.y};
+        if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) {
+            continue;
+        }
         // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
-        //GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
+        GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
-        GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(cmd.texid)));
-        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)cmd.elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(cmd.idx_offset * sizeof(cmd.idx_offset))));
+        // Set texture and draw 
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(pcmd->texid)));
+        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(pcmd->idx_offset))));
     }
-
 }
 
 // Load OpenGL functions and initialize its state

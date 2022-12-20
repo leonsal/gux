@@ -50,7 +50,7 @@ func (w *Window) DrawList() *gb.DrawList {
 // The returned command ClipRect is initialized with current window size and the texture id is set to the opaque white dot.
 func (w *Window) NewDrawCmd(dl *gb.DrawList, idxCount, vtxCount int) (*gb.DrawCmd, []uint32, []gb.Vertex) {
 
-	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := dl.NewDrawCmd(idxCount, vtxCount)
 	cmd.ClipRect = gb.Vec4{0, 0, w.frameInfo.WinSize.X, w.frameInfo.WinSize.Y}
 	cmd.TexID = w.TexWhiteId
 	return cmd, bufIdx, bufVtx

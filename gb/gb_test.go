@@ -19,8 +19,7 @@ func Test1(t *testing.T) {
 	rect[0] = MakeColor(255, 255, 255, 255)
 
 	// Creates and transfer texture
-	texId := win.CreateTexture()
-	win.TransferTexture(texId, 1, 1, &rect[0])
+	win.CreateTexture(1, 1, &rect[0])
 
 	// DrawList 1
 	drawList1 := DrawList{}
@@ -70,7 +69,11 @@ func Test1(t *testing.T) {
 	// Render loop
 	frames := 0
 	cgoCallsStart := runtime.NumCgoCall()
-	for win.StartFrame(0) {
+	for {
+		finfo := win.StartFrame(0)
+		if finfo.WinClose {
+			break
+		}
 		win.RenderFrame(&drawList)
 		frames++
 		if frames > 500 {

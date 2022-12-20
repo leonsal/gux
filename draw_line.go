@@ -49,7 +49,7 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 		idxCount = segCount * 12
 		vtxCount = pointCount * 3
 	}
-	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := w.ReserveVec2(pointCount)
@@ -314,7 +314,7 @@ func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.R
 	// Calculates the number of indices and vertices needed and reserve command
 	idxCount := segCount * 6
 	vtxCount := pointCount * 2
-	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := w.ReserveVec2(pointCount)

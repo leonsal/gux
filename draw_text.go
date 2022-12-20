@@ -47,7 +47,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align Text
 		}
 
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
-		cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
+		cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
 		cmd.TexID = fa.TexID
 		bufVtx[0].Pos = gb.Vec2{posX, posY}
 		bufVtx[0].UV = charInfo.UV[0]
@@ -107,7 +107,7 @@ func (w *Window) AddImage(dl *gb.DrawList, texID gb.TextureID, width, height flo
 	//	 0,0    1,0       0,1    1,1
 
 	// Creates command
-	cmd, bufIdx, bufVtx := dl.ReserveCmd(6, 4)
+	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
 	cmd.TexID = texID
 
 	// Set vertices

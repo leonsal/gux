@@ -45,6 +45,17 @@ func (w *Window) DrawList() *gb.DrawList {
 	return &w.dl
 }
 
+// NewDrawCmd creates and appends a new empty DrawCmd in the specified DrawList
+// and returns pointer to the command and slices for setting vertex indices and info.
+// The returned command ClipRect is initialized with current window size and the texture id is set to the opaque white dot.
+func (w *Window) NewDrawCmd(dl *gb.DrawList, idxCount, vtxCount int) (*gb.DrawCmd, []uint32, []gb.Vertex) {
+
+	cmd, bufIdx, bufVtx := dl.ReserveCmd(idxCount, vtxCount)
+	cmd.ClipRect = gb.Vec4{0, 0, w.frameInfo.WinSize.X, w.frameInfo.WinSize.Y}
+	cmd.TexID = w.TexWhiteId
+	return cmd, bufIdx, bufVtx
+}
+
 // PathClear clears the draw list path
 func (w *Window) PathClear(dl *gb.DrawList) {
 

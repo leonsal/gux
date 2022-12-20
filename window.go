@@ -72,6 +72,9 @@ func (w *Window) StartFrame(timeout float64) bool {
 	w.dl.Clear()
 	w.bufVec2 = w.bufVec2[:0]
 	w.frameInfo = w.gbw.StartFrame(timeout)
+	//if len(w.frameInfo.Events) > 0 {
+	//	fmt.Println("Events:", len(w.frameInfo.Events))
+	//}
 	return !w.frameInfo.WinClose
 }
 

@@ -28,15 +28,8 @@ typedef struct {
     GLint           attrib_vtx_color;   // Location of vertex color attribute in the shader
     unsigned int    handle_vbo;         // Handle of vertex buffer object
     unsigned int    handle_elems;       // Handle of vertex elements object
-    GLint           vao;
-    gb_frame_info_t frame;              // Frame info
-
-    //gb_event_t*     events;             // Pointer to events array
-    //int             ev_count;           // Current number of valid events in the events array
-    //int             ev_cap;             // Current capacity of events array
-    //gb_vec2_t       win_size;           // Window size at the start of the frame
-    //gb_vec2_t       fb_size;            // Framebuffer size at the start of the frame
-    //gb_vec2_t       fb_scale;           // Framebuffer scale at the start of the frame
+    GLint           vao;                // Single VAO
+    gb_frame_info_t frame;              // Frame info returned by gb_window_start_frame()
 } gb_state_t;
 
 
@@ -174,6 +167,7 @@ gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
     }
 
     // Poll and handle events, blocking if no events for the specified timeout
+    s->frame.ev_count = 0;
     glfwWaitEventsTimeout(timeout);
     return &s->frame;
 }

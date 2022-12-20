@@ -120,14 +120,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->clear_color.z = 0.5;
     s->clear_color.w = 1.0;
 
-    // Allocates initial events array
-    s->frame.ev_count = 0;
-    s->frame.ev_cap = 1024;
-    s->frame.events = _gb_alloc(sizeof(gb_event_t) * s->frame.ev_cap);
-    if (s->frame.events == NULL) {
-        fprintf(stderr, "No memory for events array");
-        return NULL;
-    }
+    // Set window event handlers
     _gb_set_ev_handlers(s);
     return s;
 }
@@ -144,32 +137,11 @@ void gb_window_destroy(gb_window_t bw) {
     _gb_free(s);
 }
 
-// Starts the frame or returns false if the window should be closed
+// Starts the frame returning frame information
 gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
 
-    // Checks if user requested window close
     gb_state_t* s = (gb_state_t*)(bw);
-    s->frame.win_close = 0;
-    if (glfwWindowShouldClose(s->w)) {
-        s->frame.win_close = 1;
-    }
-
-    // Get window and framebuffer sizes and calculates framebuffer scale
-    int width, height;
-    glfwGetWindowSize(s->w, &width, &height);
-    s->frame.win_size.x = (float)width;
-    s->frame.win_size.y = (float)height;
-    glfwGetFramebufferSize(s->w, &width, &height);
-    s->frame.fb_size.x = (float)width;
-    s->frame.fb_size.y = (float)height;
-    if (s->frame.win_size.x > 0 && s->frame.win_size.y > 0) {
-        s->frame.fb_scale.x = s->frame.fb_size.x / s->frame.win_size.x;
-        s->frame.fb_scale.y = s->frame.fb_size.y / s->frame.win_size.y;
-    }
-
-    // Poll and handle events, blocking if no events for the specified timeout
-    s->frame.ev_count = 0;
-    glfwWaitEventsTimeout(timeout);
+    _gb_update_frame_info(s, timeout);
     return &s->frame;
 }
 
@@ -218,27 +190,6 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
     GLuint tex = (GLuint)texid;
     glDeleteTextures(1, &tex); 
 }
-
-//int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
-//
-//    // Transfer specified number of events
-//    gb_state_t* s = (gb_state_t*)(win);
-//    if (s->ev_count == 0) {
-//        return 0;
-//    }
-//    if (ev_count > s->ev_count) {
-//        ev_count = s->ev_count;
-//    }
-//    memcpy(events, s->events, sizeof(gb_event_t) * ev_count);
-//
-//    // Shift remaining events to the start of the buffer
-//    int remain = s->ev_count - ev_count;
-//    if (remain > 0) {
-//        memmove(s->events, s->events + (sizeof(gb_event_t) * ev_count), remain);
-//    }
-//    s->ev_count = remain;
-//    return ev_count;
-//}
 
 
 //-----------------------------------------------------------------------------

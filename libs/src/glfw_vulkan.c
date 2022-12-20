@@ -128,6 +128,7 @@ typedef struct {
     struct vulkan_init      vi;     // Vulkan initialization info                                    
     struct vulkan_window    vw;     // Vulkan window data
     struct vulkan_data      vd;     // Vulkan data
+    gb_frame_info_t         frame;  // Frame info returned by gb_window_start_frame()
 } gb_state_t;
 
 
@@ -180,6 +181,9 @@ static void _gb_check_vk_result(VkResult err);
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
 #endif // IMGUI_VULKAN_DEBUG_REPORT
+       
+// Include common internal functions
+#include "common.c"
 
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
@@ -238,6 +242,9 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->vd.RenderPass = s->vw.RenderPass;
     s->vd.Subpass = s->vi.Subpass;
     _gb_create_device_objects(s);
+
+    // Set window event handlers
+    _gb_set_ev_handlers(s);
     return s;
 }
 
@@ -249,16 +256,12 @@ void gb_window_destroy(gb_window_t win) {
 
 }
 
-bool gb_window_start_frame(gb_window_t bw, double timeout) {
+// Starts the frame returning frame information
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
 
     // Checks if user requested window close
     gb_state_t* s = (gb_state_t*)(bw);
-    if (glfwWindowShouldClose(s->w)) {
-        return false;
-    }
-
-    // Poll and handle events, blocking if no events for the specified timeout
-    glfwWaitEventsTimeout(timeout);
+    _gb_update_frame_info(s, timeout);
 
     // Resize swap chain?
     if (s->vw.SwapChainRebuild) {
@@ -273,7 +276,7 @@ bool gb_window_start_frame(gb_window_t bw, double timeout) {
             s->vw.SwapChainRebuild = false;
         }
     }
-    return true;
+    return &s->frame;
 }
 
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
@@ -1743,23 +1746,6 @@ static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAl
 //            ImGui_ImplVulkanH_DestroyWindowRenderBuffers(device, &vd->RenderBuffers, allocator);
 }
 
-// Allocates and clears memory 
-static void* _gb_alloc(size_t count) {
-
-    void *p = malloc(count);
-    if (p == NULL) {
-        fprintf(stderr, "NO MEMORY\n");
-        abort();
-    }
-    memset(p, 0, count);
-    return p;
-}
-
-// Free previous allocated memory
-static void _gb_free(void* p) {
-
-    free(p);
-}
 
 static void _gb_glfw_error_callback(int error, const char* description) {
 

@@ -1,8 +1,9 @@
 //
 // This source file should be INCLUDED in glfw_opengl.c and glfw_vulkan.c
-// It DOES NOT contain any graphics api calls.
+// It DOES NOT contain any graphics specific api calls.
 //
 
+static void _gb_update_frame_info(gb_state_t* s, double timeout);
 static void _gb_print_draw_list(gb_draw_list_t dl);
 static void _gb_set_ev_handlers(gb_state_t* s);
 static gb_event_t* _gb_ev_reserve(gb_state_t* s);
@@ -14,6 +15,35 @@ static void _gb_mouse_button_callback(GLFWwindow* win, int button, int action, i
 static void _gb_scroll_callback(GLFWwindow* win, double xoffset, double yoffset);
 static void* _gb_alloc(size_t count);
 static void _gb_free(void* p);
+
+
+// Updates frame information at the start of the frame
+static void _gb_update_frame_info(gb_state_t* s, double timeout) {
+
+    // Checks if user requested window close
+    s->frame.win_close = 0;
+    if (glfwWindowShouldClose(s->w)) {
+        s->frame.win_close = 1;
+    }
+
+    // Get window and framebuffer sizes and calculates framebuffer scale
+    int width, height;
+    glfwGetWindowSize(s->w, &width, &height);
+    s->frame.win_size.x = (float)width;
+    s->frame.win_size.y = (float)height;
+    glfwGetFramebufferSize(s->w, &width, &height);
+    s->frame.fb_size.x = (float)width;
+    s->frame.fb_size.y = (float)height;
+    if (s->frame.win_size.x > 0 && s->frame.win_size.y > 0) {
+        s->frame.fb_scale.x = s->frame.fb_size.x / s->frame.win_size.x;
+        s->frame.fb_scale.y = s->frame.fb_size.y / s->frame.win_size.y;
+    }
+
+    // Poll and handle events, blocking if no events for the specified timeout
+    s->frame.ev_count = 0;
+    glfwWaitEventsTimeout(timeout);
+}
+
 
 // Prints the specifid draw list for debugging
 static void _gb_print_draw_list(gb_draw_list_t dl) {
@@ -44,6 +74,12 @@ static void _gb_print_draw_list(gb_draw_list_t dl) {
 // Setup GLFW event handlers
 static void _gb_set_ev_handlers(gb_state_t* s) {
 
+    // Allocates initial events array
+    s->frame.ev_count = 0;
+    s->frame.ev_cap = 128;
+    s->frame.events = _gb_alloc(sizeof(gb_event_t) * s->frame.ev_cap);
+
+    // Install event callbacks
     glfwSetKeyCallback(s->w, _gb_key_callback);
     glfwSetCharCallback(s->w, _gb_char_callback);
     glfwSetCursorPosCallback(s->w, _gb_cursor_pos_callback);

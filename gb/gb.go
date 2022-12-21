@@ -201,7 +201,7 @@ func (w *Window) StartFrame(timeout float64) FrameInfo {
 	finfo.WinSize = Vec2{float32(cframe.win_size.x), float32(cframe.win_size.y)}
 	finfo.FbSize = Vec2{float32(cframe.fb_size.x), float32(cframe.fb_size.y)}
 	finfo.FbScale = Vec2{float32(cframe.fb_scale.x), float32(cframe.fb_scale.y)}
-	finfo.Events = (*[1 << 30]Event)(unsafe.Pointer(cframe.events))[:cframe.ev_count]
+	finfo.Events = unsafe.Slice((*Event)(unsafe.Pointer(cframe.events)), cframe.ev_count)
 	return finfo
 }
 

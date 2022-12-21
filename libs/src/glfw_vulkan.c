@@ -480,7 +480,8 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
         // Bind DescriptorSet with font or user texture
-        VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->texid };
+        struct vulkan_texinfo* texinfo = (struct vulkan_texinfo*)(pcmd->texid);
+        VkDescriptorSet desc_set[1] = { texinfo->descriptor_set };
         vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
         // Draw
         vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);

@@ -28,16 +28,16 @@ func main() {
 	f.SetPointSize(148)
 
 	// Create font atlas
-	//fa := gux.NewFontAtlas(f, 0, 0xff)
 	fa := win.NewFontAtlas(f, 0x00, 0xFF)
-
-	//err = fa.SavePNG("atlas.png")
-	//if err != nil {
-	//	fmt.Println("SAVE ERROR:", err)
-	//}
-	//fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
-
+	fmt.Println("ATLAS: LineHeight:", fa.LineHeight, "Ascent:", fa.Ascent, "Descent:", fa.Descent)
+	if false {
+		err = fa.SavePNG("atlas.png")
+		if err != nil {
+			fmt.Println("SAVE ERROR:", err)
+		}
+	}
 	texID, width, height := win.CreateTextImage(f, "text image")
+	fmt.Println("TextImage:", texID, width, height)
 
 	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
 	//1234567890()
@@ -54,14 +54,8 @@ func main() {
 
 	for win.StartFrame(0) {
 
-		win.AddText(win.DrawList(), fa, gb.Vec2{50, 200}, gux.TextVAlignTop, "top ")
-		win.AddText(win.DrawList(), fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
-		win.AddText(win.DrawList(), fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
-		win.AddImage(win.DrawList(), texID, width, height, gb.Vec2{50, 400})
-
-		//testText(win, texID, width, height)
-		//count := win.GetEvents(events)
-		//fmt.Println("events:", count)
+		testBasic(win)
+		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
 		win.Render()
@@ -83,6 +77,26 @@ func main() {
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 
 	win.Destroy()
+}
+
+func testBasic(win *gux.Window) {
+
+	_, bufIdx, bufVtx := win.NewDrawCmd(win.DrawList(), 3, 3)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{200, 800}, Col: 0xFF_00_00_FF}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{400, 800}, Col: 0xFF_00_FF_00}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{300, 600}, Col: 0xFF_FF_00_00}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+}
+
+func testText(win *gux.Window, fa *gux.FontAtlas, texID gb.TextureID, width, height float32) {
+
+	win.AddText(win.DrawList(), fa, gb.Vec2{50, 200}, gux.TextVAlignTop, "top ")
+	win.AddText(win.DrawList(), fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
+	win.AddText(win.DrawList(), fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
+	win.AddImage(win.DrawList(), texID, width, height, gb.Vec2{50, 400})
+
 }
 
 func testLines(w *gux.Window) {

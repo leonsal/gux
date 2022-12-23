@@ -312,8 +312,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
           _gb_check_vk_result(err);
           fd = &s->vw.Frames[s->vw.FrameIndex];
         }
-        for (;;)
-        {
+        for (;;) {
             err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, 100);
             if (err == VK_SUCCESS) break;
             if (err == VK_TIMEOUT) continue;
@@ -416,8 +415,10 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         _gb_check_vk_result(err);
         err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
         _gb_check_vk_result(err);
+
         memcpy(vtx_dst, dl.buf_vtx, dl.vtx_count * sizeof(gb_vertex_t));
         memcpy(idx_dst, dl.buf_idx, dl.idx_count * sizeof(uint32_t));
+
         VkMappedMemoryRange range[2] = {};
         range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         range[0].memory = rb->VertexBufferMemory;
@@ -471,15 +472,15 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
 
     }
 
-//    // Note: at this point both vkCmdSetViewport() and vkCmdSetScissor() have been called.
-//    // Our last values will leak into user/application rendering IF:
-//    // - Your app uses a pipeline with VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR dynamic state
-//    // - And you forgot to call vkCmdSetViewport() and vkCmdSetScissor() yourself to explicitly set that state.
-//    // If you use VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR you are responsible for setting the values before rendering.
-//    // In theory we should aim to backup/restore those values but I am not sure this is possible.
-//    // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
-//    VkRect2D scissor = { { 0, 0 }, { (uint32_t)fb_width, (uint32_t)fb_height } };
-//    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    // Note: at this point both vkCmdSetViewport() and vkCmdSetScissor() have been called.
+    // Our last values will leak into user/application rendering IF:
+    // - Your app uses a pipeline with VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR dynamic state
+    // - And you forgot to call vkCmdSetViewport() and vkCmdSetScissor() yourself to explicitly set that state.
+    // If you use VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR you are responsible for setting the values before rendering.
+    // In theory we should aim to backup/restore those values but I am not sure this is possible.
+    // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
+    VkRect2D scissor = { { 0, 0 }, { (uint32_t)s->frame.fb_size.x, (uint32_t)s->frame.fb_size.y } };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
 

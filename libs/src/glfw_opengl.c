@@ -40,7 +40,7 @@ typedef struct {
 
 
 // Forward declarations of internal functions
-static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl);
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
 static bool _gb_init(gb_state_t* s, const char* glsl_version);
 static void _gb_set_state(gb_state_t* s);
 static bool _gb_create_objects(gb_state_t* s);
@@ -162,7 +162,7 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     // Render commands and swap buffers
     gb_vec2_t disp_pos = {0,0};
     gb_vec2_t disp_size = {width, height};
-    _gb_render(s, disp_pos, disp_size, dl);
+    _gb_render(s, dl);
     glfwSwapBuffers(s->w);
 }
 
@@ -198,15 +198,13 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 
 
 // Executes draw commands
-static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  gb_draw_list_t dl)  {
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
     //printf("render-> cmd_count:%d idx_count:%d vtx_count:%d\n", dl.cmd_count, dl.idx_count, dl.vtx_count);
     //_gb_print_draw_list(dl);
 
     // Do not render when minimized
-    int fb_width = (int)disp_size.x;
-    int fb_height = (int)disp_size.y;
-    if (fb_width <= 0 || fb_height <= 0) {
+    if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {
         return;
     }
 
@@ -218,10 +216,10 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 
     // Sets orthogonal projection
-    float L = disp_pos.x;
-    float R = disp_pos.x + disp_size.x;
-    float T = disp_pos.y;
-    float B = disp_pos.y + disp_size.y;
+    float L = 0;
+    float R = 0 + s->frame.fb_size.x;
+    float T = 0;
+    float B = 0 + s->frame.fb_size.y;
     const float ortho_projection[4][4] = {
         { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
         { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
@@ -244,7 +242,7 @@ static void _gb_render(gb_state_t* s, gb_vec2_t disp_pos, gb_vec2_t disp_size,  
             continue;
         }
         // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
-        GL_CALL(glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
+        GL_CALL(glScissor((int)clip_min.x, (int)(s->frame.fb_size.y - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
         // Set texture and draw 
         GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(pcmd->texid)));

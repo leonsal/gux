@@ -115,12 +115,12 @@ struct vulkan_data {
     VkBuffer                UploadBuffer;
 };
 
-typedef struct gb_draw_data {
-    gb_draw_list_t  dl;
-    gb_vec2_t       disp_pos;
-    gb_vec2_t       disp_size;
-    gb_vec2_t       fb_scale;   // Amount of pixels for each unit of DisplaySize. Generally (1,1) on normal display, (2,2) on OSX with Retina display.
-} gb_draw_data_t;
+//typedef struct gb_draw_data {
+//    gb_draw_list_t  dl;
+//    gb_vec2_t       disp_pos;
+//    gb_vec2_t       disp_size;
+//    gb_vec2_t       fb_scale;   // Amount of pixels for each unit of DisplaySize. Generally (1,1) on normal display, (2,2) on OSX with Retina display.
+//} gb_draw_data_t;
 
 // Backend window state
 typedef struct {
@@ -133,10 +133,10 @@ typedef struct {
 
 
 // Forward declarations of internal functions
-static void _gb_render(gb_state_t* s, gb_draw_data_t* dd);
-static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCommandBuffer command_buffer, VkPipeline pipeline);
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,
-    struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height);
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
+static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline);
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+    struct vulkan_frame_render_buffers* rb);
 static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
 static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
@@ -282,15 +282,7 @@ gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
 
     gb_state_t* s = (gb_state_t*)(win);
-    int width, height;
-    glfwGetFramebufferSize(s->w, &width, &height);
-    gb_draw_data_t dd = {
-        .dl         = dl,
-        .disp_pos   = {0.0f, 0.0f},
-        .disp_size  = {(float)width, (float)height},
-        .fb_scale   = {1.0f, 1.0f},
-    };
-    _gb_render(s, &dd);
+    _gb_render(s, dl);
 }
 
 // Creates and returns texture
@@ -314,7 +306,7 @@ int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 //-----------------------------------------------------------------------------
 
 // Executes draw commands
-static void _gb_render(gb_state_t* s, gb_draw_data_t* dd)  {
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
 
     VkResult err;
 
@@ -361,7 +353,7 @@ static void _gb_render(gb_state_t* s, gb_draw_data_t* dd)  {
         }
     }
 
-    _gb_vulkan_render_draw_data(s, dd, fd->CommandBuffer, s->vw.Pipeline);
+    _gb_vulkan_render_draw_data(s, dl, fd->CommandBuffer, s->vw.Pipeline);
 
     {
         vkCmdEndRenderPass(fd->CommandBuffer);
@@ -389,12 +381,10 @@ static void _gb_render(gb_state_t* s, gb_draw_data_t* dd)  {
 }
 //void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer, VkPipeline pipeline)
 
-static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCommandBuffer command_buffer, VkPipeline pipeline) {
+static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline) {
 
-    // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    int fb_width = (int)(dd->disp_size.x * dd->fb_scale.x);
-    int fb_height = (int)(dd->disp_size.y * dd->fb_scale.y);
-    if (fb_width <= 0 || fb_height <= 0) {
+    // Do not render when minimized
+    if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {
         return;
     }
 
@@ -415,10 +405,10 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
     wrb->Index = (wrb->Index + 1) % wrb->Count;
     struct vulkan_frame_render_buffers* rb = &wrb->FrameRenderBuffers[wrb->Index];
 
-    if (dd->dl.vtx_count > 0) {
+    if (dl.vtx_count > 0) {
         // Create or resize the vertex/index buffers
-        size_t vertex_size = dd->dl.vtx_count * sizeof(gb_vertex_t);
-        size_t index_size = dd->dl.idx_count * sizeof(uint32_t);
+        size_t vertex_size = dl.vtx_count * sizeof(gb_vertex_t);
+        size_t index_size = dl.idx_count * sizeof(uint32_t);
         if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size) {
             _gb_create_or_resize_buffer(s, &rb->VertexBuffer, &rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         }
@@ -433,8 +423,8 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         _gb_check_vk_result(err);
         err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
         _gb_check_vk_result(err);
-        memcpy(vtx_dst, dd->dl.buf_vtx, dd->dl.vtx_count * sizeof(gb_vertex_t));
-        memcpy(idx_dst, dd->dl.buf_idx, dd->dl.idx_count * sizeof(uint32_t));
+        memcpy(vtx_dst, dl.buf_vtx, dl.vtx_count * sizeof(gb_vertex_t));
+        memcpy(idx_dst, dl.buf_idx, dl.idx_count * sizeof(uint32_t));
         VkMappedMemoryRange range[2] = {};
         range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         range[0].memory = rb->VertexBufferMemory;
@@ -449,15 +439,15 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
     }
 
     // Setup desired Vulkan state
-    _gb_vulkan_setup_render_state(s, dd, pipeline, command_buffer, rb, fb_width, fb_height);
+    _gb_vulkan_setup_render_state(s, dl, pipeline, command_buffer, rb);
 
     // Will project scissor/clipping rectangles into framebuffer space
-    gb_vec2_t clip_off = dd->disp_pos;      // (0,0) unless using multi-viewports
-    gb_vec2_t clip_scale = dd->fb_scale;    // (1,1) unless using retina display which are often (2,2)
+    gb_vec2_t clip_off = {0,0};
+    gb_vec2_t clip_scale = s->frame.fb_scale;
 
     // Apply draw commands
-    for (int cmd_i = 0; cmd_i < dd->dl.cmd_count; cmd_i++) {
-        gb_draw_cmd_t* pcmd = &dd->dl.buf_cmd[cmd_i];
+    for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
+        gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
         // Project scissor/clipping rectangles into framebuffer space
         gb_vec2_t clip_min = {(pcmd->clip_rect.x - clip_off.x) * clip_scale.x, (pcmd->clip_rect.y - clip_off.y) * clip_scale.y};
         gb_vec2_t clip_max = {(pcmd->clip_rect.z - clip_off.x) * clip_scale.x, (pcmd->clip_rect.w - clip_off.y) * clip_scale.y};
@@ -465,8 +455,8 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
         // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
         if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
         if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
-        if (clip_max.x > fb_width) { clip_max.x = (float)fb_width; }
-        if (clip_max.y > fb_height) { clip_max.y = (float)fb_height; }
+        if (clip_max.x > s->frame.fb_size.x) { clip_max.x = s->frame.fb_size.x; }
+        if (clip_max.y > s->frame.fb_size.y) { clip_max.y = s->frame.fb_size.y; }
         if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) {
             continue;
         }
@@ -500,8 +490,8 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_data_t* dd, VkCom
 }
 
 
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkPipeline pipeline, VkCommandBuffer command_buffer,
-    struct vulkan_frame_render_buffers* rb, int fb_width, int fb_height) {
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
+    struct vulkan_frame_render_buffers* rb) {
 
     // Bind pipeline:
     {
@@ -509,7 +499,7 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkP
     }
 
     // Bind Vertex And Index Buffer:
-    if (dd->dl.vtx_count > 0) {
+    if (dl.vtx_count > 0) {
         VkBuffer vertex_buffers[1] = { rb->VertexBuffer };
         VkDeviceSize vertex_offset[1] = { 0 };
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
@@ -521,8 +511,8 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkP
         VkViewport viewport;
         viewport.x = 0;
         viewport.y = 0;
-        viewport.width = (float)fb_width;
-        viewport.height = (float)fb_height;
+        viewport.width = s->frame.fb_size.x;
+        viewport.height = s->frame.fb_size.y;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(command_buffer, 0, 1, &viewport);
@@ -532,11 +522,11 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_data_t* dd, VkP
     // Our visible imgui space lies from draw_data->DisplayPps (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
     {
         float scale[2];
-        scale[0] = 2.0f / dd->disp_size.x;
-        scale[1] = 2.0f / dd->disp_size.y;
+        scale[0] = 2.0f / s->frame.fb_size.x;
+        scale[1] = 2.0f / s->frame.fb_size.y;
         float translate[2];
-        translate[0] = -1.0f - dd->disp_pos.x * scale[0];
-        translate[1] = -1.0f - dd->disp_pos.y * scale[1];
+        translate[0] = -1.0f - 0 * scale[0];
+        translate[1] = -1.0f - 0 * scale[1];
         vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 0, sizeof(float) * 2, scale);
         vkCmdPushConstants(command_buffer, s->vd.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, sizeof(float) * 2, translate);
     }

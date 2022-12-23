@@ -51,7 +51,6 @@ struct vulkan_window_render_buffers {
 };
 
 struct vulkan_texinfo {
-    VkSampler               sampler;
     VkImage                 image;
     VkImageView             image_view;
     VkDeviceMemory          memory;

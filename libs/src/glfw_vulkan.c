@@ -209,7 +209,6 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 
     // Creates and initializes backend state
     gb_state_t* s = _gb_alloc(sizeof(gb_state_t));
-    memset(s, 0, sizeof(gb_state_t));
     s->w = win;
     s->vi.MinImageCount = 2;
     s->vi.QueueFamily = (uint32_t)-1;
@@ -642,12 +641,10 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         // most common cases (multi-gpu/integrated+dedicated graphics). Handling more complicated setups (multiple
         // dedicated GPUs) is out of scope of this sample.
         int use_gpu = 0;
-        for (int i = 0; i < (int)gpu_count; i++)
-        {
+        for (int i = 0; i < (int)gpu_count; i++) {
             VkPhysicalDeviceProperties properties;
             vkGetPhysicalDeviceProperties(gpus[i], &properties);
-            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-            {
+            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
                 use_gpu = i;
                 break;
             }
@@ -892,13 +889,11 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
         else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
             info.minImageCount = cap.maxImageCount;
 
-        if (cap.currentExtent.width == 0xffffffff)
-        {
+        if (cap.currentExtent.width == 0xffffffff) {
             info.imageExtent.width = wd->Width = w;
             info.imageExtent.height = wd->Height = h;
         }
-        else
-        {
+        else {
             info.imageExtent.width = wd->Width = cap.currentExtent.width;
             info.imageExtent.height = wd->Height = cap.currentExtent.height;
         }
@@ -978,8 +973,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
         info.components.a = VK_COMPONENT_SWIZZLE_A;
         VkImageSubresourceRange image_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
         info.subresourceRange = image_range;
-        for (uint32_t i = 0; i < wd->ImageCount; i++)
-        {
+        for (uint32_t i = 0; i < wd->ImageCount; i++) {
             struct vulkan_frame* fd = &wd->Frames[i];
             info.image = fd->Backbuffer;
             err = vkCreateImageView(device, &info, allocator, &fd->BackbufferView);

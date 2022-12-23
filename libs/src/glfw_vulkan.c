@@ -115,13 +115,6 @@ struct vulkan_data {
     VkBuffer                UploadBuffer;
 };
 
-//typedef struct gb_draw_data {
-//    gb_draw_list_t  dl;
-//    gb_vec2_t       disp_pos;
-//    gb_vec2_t       disp_size;
-//    gb_vec2_t       fb_scale;   // Amount of pixels for each unit of DisplaySize. Generally (1,1) on normal display, (2,2) on OSX with Retina display.
-//} gb_draw_data_t;
-
 // Backend window state
 typedef struct {
     GLFWwindow*             w;      // GLFW window pointer

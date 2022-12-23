@@ -70,6 +70,16 @@ func NewWindow(title string, width, height int) (*Window, error) {
 	return w, nil
 }
 
+func (w *Window) SetClearColor(color gb.Vec4) {
+
+	w.frameParams.ClearColor = color
+}
+
+func (w *Window) SetEvTimeout(timeout float32) {
+
+	w.frameParams.EvTimeout = timeout
+}
+
 func (w *Window) StartFrame() bool {
 
 	w.dl.Clear()

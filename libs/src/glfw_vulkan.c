@@ -310,71 +310,67 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
     _gb_print_draw_list(dl);
     VkResult err;
 
-    struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];
-    struct vulkan_frame_semaphores* fsd = &s->vw.FrameSemaphores[s->vw.SemaphoreIndex];
+    VkSemaphore image_acquired_semaphore  = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].ImageAcquiredSemaphore;
+    VkSemaphore render_complete_semaphore = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].RenderCompleteSemaphore;
+    err = vkAcquireNextImageKHR(s->vi.Device, s->vw.Swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &s->vw.FrameIndex);
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+        s->vw.SwapChainRebuild = true;
+        return;
+    }
+    _gb_check_vk_result(err);
 
+    struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];
     {
-        {
-          err = vkAcquireNextImageKHR(s->vi.Device, s->vw.Swapchain, UINT64_MAX, fsd->ImageAcquiredSemaphore, VK_NULL_HANDLE, &s->vw.FrameIndex);
-          _gb_check_vk_result(err);
-          fd = &s->vw.Frames[s->vw.FrameIndex];
-        }
-        for (;;) {
-            err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, 100);
-            if (err == VK_SUCCESS) break;
-            if (err == VK_TIMEOUT) continue;
-            _gb_check_vk_result(err);
-        }
-        {
-            err = vkResetCommandPool(s->vi.Device, fd->CommandPool, 0);
-            _gb_check_vk_result(err);
-            VkCommandBufferBeginInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
-            _gb_check_vk_result(err);
-        }
-        {
-            VkRenderPassBeginInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            info.renderPass = s->vw.RenderPass;
-            info.framebuffer = fd->Framebuffer;
-            info.renderArea.extent.width = s->vw.Width;
-            info.renderArea.extent.height = s->vw.Height;
-            info.clearValueCount = 1;
-            info.pClearValues = &s->vw.ClearValue;
-            printf("clear:%f\n", s->vw.ClearValue.color.float32[0]);
-            vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-        }
+        err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
+        _gb_check_vk_result(err);
+
+        err = vkResetFences(s->vi.Device, 1, &fd->Fence);
+        _gb_check_vk_result(err);
+    }
+    {
+        err = vkResetCommandPool(s->vi.Device, fd->CommandPool, 0);
+        _gb_check_vk_result(err);
+        VkCommandBufferBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
+        _gb_check_vk_result(err);
+    }
+    {
+        VkRenderPassBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        info.renderPass = s->vw.RenderPass;
+        info.framebuffer = fd->Framebuffer;
+        info.renderArea.extent.width = s->vw.Width;
+        info.renderArea.extent.height = s->vw.Height;
+        info.clearValueCount = 1;
+        info.pClearValues = &s->vw.ClearValue;
+        vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
+    // Record primitives into command buffer
     _gb_vulkan_render_draw_data(s, dl, fd->CommandBuffer, s->vw.Pipeline);
 
+    // Submit command buffer
+    vkCmdEndRenderPass(fd->CommandBuffer);
     {
-        vkCmdEndRenderPass(fd->CommandBuffer);
-        {
-            VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            info.waitSemaphoreCount = 1;
-            info.pWaitSemaphores = &fsd->ImageAcquiredSemaphore;
-            info.pWaitDstStageMask = &wait_stage;
-            info.commandBufferCount = 1;
-            info.pCommandBuffers = &fd->CommandBuffer;
-            info.signalSemaphoreCount = 1;
-            info.pSignalSemaphores = &fsd->RenderCompleteSemaphore;
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        info.waitSemaphoreCount = 1;
+        info.pWaitSemaphores = &image_acquired_semaphore;
+        info.pWaitDstStageMask = &wait_stage;
+        info.commandBufferCount = 1;
+        info.pCommandBuffers = &fd->CommandBuffer;
+        info.signalSemaphoreCount = 1;
+        info.pSignalSemaphores = &render_complete_semaphore;
 
-            err = vkEndCommandBuffer(fd->CommandBuffer);
-            _gb_check_vk_result(err);
-            err = vkResetFences(s->vi.Device, 1, &fd->Fence);
-            _gb_check_vk_result(err);
-            err = vkQueueSubmit(s->vi.Queue, 1, &info, fd->Fence);
-            _gb_check_vk_result(err);
-        }
+        err = vkEndCommandBuffer(fd->CommandBuffer);
+        _gb_check_vk_result(err);
+        err = vkQueueSubmit(s->vi.Queue, 1, &info, fd->Fence);
+        _gb_check_vk_result(err);
     }
-
 }
-//void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer, VkPipeline pipeline)
 
 static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline) {
 

@@ -201,7 +201,7 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
     //printf("render-> cmd_count:%d idx_count:%d vtx_count:%d\n", dl.cmd_count, dl.idx_count, dl.vtx_count);
-    //_gb_print_draw_list(dl);
+    _gb_print_draw_list(dl);
 
     // Do not render when minimized
     if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {

@@ -301,6 +301,7 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 // Executes draw commands
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
 
+    _gb_print_draw_list(dl);
     VkResult err;
 
     struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];

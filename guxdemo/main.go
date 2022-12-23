@@ -81,13 +81,24 @@ func main() {
 
 func testBasic(win *gux.Window) {
 
-	_, bufIdx, bufVtx := win.NewDrawCmd(win.DrawList(), 3, 3)
+	dl := win.DrawList()
+	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)
 	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{200, 800}, Col: 0xFF_00_00_FF}
 	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{400, 800}, Col: 0xFF_00_FF_00}
 	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{300, 600}, Col: 0xFF_FF_00_00}
 	bufIdx[0] = 0
 	bufIdx[1] = 1
 	bufIdx[2] = 2
+	dl.AdjustIdx(cmd)
+
+	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, 0}, Col: 0xFF_00_00_FF}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{0, 300}, Col: 0xFF_00_FF_00}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{300, 0}, Col: 0xFF_FF_00_00}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	dl.AdjustIdx(cmd)
 }
 
 func testText(win *gux.Window, fa *gux.FontAtlas, texID gb.TextureID, width, height float32) {

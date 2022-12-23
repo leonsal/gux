@@ -128,6 +128,7 @@ typedef struct {
 // Forward declarations of internal functions
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
 static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline);
+static void _gb_frame_present(gb_state_t* s);
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb);
 static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
@@ -274,7 +275,11 @@ gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
 
     gb_state_t* s = (gb_state_t*)(win);
+    if (s->frame.win_size.x <= 0 || s->frame.win_size.y <= 0) {
+        return;
+    }
     _gb_render(s, dl);
+    _gb_frame_present(s);
 }
 
 // Creates and returns texture
@@ -482,6 +487,52 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
+static void _gb_frame_present(gb_state_t* s) {
+
+    if (s->vw.SwapChainRebuild) {
+        return;
+    }
+    VkSemaphore render_complete_semaphore = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].RenderCompleteSemaphore;
+    VkPresentInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    info.waitSemaphoreCount = 1;
+    info.pWaitSemaphores = &render_complete_semaphore;
+    info.swapchainCount = 1;
+    info.pSwapchains = &s->vw.Swapchain;
+    info.pImageIndices = &s->vw.FrameIndex;
+    VkResult err = vkQueuePresentKHR(s->vi.Queue, &info);
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+        s->vw.SwapChainRebuild = true;
+        return;
+    }
+    _gb_check_vk_result(err);
+    s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
+}
+
+//static void _gb_swap_buffers(gb_state_t* s) {
+//
+//    VkResult err;
+//    int32_t present_index = s->vw.FrameIndex;
+//
+//    struct vulkan_frame_semaphores* fsd = &s->vw.FrameSemaphores[s->vw.SemaphoreIndex];
+//    VkPresentInfoKHR info = {};
+//    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+//    info.waitSemaphoreCount = 1;
+//    info.pWaitSemaphores = &fsd->RenderCompleteSemaphore;
+//    info.swapchainCount = 1;
+//    info.pSwapchains = &s->vw.Swapchain;
+//    info.pImageIndices = &present_index;
+//    err = vkQueuePresentKHR(s->vi.Queue, &info);
+//    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+//        _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, &s->vw, s->vi.QueueFamily, s->vi.Allocator,
+//            (int)s->frame.win_size.x, (int)s->frame.win_size.y, s->vi.MinImageCount);
+//    }
+//    else {
+//        _gb_check_vk_result(err);
+//    }
+//    s->vw.FrameIndex = (s->vw.FrameIndex + 1) % s->vw.ImageCount;         // This is for the next vkWaitForFences()
+//    s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
+//}
 
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb) {

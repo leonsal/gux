@@ -264,7 +264,6 @@ gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
             _gb_set_min_image_count(s, s->vi.MinImageCount);
             _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, &s->vw, s->vi.QueueFamily,
                     s->vi.Allocator, width, height, s->vi.MinImageCount);
-            //g_MainWindowData.FrameIndex = 0;
             s->vw.FrameIndex = 0;
             s->vw.SwapChainRebuild = false;
         }
@@ -272,6 +271,7 @@ gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
     return &s->frame;
 }
 
+// Renders the frame draw list
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
 
     gb_state_t* s = (gb_state_t*)(win);
@@ -290,10 +290,6 @@ gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rg
 }
 
 void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
-
-}
-
-int gb_get_events(gb_window_t win, gb_event_t* events, int ev_count) {
 
 }
 

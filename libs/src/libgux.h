@@ -74,6 +74,12 @@ typedef struct gb_event {
     float           argfloat[2];    // Float parameters
 } gb_event_t;
 
+// Frame parameters for gb_window_start_frame()
+typedef struct gb_frame_params {
+    float           ev_timeout;     // Event timeout in seconds
+    gb_vec4_t       clear_color;    // Window clear color
+} gb_frame_params_t;
+
 // Frame information returned by gb_window_start_frame()
 typedef struct gb_frame_info {
     uint32_t        win_close;      // Window close request
@@ -98,7 +104,7 @@ enum {
 // Public API
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
 void gb_window_destroy(gb_window_t win);
-gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout);
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
 gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rgba_t* data);
 void gb_delete_texture(gb_window_t win, gb_texid_t texid);

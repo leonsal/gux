@@ -52,7 +52,7 @@ func main() {
 	var statsStart runtime.MemStats
 	frameCount := 0
 
-	for win.StartFrame(0) {
+	for win.StartFrame() {
 
 		testBasic(win)
 		//testText(win, fa, texID, width, height)

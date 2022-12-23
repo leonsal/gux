@@ -74,6 +74,12 @@ type Event struct {
 	ArgFloat [2]float32 // Float arguments
 }
 
+// Frame parameters contains parameters for start_frame()
+type FrameParams struct {
+	EvTimeout  float32 // Event timeout in seconds
+	ClearColor Vec4    // Window clear color
+}
+
 // FrameInfo contains frame information returned by start_frame()
 type FrameInfo struct {
 	WinClose bool    // Window close request
@@ -191,10 +197,10 @@ func (w *Window) Destroy() {
 	C.gb_window_destroy(w.c)
 }
 
-func (w *Window) StartFrame(timeout float64) FrameInfo {
+func (w *Window) StartFrame(params *FrameParams) FrameInfo {
 
 	finfo := FrameInfo{}
-	cframe := C.gb_window_start_frame(w.c, C.double(timeout))
+	cframe := C.gb_window_start_frame(w.c, (*C.gb_frame_params_t)(unsafe.Pointer(params)))
 	if cframe.win_close != 0 {
 		finfo.WinClose = true
 	}

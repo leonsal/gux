@@ -114,12 +114,6 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         return NULL;
     }
 
-    // Sets default clear color
-    s->clear_color.x = 0.5;
-    s->clear_color.y = 0.5;
-    s->clear_color.z = 0.5;
-    s->clear_color.w = 1.0;
-
     // Set window event handlers
     _gb_set_ev_handlers(s);
     return s;
@@ -138,10 +132,11 @@ void gb_window_destroy(gb_window_t bw) {
 }
 
 // Starts the frame returning frame information
-gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params) {
 
     gb_state_t* s = (gb_state_t*)(bw);
-    _gb_update_frame_info(s, timeout);
+    s->clear_color = params->clear_color;
+    _gb_update_frame_info(s, params->ev_timeout);
     return &s->frame;
 }
 

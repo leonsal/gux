@@ -117,11 +117,12 @@ struct vulkan_data {
 
 // Backend window state
 typedef struct {
-    GLFWwindow*             w;      // GLFW window pointer
-    struct vulkan_init      vi;     // Vulkan initialization info                                    
-    struct vulkan_window    vw;     // Vulkan window data
-    struct vulkan_data      vd;     // Vulkan data
-    gb_frame_info_t         frame;  // Frame info returned by gb_window_start_frame()
+    GLFWwindow*             w;              // GLFW window pointer
+    gb_vec4_t               clear_color;    // Current color to clear color buffer before rendering
+    struct vulkan_init      vi;             // Vulkan initialization info                                    
+    struct vulkan_window    vw;             // Vulkan window data
+    struct vulkan_data      vd;             // Vulkan data
+    gb_frame_info_t         frame;          // Frame info returned by gb_window_start_frame()
 } gb_state_t;
 
 
@@ -250,11 +251,12 @@ void gb_window_destroy(gb_window_t win) {
 }
 
 // Starts the frame returning frame information
-gb_frame_info_t* gb_window_start_frame(gb_window_t bw, double timeout) {
+gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params) {
 
     // Checks if user requested window close
     gb_state_t* s = (gb_state_t*)(bw);
-    _gb_update_frame_info(s, timeout);
+    s->clear_color = params->clear_color;
+    _gb_update_frame_info(s, params->ev_timeout);
 
     // Resize swap chain?
     if (s->vw.SwapChainRebuild) {
@@ -278,6 +280,10 @@ void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
     if (s->frame.win_size.x <= 0 || s->frame.win_size.y <= 0) {
         return;
     }
+    s->vw.ClearValue.color.float32[0] = s->clear_color.x * s->clear_color.w;
+    s->vw.ClearValue.color.float32[1] = s->clear_color.y * s->clear_color.w;
+    s->vw.ClearValue.color.float32[2] = s->clear_color.z * s->clear_color.w;
+    s->vw.ClearValue.color.float32[3] = s->clear_color.w;
     _gb_render(s, dl);
     _gb_frame_present(s);
 }
@@ -329,19 +335,15 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
             _gb_check_vk_result(err);
         }
         {
-            gb_vec4_t clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
-            memcpy(&s->vw.ClearValue.color.float32[0], &clear_color, 4 * sizeof(float));
-
             VkRenderPassBeginInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             info.renderPass = s->vw.RenderPass;
             info.framebuffer = fd->Framebuffer;
             info.renderArea.extent.width = s->vw.Width;
             info.renderArea.extent.height = s->vw.Height;
-            //info.clearValueCount = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? 0 : 1;
             info.clearValueCount = 1;
-            //info.pClearValues = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? NULL : &s->vw.ClearValue;
             info.pClearValues = &s->vw.ClearValue;
+            printf("clear:%f\n", s->vw.ClearValue.color.float32[0]);
             vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
         }
     }

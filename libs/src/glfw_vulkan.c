@@ -517,7 +517,7 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPi
         VkBuffer vertex_buffers[1] = { rb->VertexBuffer };
         VkDeviceSize vertex_offset[1] = { 0 };
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
-        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, sizeof(uint32_t) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
     }
 
     // Setup viewport:

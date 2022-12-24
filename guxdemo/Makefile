@@ -1,17 +1,23 @@
-# Force link with libs and install
-all:
-	clear
-	cd ../libs;make
-	rm -f /home/leonel/go/bin/guxdemo
-	cd ../guxdemo
+# Build/run OpenGL version
+gl: libs
 	/home/leonel/bin/go/bin/go install .
-
-# Force link with libs, install and run
-run: all
 	guxdemo
 
+# Build/run Vulkan version
+vk: libs
+	/home/leonel/bin/go/bin/go install -tags vulkan .
+	guxdemo
 
-# Force link with libs, install and run showing memory allocations
-runalloc: all
+# Build Vulkan executable locally for debugging
+vkbuild: libs
+	/home/leonel/bin/go/bin/go build -tags vulkan .
+
+# Run showing allocations
+runalloc: libs
 	GODEBUG=allocfreetrace=1 guxdemo
+
+# Build C libraries and remove executable to force new link
+libs:
+	cd ../libs;make
+	rm -f /home/leonel/go/bin/guxdemo
 

@@ -504,31 +504,6 @@ static void _gb_frame_present(gb_state_t* s) {
     s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
 }
 
-//static void _gb_swap_buffers(gb_state_t* s) {
-//
-//    VkResult err;
-//    int32_t present_index = s->vw.FrameIndex;
-//
-//    struct vulkan_frame_semaphores* fsd = &s->vw.FrameSemaphores[s->vw.SemaphoreIndex];
-//    VkPresentInfoKHR info = {};
-//    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-//    info.waitSemaphoreCount = 1;
-//    info.pWaitSemaphores = &fsd->RenderCompleteSemaphore;
-//    info.swapchainCount = 1;
-//    info.pSwapchains = &s->vw.Swapchain;
-//    info.pImageIndices = &present_index;
-//    err = vkQueuePresentKHR(s->vi.Queue, &info);
-//    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
-//        _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, &s->vw, s->vi.QueueFamily, s->vi.Allocator,
-//            (int)s->frame.win_size.x, (int)s->frame.win_size.y, s->vi.MinImageCount);
-//    }
-//    else {
-//        GB_VK_CHECK(err);
-//    }
-//    s->vw.FrameIndex = (s->vw.FrameIndex + 1) % s->vw.ImageCount;         // This is for the next vkWaitForFences()
-//    s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
-//}
-
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
     struct vulkan_frame_render_buffers* rb) {
 

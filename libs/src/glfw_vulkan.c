@@ -18,6 +18,9 @@
 // Assert macro
 #define GB_ASSERT(_EXPR)    assert(_EXPR)
 
+// Check Vulkan return error code
+#define GB_VK_CHECK(_ERR)   _gb_check_vk_result(_ERR, __LINE__);
+
 // Enable vulkan debug
 #define GB_VULKAN_DEBUG_REPORT 1
 
@@ -170,7 +173,7 @@ static void _gb_destroy_all_viewports_render_buffers(VkDevice device, const VkAl
 static void* _gb_alloc(size_t count);
 static void _gb_free(void* p);
 static void _gb_glfw_error_callback(int error, const char* description);
-static void _gb_check_vk_result(VkResult err);
+static void _gb_check_vk_result(VkResult err, int line);
 #ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
@@ -224,7 +227,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     // Create Window Surface
     VkSurfaceKHR surface;
     VkResult err = glfwCreateWindowSurface(s->vi.Instance, win, s->vi.Allocator, &surface);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     // Create Framebuffers
     int w, h;
@@ -245,7 +248,7 @@ void gb_window_destroy(gb_window_t win) {
 
     gb_state_t* s = (gb_state_t*)(win);
     VkResult err = vkDeviceWaitIdle(s->vi.Device);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
 }
 
@@ -316,24 +319,24 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
         s->vw.SwapChainRebuild = true;
         return;
     }
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];
     {
         err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 
         err = vkResetFences(s->vi.Device, 1, &fd->Fence);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
     {
         err = vkResetCommandPool(s->vi.Device, fd->CommandPool, 0);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         VkCommandBufferBeginInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
     {
         VkRenderPassBeginInfo info = {};
@@ -365,9 +368,9 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
         info.pSignalSemaphores = &render_complete_semaphore;
 
         err = vkEndCommandBuffer(fd->CommandBuffer);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         err = vkQueueSubmit(s->vi.Queue, 1, &info, fd->Fence);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 }
 
@@ -410,9 +413,9 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         gb_vertex_t* vtx_dst = NULL;
         uint32_t* idx_dst = NULL;
         VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 
         memcpy(vtx_dst, dl.buf_vtx, dl.vtx_count * sizeof(gb_vertex_t));
         memcpy(idx_dst, dl.buf_idx, dl.idx_count * sizeof(uint32_t));
@@ -425,7 +428,7 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         range[1].memory = rb->IndexBufferMemory;
         range[1].size = VK_WHOLE_SIZE;
         err = vkFlushMappedMemoryRanges(s->vi.Device, 2, range);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         vkUnmapMemory(s->vi.Device, rb->VertexBufferMemory);
         vkUnmapMemory(s->vi.Device, rb->IndexBufferMemory);
     }
@@ -499,7 +502,7 @@ static void _gb_frame_present(gb_state_t* s) {
         s->vw.SwapChainRebuild = true;
         return;
     }
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
 }
 
@@ -522,7 +525,7 @@ static void _gb_frame_present(gb_state_t* s) {
 //            (int)s->frame.win_size.x, (int)s->frame.win_size.y, s->vi.MinImageCount);
 //    }
 //    else {
-//        _gb_check_vk_result(err);
+//        GB_VK_CHECK(err);
 //    }
 //    s->vw.FrameIndex = (s->vw.FrameIndex + 1) % s->vw.ImageCount;         // This is for the next vkWaitForFences()
 //    s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
@@ -590,7 +593,7 @@ static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDevic
     buffer_info.usage = usage;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, buffer);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     VkMemoryRequirements req;
     vkGetBufferMemoryRequirements(s->vi.Device, *buffer, &req);
@@ -600,10 +603,10 @@ static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDevic
     alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
     err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, buffer_memory);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     err = vkBindBufferMemory(s->vi.Device, *buffer, *buffer_memory, 0);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     *p_buffer_size = req.size;
 }
 
@@ -643,7 +646,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
 
         // Create Vulkan Instance
         err = vkCreateInstance(&create_info, s->vi.Allocator, &s->vi.Instance);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         _gb_free(extensions_ext);
 
         // Load Vulkan functions for the instance
@@ -660,11 +663,11 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         debug_report_ci.pfnCallback = _gb_debug_report;
         debug_report_ci.pUserData = NULL;
         err = vkCreateDebugReportCallbackEXT(s->vi.Instance, &debug_report_ci, s->vi.Allocator, &s->vi.DebugReport);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 #else
         // Create Vulkan Instance without any debug feature
         err = vkCreateInstance(&create_info, s->vi.Allocator, &s->vi.Instance);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         
         // Load Vulkan functions for the instance
         volkLoadInstance(s->vi.Instance);
@@ -675,12 +678,12 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
     {
         uint32_t gpu_count;
         err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, NULL);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         GB_ASSERT(gpu_count > 0);
 
         VkPhysicalDevice* gpus = (VkPhysicalDevice*)_gb_alloc(sizeof(VkPhysicalDevice) * gpu_count);
         err = vkEnumeratePhysicalDevices(s->vi.Instance, &gpu_count, gpus);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 
         // If a number >1 of GPUs got reported, find discrete GPU if present, or use first one available. This covers
         // most common cases (multi-gpu/integrated+dedicated graphics). Handling more complicated setups (multiple
@@ -732,7 +735,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         create_info.enabledExtensionCount = device_extension_count;
         create_info.ppEnabledExtensionNames = device_extensions;
         err = vkCreateDevice(s->vi.PhysicalDevice, &create_info, s->vi.Allocator, &s->vi.Device);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         vkGetDeviceQueue(s->vi.Device, s->vi.QueueFamily, 0, &s->vi.Queue);
     }
 
@@ -759,7 +762,7 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         pool_info.poolSizeCount = (uint32_t)GB_ARRAYSIZE(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
         err = vkCreateDescriptorPool(s->vi.Device, &pool_info, s->vi.Allocator, &s->vi.DescriptorPool);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 }
 
@@ -885,7 +888,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
     VkSwapchainKHR old_swapchain = wd->Swapchain;
     wd->Swapchain = VK_NULL_HANDLE;
     err = vkDeviceWaitIdle(device);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
     // Destroy old Framebuffer
@@ -928,7 +931,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
         info.oldSwapchain = old_swapchain;
         VkSurfaceCapabilitiesKHR cap;
         err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, wd->Surface, &cap);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         if (info.minImageCount < cap.minImageCount)
             info.minImageCount = cap.minImageCount;
         else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
@@ -943,14 +946,14 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
             info.imageExtent.height = wd->Height = cap.currentExtent.height;
         }
         err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, NULL);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         VkImage backbuffers[16] = {};
         assert(wd->ImageCount >= min_image_count);
         assert(wd->ImageCount < GB_ARRAYSIZE(backbuffers));
         err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 
         assert(wd->Frames == NULL);
         wd->Frames = _gb_alloc(sizeof(struct vulkan_frame) * wd->ImageCount);
@@ -999,7 +1002,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
         info.dependencyCount = 1;
         info.pDependencies = &dependency;
         err = vkCreateRenderPass(device, &info, allocator, &wd->RenderPass);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
 
         // We do not create a pipeline by default as this is also used by examples' main.cpp,
         // but secondary viewport in multi-viewport mode may want to create one with:
@@ -1022,7 +1025,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
             struct vulkan_frame* fd = &wd->Frames[i];
             info.image = fd->Backbuffer;
             err = vkCreateImageView(device, &info, allocator, &fd->BackbufferView);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
     }
 
@@ -1041,7 +1044,7 @@ static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDev
             struct vulkan_frame* fd = &wd->Frames[i];
             attachment[0] = fd->BackbufferView;
             err = vkCreateFramebuffer(device, &info, allocator, &fd->Framebuffer);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
     }
 }
@@ -1062,7 +1065,7 @@ static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, 
             info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             info.queueFamilyIndex = queue_family;
             err = vkCreateCommandPool(device, &info, allocator, &fd->CommandPool);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
         {
             VkCommandBufferAllocateInfo info = {};
@@ -1071,22 +1074,22 @@ static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, 
             info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             info.commandBufferCount = 1;
             err = vkAllocateCommandBuffers(device, &info, &fd->CommandBuffer);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
         {
             VkFenceCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
             info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
             err = vkCreateFence(device, &info, allocator, &fd->Fence);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
         {
             VkSemaphoreCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
             err = vkCreateSemaphore(device, &info, allocator, &fsd->ImageAcquiredSemaphore);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
             err = vkCreateSemaphore(device, &info, allocator, &fsd->RenderCompleteSemaphore);
-            _gb_check_vk_result(err);
+            GB_VK_CHECK(err);
         }
     }
 }
@@ -1115,7 +1118,7 @@ static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
 
     assert(0); // FIXME-VIEWPORT: Unsupported. Need to recreate all swap chains!
     VkResult err = vkDeviceWaitIdle(s->vi.Device);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     _gb_destroy_all_viewports_render_buffers(s->vi.Device, s->vi.Allocator);
     s->vi.MinImageCount = min_image_count;
 }
@@ -1137,7 +1140,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         info.maxLod = 1000;
         info.maxAnisotropy = 1.0f;
         err = vkCreateSampler(s->vi.Device, &info, s->vi.Allocator, &s->vd.FontSampler);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     if (!s->vd.DescriptorSetLayout) {
@@ -1152,7 +1155,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         info.bindingCount = 1;
         info.pBindings = binding;
         err = vkCreateDescriptorSetLayout(s->vi.Device, &info, s->vi.Allocator, &s->vd.DescriptorSetLayout);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     if (!s->vd.PipelineLayout) {
@@ -1169,7 +1172,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         layout_info.pushConstantRangeCount = 1;
         layout_info.pPushConstantRanges = push_constants;
         err = vkCreatePipelineLayout(s->vi.Device, &layout_info, s->vi.Allocator, &s->vd.PipelineLayout);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     _gb_create_pipeline(s, s->vi.Device, s->vi.Allocator, s->vi.PipelineCache, s->vd.RenderPass, s->vi.MSAASamples, &s->vd.Pipeline, s->vd.Subpass);
@@ -1280,7 +1283,7 @@ static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocati
     info.renderPass = renderPass;
     info.subpass = subpass;
     VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &info, allocator, pipeline);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 }
 
 static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
@@ -1303,7 +1306,7 @@ static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkA
     layout_info.pushConstantRangeCount = 1;
     layout_info.pPushConstantRanges = push_constants;
     VkResult  err = vkCreatePipelineLayout(device, &layout_info, allocator, &s->vd.PipelineLayout);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 }
 
 static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
@@ -1324,7 +1327,7 @@ static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, con
     info.bindingCount = 1;
     info.pBindings = binding;
     VkResult err = vkCreateDescriptorSetLayout(device, &info, allocator, &s->vd.DescriptorSetLayout);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 }
 
 static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
@@ -1346,7 +1349,7 @@ static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllo
     info.maxLod = 1000;
     info.maxAnisotropy = 1.0f;
     VkResult err = vkCreateSampler(device, &info, allocator, &s->vd.FontSampler);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 }
 
 static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels)  {
@@ -1361,12 +1364,12 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
     VkCommandPool command_pool = s->vw.Frames[s->vw.FrameIndex].CommandPool;
     VkCommandBuffer command_buffer = s->vw.Frames[s->vw.FrameIndex].CommandBuffer;
     err = vkResetCommandPool(s->vi.Device, command_pool, 0);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     err = vkBeginCommandBuffer(command_buffer, &begin_info);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
 
     // Allocate texture info
     struct vulkan_texinfo* tex = _gb_alloc(sizeof(struct vulkan_texinfo));
@@ -1388,7 +1391,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         err = vkCreateImage(s->vi.Device, &info, s->vi.Allocator, &tex->image);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         VkMemoryRequirements req;
         vkGetImageMemoryRequirements(s->vi.Device, tex->image, &req);
         VkMemoryAllocateInfo alloc_info = {};
@@ -1396,9 +1399,9 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
         alloc_info.allocationSize = req.size;
         alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, req.memoryTypeBits);
         err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &tex->memory);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         err = vkBindImageMemory(s->vi.Device, tex->image, tex->memory, 0);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     // Create the Image View:
@@ -1412,7 +1415,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
         info.subresourceRange.levelCount = 1;
         info.subresourceRange.layerCount = 1;
         err = vkCreateImageView(s->vi.Device, &info, s->vi.Allocator, &tex->image_view);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     // Create the Descriptor Set
@@ -1426,7 +1429,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
         buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, &uploadBuffer);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         VkMemoryRequirements req;
         vkGetBufferMemoryRequirements(s->vi.Device, uploadBuffer, &req);
         s->vd.BufferMemoryAlignment = (s->vd.BufferMemoryAlignment > req.alignment) ? s->vd.BufferMemoryAlignment : req.alignment;
@@ -1435,23 +1438,23 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
         alloc_info.allocationSize = req.size;
         alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
         err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, &uploadBufferMemory);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         err = vkBindBufferMemory(s->vi.Device, uploadBuffer, uploadBufferMemory, 0);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     // Upload to Buffer:
     {
         char* map = NULL;
         err = vkMapMemory(s->vi.Device, uploadBufferMemory, 0, upload_size, 0, (void**)(&map));
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         memcpy(map, pixels, upload_size);
         VkMappedMemoryRange range[1] = {};
         range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         range[0].memory = uploadBufferMemory;
         range[0].size = upload_size;
         err = vkFlushMappedMemoryRanges(s->vi.Device, 1, range);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
         vkUnmapMemory(s->vi.Device, uploadBufferMemory);
     }
 
@@ -1498,11 +1501,11 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
     end_info.commandBufferCount = 1;
     end_info.pCommandBuffers = &command_buffer;
     err = vkEndCommandBuffer(command_buffer);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     err = vkQueueSubmit(s->vi.Queue, 1, &end_info, VK_NULL_HANDLE);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     err = vkDeviceWaitIdle(s->vi.Device);
-    _gb_check_vk_result(err);
+    GB_VK_CHECK(err);
     
     if (uploadBuffer) {
         vkDestroyBuffer(s->vi.Device, uploadBuffer, s->vi.Allocator);
@@ -1546,7 +1549,7 @@ VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, 
         alloc_info.descriptorSetCount = 1;
         alloc_info.pSetLayouts = &s->vd.DescriptorSetLayout;
         VkResult err = vkAllocateDescriptorSets(s->vi.Device, &alloc_info, &descriptor_set);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 
     // Update the Descriptor Set:
@@ -1687,7 +1690,7 @@ static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAl
         vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
         vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
         VkResult err = vkCreateShaderModule(device, &vert_info, allocator, &s->vd.ShaderModuleVert);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
     if (s->vd.ShaderModuleFrag == VK_NULL_HANDLE) {
         VkShaderModuleCreateInfo frag_info = {};
@@ -1695,7 +1698,7 @@ static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAl
         frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
         frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
         VkResult err = vkCreateShaderModule(device, &frag_info, allocator, &s->vd.ShaderModuleFrag);
-        _gb_check_vk_result(err);
+        GB_VK_CHECK(err);
     }
 }
 
@@ -1776,15 +1779,12 @@ static void _gb_glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-static void _gb_check_vk_result(VkResult err) {
+static void _gb_check_vk_result(VkResult err, int line) {
 
     if (err == 0) {
         return;
     }
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-    if (err < 0) {
-        abort();
-    }
+    fprintf(stderr, "Vulkan error: VkResult = %d at line:%d\n", err, line);
 }
 
 #ifdef GB_VULKAN_DEBUG_REPORT

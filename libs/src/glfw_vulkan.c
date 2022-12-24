@@ -391,7 +391,6 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         wrb->Index = 0;
         wrb->Count = s->vw.ImageCount;  // CHANGED from s->vi.ImageCount
         wrb->FrameRenderBuffers = (struct vulkan_frame_render_buffers*)_gb_alloc(sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
-        memset(wrb->FrameRenderBuffers, 0, sizeof(struct vulkan_frame_render_buffers) * wrb->Count);
     }
     GB_ASSERT(wrb->Count == s->vw.ImageCount); // CHANGED from s->vi.ImageCount
     wrb->Index = (wrb->Index + 1) % wrb->Count;

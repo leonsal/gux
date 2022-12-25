@@ -552,10 +552,10 @@ static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDevic
     //ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
     //ImGui_ImplVulkan_InitInfo* v = &bd->VulkanInitInfo;
     VkResult err;
-    if (buffer != VK_NULL_HANDLE) {
+    if (*buffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(s->vi.Device, *buffer, s->vi.Allocator);
     }
-    if (buffer_memory != VK_NULL_HANDLE) {
+    if (*buffer_memory != VK_NULL_HANDLE) {
         vkFreeMemory(s->vi.Device, *buffer_memory, s->vi.Allocator);
     }
 

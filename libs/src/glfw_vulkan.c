@@ -549,8 +549,6 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPi
 static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage) {
 
-    //ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
-    //ImGui_ImplVulkan_InitInfo* v = &bd->VulkanInitInfo;
     VkResult err;
     if (*buffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(s->vi.Device, *buffer, s->vi.Allocator);
@@ -592,6 +590,7 @@ static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags prop
             return i;
         }
     }
+    GB_ASSERT(0);
     return 0xFFFFFFFF; // Unable to find memoryType
 }
 

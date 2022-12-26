@@ -116,6 +116,17 @@
 //    VkBuffer                UploadBuffer;
 //};
 
+struct vulkan_frame {
+    VkCommandPool       vk_command_pool;
+    VkCommandBuffer     vk_command_buffer;
+    VkFence             vk_fence;
+    VkImage             vk_backbuffer;
+    VkImageView         vk_backbuffer_view;
+    VkFramebuffer       vk_framebuffer;
+    VkSemaphore         vk_image_acquired_sema;
+    VkSemaphore         vk_render_complete_sema;
+};
+
 // Backend window state
 typedef struct {
     GLFWwindow*                 w;                      // GLFW window pointer
@@ -134,9 +145,17 @@ typedef struct {
     VkDescriptorPool            vk_descriptor_pool;
 
     // Window related
+    int                         width;
+    int                         height;
     VkSurfaceKHR                vk_surface;
     VkSurfaceFormatKHR          vk_surface_format;
     VkPresentModeKHR            vk_present_mode;
+    VkSwapchainKHR              vk_swapchain;
+    VkRenderPass                vk_render_pass;
+    VkPipeline                  vk_pipeline;
+    uint32_t                    subpass;
+    uint32_t                    image_count;
+    struct vulkan_frame*        vk_frames;
 
 //    struct vulkan_init      vi;             // Vulkan initialization info                                    
 //    struct vulkan_window    vw;             // Vulkan window data
@@ -155,16 +174,13 @@ typedef struct {
 //    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
 //static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count);
-//static void _gb_setup_vulkan_window(gb_state_t* s, struct vulkan_window* wd, VkSurfaceKHR surface, int width, int height);
+static void _gb_setup_vulkan_window(gb_state_t* s, int width, int height);
 static VkSurfaceFormatKHR _gb_select_surface_format(gb_state_t* s, const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
 static VkPresentModeKHR _gb_select_present_mode(gb_state_t* s, const VkPresentModeKHR* request_modes, int request_modes_count);
-//static void _gb_create_or_resize_window(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count);
-//static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count);
-//static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    uint32_t queue_family, const VkAllocationCallbacks* allocator);
-//static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
+static void _gb_create_or_resize_window(gb_state_t* s, int width, int height);
+static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h);
+static void _gb_create_window_command_buffers(gb_state_t* s);
+static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 //static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
 //static bool _gb_create_device_objects(gb_state_t* s);
 //static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
@@ -244,8 +260,8 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     // Create Framebuffers
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
-//    _gb_setup_vulkan_window(s, w, h);
-//
+    _gb_setup_vulkan_window(s, w, h);
+
 //    // Initialize Vulkan
 //    s->vd.RenderPass = s->vw.RenderPass;
 //    s->vd.Subpass = s->vi.Subpass;
@@ -609,11 +625,12 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count) {
     VkResult err;
 
-    // Create Vulkan Instance
-    VkInstanceCreateInfo create_info = {};
-    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    create_info.enabledExtensionCount = extensions_count;
-    create_info.ppEnabledExtensionNames = extensions;
+    // Create Vulkan Instance with optional validation layer
+    VkInstanceCreateInfo create_info = {
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .enabledExtensionCount = extensions_count,
+        .ppEnabledExtensionNames = extensions,
+    };
 #ifdef GB_VULKAN_DEBUG_REPORT
     // Enabling validation layers
     const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
@@ -704,12 +721,13 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
     queue_info[0].queueFamilyIndex = s->queue_family;
     queue_info[0].queueCount = 1;
     queue_info[0].pQueuePriorities = queue_priority;
-    VkDeviceCreateInfo dev_create_info = {};
-    dev_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    dev_create_info.queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]);
-    dev_create_info.pQueueCreateInfos = queue_info;
-    dev_create_info.enabledExtensionCount = device_extension_count;
-    dev_create_info.ppEnabledExtensionNames = device_extensions;
+    VkDeviceCreateInfo dev_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]),
+        .pQueueCreateInfos = queue_info,
+        .enabledExtensionCount = device_extension_count,
+        .ppEnabledExtensionNames = device_extensions,
+    };
     err = vkCreateDevice(s->vk_physical_device, &dev_create_info, s->vk_allocator, &s->vk_device);
     GB_VK_CHECK(err);
     vkGetDeviceQueue(s->vk_device, s->queue_family, 0, &s->vk_queue);
@@ -729,12 +747,13 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
         { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
     };
-    VkDescriptorPoolCreateInfo pool_info = {};
-    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1000 * GB_ARRAYSIZE(pool_sizes);
-    pool_info.poolSizeCount = (uint32_t)GB_ARRAYSIZE(pool_sizes);
-    pool_info.pPoolSizes = pool_sizes;
+    VkDescriptorPoolCreateInfo pool_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .maxSets = 1000 * GB_ARRAYSIZE(pool_sizes),
+        .poolSizeCount = (uint32_t)GB_ARRAYSIZE(pool_sizes),
+        .pPoolSizes = pool_sizes,
+    };
     err = vkCreateDescriptorPool(s->vk_device, &pool_info, s->vk_allocator, &s->vk_descriptor_pool);
     GB_VK_CHECK(err);
 }
@@ -838,243 +857,235 @@ static VkPresentModeKHR _gb_select_present_mode(gb_state_t* s, const VkPresentMo
     return VK_PRESENT_MODE_FIFO_KHR; // Always available
 }
 
-//static void _gb_create_or_resize_window(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count) {
-//
-//    _gb_create_window_swap_chain(physical_device, device, wd, allocator, width, height, min_image_count);
-//    //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, g_VulkanInitInfo.Subpass);
-//    _gb_create_window_command_buffers(physical_device, device, wd, queue_family, allocator);
-//}
-//
-//// Also destroy old swap chain and in-flight frames data, if any.
-//static void _gb_create_window_swap_chain(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count) {
-//
-//    VkResult err;
-//    VkSwapchainKHR old_swapchain = wd->Swapchain;
-//    wd->Swapchain = VK_NULL_HANDLE;
-//    err = vkDeviceWaitIdle(device);
-//    GB_VK_CHECK(err);
-//
-//    // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
-//    // Destroy old Framebuffer
-//    for (uint32_t i = 0; i < wd->ImageCount; i++) {
-//        _gb_destroy_frame(device, &wd->Frames[i], allocator);
-//        _gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
-//    }
-//    _gb_free(wd->Frames);
-//    _gb_free(wd->FrameSemaphores);
-//    wd->Frames = NULL;
-//    wd->FrameSemaphores = NULL;
-//    wd->ImageCount = 0;
-//    if (wd->RenderPass) {
-//        vkDestroyRenderPass(device, wd->RenderPass, allocator);
-//    }
-//    if (wd->Pipeline) {
-//        vkDestroyPipeline(device, wd->Pipeline, allocator);
-//    }
-//
-//    // If min image count was not specified, request different count of images dependent on selected present mode
-//    if (min_image_count == 0) {
-//        min_image_count = _gb_get_min_image_count_from_present_mode(wd->PresentMode);
-//    }
-//
-//    // Create Swapchain
-//    {
-//        VkSwapchainCreateInfoKHR info = {};
-//        info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-//        info.surface = wd->Surface;
-//        info.minImageCount = min_image_count;
-//        info.imageFormat = wd->SurfaceFormat.format;
-//        info.imageColorSpace = wd->SurfaceFormat.colorSpace;
-//        info.imageArrayLayers = 1;
-//        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-//        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;           // Assume that graphics family == present family
-//        info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-//        info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-//        info.presentMode = wd->PresentMode;
-//        info.clipped = VK_TRUE;
-//        info.oldSwapchain = old_swapchain;
-//        VkSurfaceCapabilitiesKHR cap;
-//        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, wd->Surface, &cap);
-//        GB_VK_CHECK(err);
-//        if (info.minImageCount < cap.minImageCount)
-//            info.minImageCount = cap.minImageCount;
-//        else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
-//            info.minImageCount = cap.maxImageCount;
-//
-//        if (cap.currentExtent.width == 0xffffffff) {
-//            info.imageExtent.width = wd->Width = w;
-//            info.imageExtent.height = wd->Height = h;
-//        }
-//        else {
-//            info.imageExtent.width = wd->Width = cap.currentExtent.width;
-//            info.imageExtent.height = wd->Height = cap.currentExtent.height;
-//        }
-//        err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
-//        GB_VK_CHECK(err);
-//        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, NULL);
-//        GB_VK_CHECK(err);
-//        VkImage backbuffers[16] = {};
-//        assert(wd->ImageCount >= min_image_count);
-//        assert(wd->ImageCount < GB_ARRAYSIZE(backbuffers));
-//        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
-//        GB_VK_CHECK(err);
-//
-//        assert(wd->Frames == NULL);
-//        wd->Frames = _gb_alloc(sizeof(struct vulkan_frame) * wd->ImageCount);
-//        wd->FrameSemaphores = _gb_alloc(sizeof(struct vulkan_frame_semaphores) * wd->ImageCount);
-//        memset(wd->Frames, 0, sizeof(wd->Frames[0]) * wd->ImageCount);
-//        memset(wd->FrameSemaphores, 0, sizeof(wd->FrameSemaphores[0]) * wd->ImageCount);
-//        for (uint32_t i = 0; i < wd->ImageCount; i++) {
-//            wd->Frames[i].Backbuffer = backbuffers[i];
-//        }
-//    }
-//    if (old_swapchain) {
-//        vkDestroySwapchainKHR(device, old_swapchain, allocator);
-//    }
-//
-//    // Create the Render Pass
-//    {
-//        VkAttachmentDescription attachment = {};
-//        attachment.format = wd->SurfaceFormat.format;
-//        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-//        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//        attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//        attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-//        VkAttachmentReference color_attachment = {};
-//        color_attachment.attachment = 0;
-//        color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-//        VkSubpassDescription subpass = {};
-//        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-//        subpass.colorAttachmentCount = 1;
-//        subpass.pColorAttachments = &color_attachment;
-//        VkSubpassDependency dependency = {};
-//        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-//        dependency.dstSubpass = 0;
-//        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//        dependency.srcAccessMask = 0;
-//        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-//        VkRenderPassCreateInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-//        info.attachmentCount = 1;
-//        info.pAttachments = &attachment;
-//        info.subpassCount = 1;
-//        info.pSubpasses = &subpass;
-//        info.dependencyCount = 1;
-//        info.pDependencies = &dependency;
-//        err = vkCreateRenderPass(device, &info, allocator, &wd->RenderPass);
-//        GB_VK_CHECK(err);
-//
-//        // We do not create a pipeline by default as this is also used by examples' main.cpp,
-//        // but secondary viewport in multi-viewport mode may want to create one with:
-//        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, bd->Subpass);
-//    }
-//
-//    // Create The Image Views
-//    {
-//        VkImageViewCreateInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-//        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//        info.format = wd->SurfaceFormat.format;
-//        info.components.r = VK_COMPONENT_SWIZZLE_R;
-//        info.components.g = VK_COMPONENT_SWIZZLE_G;
-//        info.components.b = VK_COMPONENT_SWIZZLE_B;
-//        info.components.a = VK_COMPONENT_SWIZZLE_A;
-//        VkImageSubresourceRange image_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-//        info.subresourceRange = image_range;
-//        for (uint32_t i = 0; i < wd->ImageCount; i++) {
-//            struct vulkan_frame* fd = &wd->Frames[i];
-//            info.image = fd->Backbuffer;
-//            err = vkCreateImageView(device, &info, allocator, &fd->BackbufferView);
-//            GB_VK_CHECK(err);
-//        }
-//    }
-//
-//    // Create Framebuffer
-//    {
-//        VkImageView attachment[1];
-//        VkFramebufferCreateInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-//        info.renderPass = wd->RenderPass;
-//        info.attachmentCount = 1;
-//        info.pAttachments = attachment;
-//        info.width = wd->Width;
-//        info.height = wd->Height;
-//        info.layers = 1;
-//        for (uint32_t i = 0; i < wd->ImageCount; i++) {
-//            struct vulkan_frame* fd = &wd->Frames[i];
-//            attachment[0] = fd->BackbufferView;
-//            err = vkCreateFramebuffer(device, &info, allocator, &fd->Framebuffer);
-//            GB_VK_CHECK(err);
-//        }
-//    }
-//}
-//
-//static void _gb_create_window_command_buffers(VkPhysicalDevice physical_device, VkDevice device, struct vulkan_window* wd,
-//    uint32_t queue_family, const VkAllocationCallbacks* allocator) {
-//
-//    assert(physical_device != VK_NULL_HANDLE && device != VK_NULL_HANDLE);
-//
-//    // Create Command Buffers
-//    VkResult err;
-//    for (uint32_t i = 0; i < wd->ImageCount; i++) {
-//        struct vulkan_frame* fd = &wd->Frames[i];
-//        struct vulkan_frame_semaphores* fsd = &wd->FrameSemaphores[i];
-//        {
-//            VkCommandPoolCreateInfo info = {};
-//            info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-//            info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-//            info.queueFamilyIndex = queue_family;
-//            err = vkCreateCommandPool(device, &info, allocator, &fd->CommandPool);
-//            GB_VK_CHECK(err);
-//        }
-//        {
-//            VkCommandBufferAllocateInfo info = {};
-//            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-//            info.commandPool = fd->CommandPool;
-//            info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//            info.commandBufferCount = 1;
-//            err = vkAllocateCommandBuffers(device, &info, &fd->CommandBuffer);
-//            GB_VK_CHECK(err);
-//        }
-//        {
-//            VkFenceCreateInfo info = {};
-//            info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-//            info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-//            err = vkCreateFence(device, &info, allocator, &fd->Fence);
-//            GB_VK_CHECK(err);
-//        }
-//        {
-//            VkSemaphoreCreateInfo info = {};
-//            info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-//            err = vkCreateSemaphore(device, &info, allocator, &fsd->ImageAcquiredSemaphore);
-//            GB_VK_CHECK(err);
-//            err = vkCreateSemaphore(device, &info, allocator, &fsd->RenderCompleteSemaphore);
-//            GB_VK_CHECK(err);
-//        }
-//    }
-//}
-//
-//static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode) {
-//
-//    if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-//        return 3;
-//    }
-//    if (present_mode == VK_PRESENT_MODE_FIFO_KHR || present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
-//        return 2;
-//    }
-//    if (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-//        return 1;
-//    }
-//    assert(0);
-//    return 1;
-//}
-//
+static void _gb_create_or_resize_window(gb_state_t* s, int width, int height) {
+
+    _gb_create_window_swap_chain(s, width, height);
+    _gb_create_window_command_buffers(s);
+}
+
+// Create window swap chain and also destroy old swap chain and in-flight frames data, if any.
+static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h) {
+
+    VkResult err;
+    VkSwapchainKHR old_swapchain = s->vk_swapchain;
+    s->vk_swapchain = VK_NULL_HANDLE;
+    err = vkDeviceWaitIdle(s->vk_device);
+    GB_VK_CHECK(err);
+
+    // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
+    // Destroy old Framebuffer
+    for (uint32_t i = 0; i < s->image_count; i++) {
+        //_gb_destroy_frame(device, &wd->Frames[i], allocator);
+        //_gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
+    }
+    _gb_free(s->vk_frames);
+    s->vk_frames = NULL;
+    s->image_count  = 0;
+    if (s->vk_render_pass) {
+        vkDestroyRenderPass(s->vk_device, s->vk_render_pass, s->vk_allocator);
+    }
+    if (s->vk_pipeline) {
+        vkDestroyPipeline(s->vk_device, s->vk_pipeline, s->vk_allocator);
+    }
+
+    // If min image count was not specified, request different count of images dependent on selected present mode
+    if (s->min_image_count == 0) {
+        s->min_image_count = _gb_get_min_image_count_from_present_mode(s->vk_present_mode);
+    }
+
+    // Create Swapchain
+    {
+        VkSwapchainCreateInfoKHR info = {
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .surface = s->vk_surface,
+            .minImageCount = s->min_image_count,
+            .imageFormat = s->vk_surface_format.format,
+            .imageColorSpace = s->vk_surface_format.colorSpace,
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,           // Assume that graphics family == present family
+            .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = s->vk_present_mode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = old_swapchain,
+        };
+        VkSurfaceCapabilitiesKHR cap;
+        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(s->vk_physical_device, s->vk_surface, &cap);
+        GB_VK_CHECK(err);
+        if (info.minImageCount < cap.minImageCount)
+            info.minImageCount = cap.minImageCount;
+        else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
+            info.minImageCount = cap.maxImageCount;
+
+        if (cap.currentExtent.width == 0xffffffff) {
+            info.imageExtent.width = s->width = w;
+            info.imageExtent.height = s->height = h;
+        }
+        else {
+            info.imageExtent.width = s->width = cap.currentExtent.width;
+            info.imageExtent.height = s->height = cap.currentExtent.height;
+        }
+        err = vkCreateSwapchainKHR(s->vk_device, &info, s->vk_allocator, &s->vk_swapchain);
+        GB_VK_CHECK(err);
+        err = vkGetSwapchainImagesKHR(s->vk_device, s->vk_swapchain, &s->image_count, NULL);
+        GB_VK_CHECK(err);
+        VkImage backbuffers[16] = {};
+        assert(s->image_count >= s->min_image_count);
+        assert(s->image_count < GB_ARRAYSIZE(backbuffers));
+        err = vkGetSwapchainImagesKHR(s->vk_device, s->vk_swapchain, &s->image_count, backbuffers);
+        GB_VK_CHECK(err);
+
+        assert(s->vk_frames == NULL);
+        s->vk_frames = _gb_alloc(sizeof(struct vulkan_frame) * s->image_count);
+        for (uint32_t i = 0; i < s->image_count; i++) {
+            s->vk_frames[i].vk_backbuffer = backbuffers[i];
+        }
+    }
+    if (old_swapchain) {
+        vkDestroySwapchainKHR(s->vk_device, old_swapchain, s->vk_allocator);
+    }
+
+    // Create the Render Pass
+    {
+        VkAttachmentDescription attachment = {};
+        attachment.format = s->vk_surface_format.format;
+        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        VkAttachmentReference color_attachment = {};
+        color_attachment.attachment = 0;
+        color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_attachment;
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        VkRenderPassCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        info.attachmentCount = 1;
+        info.pAttachments = &attachment;
+        info.subpassCount = 1;
+        info.pSubpasses = &subpass;
+        info.dependencyCount = 1;
+        info.pDependencies = &dependency;
+        err = vkCreateRenderPass(s->vk_device, &info, s->vk_allocator, &s->vk_render_pass);
+        GB_VK_CHECK(err);
+
+        // We do not create a pipeline by default as this is also used by examples' main.cpp,
+        // but secondary viewport in multi-viewport mode may want to create one with:
+        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, bd->Subpass);
+    }
+
+    // Create The Image Views
+    {
+        VkImageViewCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        info.format = s->vk_surface_format.format;
+        info.components.r = VK_COMPONENT_SWIZZLE_R;
+        info.components.g = VK_COMPONENT_SWIZZLE_G;
+        info.components.b = VK_COMPONENT_SWIZZLE_B;
+        info.components.a = VK_COMPONENT_SWIZZLE_A;
+        VkImageSubresourceRange image_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+        info.subresourceRange = image_range;
+        for (uint32_t i = 0; i < s->image_count; i++) {
+            struct vulkan_frame* fd = &s->vk_frames[i];
+            info.image = fd->vk_backbuffer;
+            err = vkCreateImageView(s->vk_device, &info, s->vk_allocator, &fd->vk_backbuffer_view);
+            GB_VK_CHECK(err);
+        }
+    }
+
+    // Create Framebuffer
+    {
+        VkImageView attachment[1];
+        VkFramebufferCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        info.renderPass = s->vk_render_pass;
+        info.attachmentCount = 1;
+        info.pAttachments = attachment;
+        info.width = s->width;
+        info.height = s->height;
+        info.layers = 1;
+        for (uint32_t i = 0; i < s->image_count; i++) {
+            struct vulkan_frame* fd = &s->vk_frames[i];
+            attachment[0] = fd->vk_backbuffer_view;
+            err = vkCreateFramebuffer(s->vk_device, &info, s->vk_allocator, &fd->vk_framebuffer);
+            GB_VK_CHECK(err);
+        }
+    }
+}
+
+static void _gb_create_window_command_buffers(gb_state_t* s) {
+
+    VkResult err;
+    for (uint32_t i = 0; i < s->image_count; i++) {
+        struct vulkan_frame* fd = &s->vk_frames[i];
+        {
+            VkCommandPoolCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                .queueFamilyIndex = s->queue_family,
+            };
+            err = vkCreateCommandPool(s->vk_device, &info, s->vk_allocator, &fd->vk_command_pool);
+            GB_VK_CHECK(err);
+        }
+        {
+            VkCommandBufferAllocateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .commandPool = fd->vk_command_pool,
+                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                .commandBufferCount = 1,
+            };
+            err = vkAllocateCommandBuffers(s->vk_device, &info, &fd->vk_command_buffer);
+            GB_VK_CHECK(err);
+        }
+        {
+            VkFenceCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+            };
+            err = vkCreateFence(s->vk_device, &info, s->vk_allocator, &fd->vk_fence);
+            GB_VK_CHECK(err);
+        }
+        {
+            VkSemaphoreCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            }; 
+            err = vkCreateSemaphore(s->vk_device, &info, s->vk_allocator, &fd->vk_image_acquired_sema);
+            GB_VK_CHECK(err);
+            err = vkCreateSemaphore(s->vk_device, &info, s->vk_allocator, &fd->vk_render_complete_sema);
+            GB_VK_CHECK(err);
+        }
+    }
+}
+
+static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode) {
+
+    if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        return 3;
+    }
+    if (present_mode == VK_PRESENT_MODE_FIFO_KHR || present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+        return 2;
+    }
+    if (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        return 1;
+    }
+    assert(0);
+    return 1;
+}
+
 //static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
 //
 //    assert(min_image_count >= 2);

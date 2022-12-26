@@ -82,50 +82,60 @@ func main() {
 func testBasic(win *gux.Window) {
 
 	dl := win.DrawList()
-	//cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 6, 4)
-	//bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: 0xFF_FF_FF_FF}
-	//bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 400}, Col: 0xFF_FF_FF_FF}
-	//bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 400}, Col: 0xFF_FF_FF_FF}
-	//bufVtx[3] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: 0xFF_FF_FF_FF}
-	//bufIdx[0] = 0
-	//bufIdx[1] = 1
-	//bufIdx[2] = 2
-	//bufIdx[3] = 2
-	//bufIdx[4] = 3
-	//bufIdx[5] = 0
-	//dl.AdjustIdx(cmd)
 	red := gb.MakeColor(255, 0, 0, 255)
 	green := gb.MakeColor(0, 255, 0, 255)
 	blue := gb.MakeColor(0, 0, 255, 255)
 
-	// First group
-	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 200}, Col: red}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 10}, Col: red}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	dl.AdjustIdx(cmd)
+	//// Single command with 3 triangles
+	//cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3*3, 3*3)
+	//bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: red}
+	//bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 200}, Col: red}
+	//bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 10}, Col: red}
+	//bufVtx[3] = gb.Vertex{Pos: gb.Vec2{210, 10}, Col: green}
+	//bufVtx[4] = gb.Vertex{Pos: gb.Vec2{210, 200}, Col: green}
+	//bufVtx[5] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: green}
+	//bufVtx[6] = gb.Vertex{Pos: gb.Vec2{410, 10}, Col: blue}
+	//bufVtx[7] = gb.Vertex{Pos: gb.Vec2{410, 200}, Col: blue}
+	//bufVtx[8] = gb.Vertex{Pos: gb.Vec2{600, 10}, Col: blue}
+	//bufIdx[0] = 0
+	//bufIdx[1] = 1
+	//bufIdx[2] = 2
+	//bufIdx[3] = 3
+	//bufIdx[4] = 4
+	//bufIdx[5] = 5
+	//bufIdx[6] = 6
+	//bufIdx[7] = 7
+	//bufIdx[8] = 8
+	//dl.AdjustIdx(cmd)
 
-	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{210, 10}, Col: green}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{210, 200}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: green}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	dl.AdjustIdx(cmd)
-
-	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{410, 10}, Col: blue}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{410, 200}, Col: blue}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{600, 10}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	dl.AdjustIdx(cmd)
-
+	//	// First group
+	//	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)
+	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: red}
+	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 200}, Col: red}
+	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 10}, Col: red}
+	//	bufIdx[0] = 0
+	//	bufIdx[1] = 1
+	//	bufIdx[2] = 2
+	//	dl.AdjustIdx(cmd)
+	//
+	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
+	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{210, 10}, Col: green}
+	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{210, 200}, Col: green}
+	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: green}
+	//	bufIdx[0] = 0
+	//	bufIdx[1] = 1
+	//	bufIdx[2] = 2
+	//	dl.AdjustIdx(cmd)
+	//
+	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
+	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{410, 10}, Col: blue}
+	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{410, 200}, Col: blue}
+	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{600, 10}, Col: blue}
+	//	bufIdx[0] = 0
+	//	bufIdx[1] = 1
+	//	bufIdx[2] = 2
+	//	dl.AdjustIdx(cmd)
+	//
 	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
 	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{610, 10}, Col: red}
 	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{610, 200}, Col: green}
@@ -172,58 +182,58 @@ func testBasic(win *gux.Window) {
 	//	bufIdx[2] = 2
 	//	dl.AdjustIdx(cmd)
 	//
-	//	// Third group
-	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 700}, Col: red}
-	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 900}, Col: red}
-	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{210, 900}, Col: red}
-	//	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{210, 700}, Col: red}
-	//	bufIdx[0] = 0
-	//	bufIdx[1] = 1
-	//	bufIdx[2] = 2
-	//	bufIdx[3] = 2
-	//	bufIdx[4] = 3
-	//	bufIdx[5] = 0
-	//	dl.AdjustIdx(cmd)
-	//
-	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{220, 700}, Col: green}
-	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{220, 900}, Col: green}
-	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{420, 900}, Col: green}
-	//	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{420, 700}, Col: green}
-	//	bufIdx[0] = 0
-	//	bufIdx[1] = 1
-	//	bufIdx[2] = 2
-	//	bufIdx[3] = 2
-	//	bufIdx[4] = 3
-	//	bufIdx[5] = 0
-	//	dl.AdjustIdx(cmd)
-	//
-	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{430, 700}, Col: blue}
-	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{430, 900}, Col: blue}
-	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{630, 900}, Col: blue}
-	//	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{630, 700}, Col: blue}
-	//	bufIdx[0] = 0
-	//	bufIdx[1] = 1
-	//	bufIdx[2] = 2
-	//	bufIdx[3] = 2
-	//	bufIdx[4] = 3
-	//	bufIdx[5] = 0
-	//	dl.AdjustIdx(cmd)
-	//
-	//	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	//	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{640, 700}, Col: red}
-	//	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{640, 900}, Col: green}
-	//	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{840, 900}, Col: blue}
-	//	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{840, 700}, Col: red}
-	//	bufIdx[0] = 0
-	//	bufIdx[1] = 1
-	//	bufIdx[2] = 2
-	//	bufIdx[3] = 2
-	//	bufIdx[4] = 3
-	//	bufIdx[5] = 0
-	//	dl.AdjustIdx(cmd)
+	// Third group
+	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 6, 4)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 700}, Col: red}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 900}, Col: red}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{210, 900}, Col: red}
+	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{210, 700}, Col: red}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+	dl.AdjustIdx(cmd)
+
+	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{220, 700}, Col: green}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{220, 900}, Col: green}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{420, 900}, Col: green}
+	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{420, 700}, Col: green}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+	dl.AdjustIdx(cmd)
+
+	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{430, 700}, Col: blue}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{430, 900}, Col: blue}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{630, 900}, Col: blue}
+	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{630, 700}, Col: blue}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+	dl.AdjustIdx(cmd)
+
+	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{640, 700}, Col: red}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{640, 900}, Col: green}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{840, 900}, Col: blue}
+	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{840, 700}, Col: red}
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+	dl.AdjustIdx(cmd)
 
 }
 

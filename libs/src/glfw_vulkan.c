@@ -399,7 +399,7 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
     if (dl.vtx_count > 0) {
         // Create or resize the vertex/index buffers
         size_t vertex_size = dl.vtx_count * sizeof(gb_vertex_t);
-        size_t index_size = dl.idx_count * sizeof(uint32_t);
+        size_t index_size = dl.idx_count * sizeof(gb_index_t);
         if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size) {
             _gb_create_or_resize_buffer(s, &rb->VertexBuffer, &rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         }
@@ -409,14 +409,14 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
 
         // Upload vertex/index data into a single contiguous GPU buffer
         gb_vertex_t* vtx_dst = NULL;
-        uint32_t* idx_dst = NULL;
+        gb_index_t*  idx_dst = NULL;
         VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
         GB_VK_CHECK(err);
         err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
         GB_VK_CHECK(err);
 
-        memcpy(vtx_dst, dl.buf_vtx, dl.vtx_count * sizeof(gb_vertex_t));
-        memcpy(idx_dst, dl.buf_idx, dl.idx_count * sizeof(uint32_t));
+        memcpy(vtx_dst, dl.buf_vtx, vertex_size);
+        memcpy(idx_dst, dl.buf_idx, index_size);
 
         VkMappedMemoryRange range[2] = {};
         range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -468,6 +468,7 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
         // Draw
         vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
+        //vkCmdDraw(command_buffer, 3, 1, pcmd->vtx_offset, 0);
 
     }
 
@@ -517,7 +518,7 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPi
         VkBuffer vertex_buffers[1] = { rb->VertexBuffer };
         VkDeviceSize vertex_offset[1] = { 0 };
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
-        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, sizeof(gb_index_t) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
     }
 
     // Setup viewport:

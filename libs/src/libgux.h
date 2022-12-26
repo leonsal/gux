@@ -48,6 +48,9 @@ typedef struct gb_vertex {
     gb_rgba_t col;                  // Vertex color
 } gb_vertex_t;
 
+// Type for draw buffer index
+typedef uint32_t gb_index_t;
+
 // Single draw command
 typedef struct gb_draw_cmd {
     gb_vec4_t       clip_rect;      // Clip rectangle
@@ -61,7 +64,7 @@ typedef struct gb_draw_cmd {
 typedef struct gb_draw_list {
 	gb_draw_cmd_t*  buf_cmd;        // Draw command buffer
     uint32_t        cmd_count;      // Total number of commands
-	uint32_t*       buf_idx;        // Indices buffer
+	gb_index_t*     buf_idx;        // Indices buffer
     uint32_t        idx_count;      // Total number of indices
 	gb_vertex_t*    buf_vtx;        // Vertices info buffer
     uint32_t        vtx_count;      // Total number of vertices

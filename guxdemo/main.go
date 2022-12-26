@@ -82,20 +82,20 @@ func main() {
 func testBasic(win *gux.Window) {
 
 	dl := win.DrawList()
-	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 6, 4)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: 0xFF_FF_FF_FF}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 400}, Col: 0xFF_FF_FF_FF}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 400}, Col: 0xFF_FF_FF_FF}
-	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: 0xFF_FF_FF_FF}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	bufIdx[3] = 2
-	bufIdx[4] = 3
-	bufIdx[5] = 0
-	dl.AdjustIdx(cmd)
+	//cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 6, 4)
+	//bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: 0xFF_FF_FF_FF}
+	//bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 400}, Col: 0xFF_FF_FF_FF}
+	//bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 400}, Col: 0xFF_FF_FF_FF}
+	//bufVtx[3] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: 0xFF_FF_FF_FF}
+	//bufIdx[0] = 0
+	//bufIdx[1] = 1
+	//bufIdx[2] = 2
+	//bufIdx[3] = 2
+	//bufIdx[4] = 3
+	//bufIdx[5] = 0
+	//dl.AdjustIdx(cmd)
 
-	cmd, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
+	cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)
 	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{500, 300}, Col: 0xFF_00_FF_00}
 	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{700, 300}, Col: 0xFF_00_FF_00}
 	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{600, 100}, Col: 0xFF_00_FF_00}

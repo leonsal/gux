@@ -782,10 +782,9 @@ static void _gb_setup_vulkan_window(gb_state_t* s, int width, int height) {
 #endif
     s->vk_present_mode = _gb_select_present_mode(s, &present_modes[0], GB_ARRAYSIZE(present_modes));
 
-//    // Create SwapChain, RenderPass, Framebuffer, etc.
-//    GB_ASSERT(s->vi.MinImageCount >= 2);
-//    _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, wd, s->vi.QueueFamily,
-//        s->vi.Allocator, width, height, s->vi.MinImageCount);
+    // Create SwapChain, RenderPass, Framebuffer, etc.
+    GB_ASSERT(s->min_image_count >= 2);
+    _gb_create_or_resize_window(s, width, height);
 }
 
 static VkSurfaceFormatKHR _gb_select_surface_format(gb_state_t* s, const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space) {

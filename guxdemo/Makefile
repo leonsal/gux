@@ -5,12 +5,13 @@ gl: libs
 
 # Build/run Vulkan version
 vk: libs
-	/home/leonel/bin/go/bin/go install -tags vulkan .
+	/home/leonel/bin/go/bin/go install -tags vulkan
 	guxdemo
 
 # Build Vulkan executable locally for debugging
 vkbuild: libs
-	/home/leonel/bin/go/bin/go build -tags vulkan .
+	rm -f guxdemo
+	/home/leonel/bin/go/bin/go build -a -tags vulkan
 
 # Run showing allocations
 runalloc: libs

@@ -5,6 +5,7 @@
 
 static void _gb_update_frame_info(gb_state_t* s, double timeout);
 static void _gb_print_draw_list(gb_draw_list_t dl);
+static void _gb_glfw_error_callback(int error, const char* description);
 static void _gb_set_ev_handlers(gb_state_t* s);
 static gb_event_t* _gb_ev_reserve(gb_state_t* s);
 static void _gb_key_callback(GLFWwindow* win, int key, int scancode, int action, int mods);
@@ -69,6 +70,13 @@ static void _gb_print_draw_list(gb_draw_list_t dl) {
             cmd.texid, cmd.vtx_offset, cmd.idx_offset, cmd.elem_count);
     }
     printf("\n");
+}
+
+// GLFW error callback function
+static void _gb_glfw_error_callback(int error, const char* description) {
+
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+    abort();
 }
 
 // Setup GLFW event handlers

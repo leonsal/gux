@@ -51,11 +51,13 @@ static bool _gb_check_program(GLuint handle, const char* desc);
 // Include common internal functions
 #include "common.c"
 
-
 // Creates Graphics Backend window
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
 
-	if (glfwInit() == 0) {
+    // Setup error callback and initializes GLFW
+    glfwSetErrorCallback(_gb_glfw_error_callback);
+    if (glfwInit() == 0) {
+        fprintf(stderr, "Error initializing GLFW\n");
         return NULL;
     }
 

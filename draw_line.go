@@ -49,7 +49,7 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 		idxCount = segCount * 12
 		vtxCount = pointCount * 3
 	}
-	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
+	_, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
 
 	// Calculate normals for each line segment: 2 points for each line point.
 	tempNormals := w.ReserveVec2(pointCount)
@@ -165,7 +165,6 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 			bufVtx[vtxPos+2].Col = colTrans
 			vtxPos += 3
 		}
-		dl.AdjustIdx(cmd)
 		return
 	}
 
@@ -275,7 +274,6 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 		bufVtx[vtxPos+3].Col = colTrans
 		vtxPos += 4
 	}
-	dl.AdjustIdx(cmd)
 }
 
 func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
@@ -414,7 +412,6 @@ func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.R
 		bufVtx[vtxPos+1].Col = col
 		vtxPos += 2
 	}
-	dl.AdjustIdx(cmd)
 }
 
 func normalize2f(vx, vy float32) (float32, float32) {

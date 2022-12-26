@@ -71,7 +71,6 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align Text
 		bufIdx[3] = 2
 		bufIdx[4] = 3
 		bufIdx[5] = 0
-		dl.AdjustIdx(cmd)
 		posX += float32(charInfo.Width - 1)
 	}
 }
@@ -135,5 +134,4 @@ func (w *Window) AddImage(dl *gb.DrawList, texID gb.TextureID, width, height flo
 	bufIdx[3] = 2
 	bufIdx[4] = 3
 	bufIdx[5] = 0
-	dl.AdjustIdx(cmd)
 }

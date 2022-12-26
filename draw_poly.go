@@ -20,7 +20,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.R
 		// Allocates command
 		idxCount := (pointsCount-2)*3 + pointsCount*6
 		vtxCount := pointsCount * 2
-		cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
+		_, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
 
 		// Add indexes for inner triangles
 		idxPos := uint32(0)
@@ -80,7 +80,6 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.R
 			idxPos += 6
 			i0 = i1
 		}
-		dl.AdjustIdx(cmd)
 		return
 	}
 
@@ -88,7 +87,7 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.R
 	// Allocate command
 	idxCount := (pointsCount - 2) * 3
 	vtxCount := pointsCount
-	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
+	_, bufIdx, bufVtx := w.NewDrawCmd(dl, idxCount, vtxCount)
 
 	// Set vertices
 	for i := 0; i < vtxCount; i++ {
@@ -104,5 +103,4 @@ func (w *Window) AddConvexPolyFilled(dl *gb.DrawList, points []gb.Vec2, col gb.R
 		bufIdx[idxPos+2] = uint32(i)
 		idxPos += 3
 	}
-	dl.AdjustIdx(cmd)
 }

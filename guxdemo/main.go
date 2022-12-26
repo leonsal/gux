@@ -54,8 +54,8 @@ func main() {
 
 	for win.StartFrame() {
 
-		//testBasic(win)
-		testText(win, fa, texID, width, height)
+		testBasic(win)
+		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
 		win.Render()

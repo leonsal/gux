@@ -129,9 +129,9 @@ func (dl *DrawList) NewDrawCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 // AdjustIdx must be called with the DrawCmd pointer returned by ReserveCmd() to adjust the indices buffers
 func (dl *DrawList) AdjustIdx(cmd *DrawCmd) {
 
-	for i := 0; i < int(cmd.elemCount); i++ {
-		dl.bufIdx[i+int(cmd.idxOffset)] += cmd.vtxOffset
-	}
+	//for i := 0; i < int(cmd.elemCount); i++ {
+	//	dl.bufIdx[i+int(cmd.idxOffset)] += cmd.vtxOffset
+	//}
 }
 
 // AddCmd appends a new command to the Draw List

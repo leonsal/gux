@@ -468,8 +468,8 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
         // Draw
         printf("elem_count:%d idx_offset:%d vtx_offset:%d\n", pcmd->elem_count, pcmd->idx_offset, pcmd->vtx_offset);
-        //vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
-        vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, 0, 0);
+        vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
+        //vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, 0, 0);
         //vkCmdDraw(command_buffer, pcmd->elem_count, 1, pcmd->vtx_offset, 0);
 
     }

@@ -195,12 +195,19 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 // Executes draw commands
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
-    //printf("render-> cmd_count:%d idx_count:%d vtx_count:%d\n", dl.cmd_count, dl.idx_count, dl.vtx_count);
-    _gb_print_draw_list(dl);
-
     // Do not render when minimized
     if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {
         return;
+    }
+
+    // Adjusts indices buffer for all commands before uploading it.
+    // This is necessary because we are using glDrawIndexed() instead of glDrawElementsBaseVertex() which
+    // is available from OpenGL 3.3 and not in OpenGL ES3.
+    for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
+        gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
+	    for (int idx = 0; idx < pcmd->elem_count; idx++) {
+	        dl.buf_idx[pcmd->idx_offset + idx] += pcmd->vtx_offset;
+        }
     }
 
     // Upload vertices and indices buffers
@@ -241,8 +248,10 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
         // Set texture and draw 
         GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(pcmd->texid)));
-        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(pcmd->idx_offset))));
+        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(gb_index_t))));
     }
+
+    _gb_print_draw_list(dl);
 }
 
 // Load OpenGL functions and initialize its state

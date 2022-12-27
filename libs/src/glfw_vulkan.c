@@ -125,6 +125,13 @@ struct vulkan_frame {
     VkFramebuffer       vk_framebuffer;
     VkSemaphore         vk_image_acquired_sema;
     VkSemaphore         vk_render_complete_sema;
+    // Render buffers
+    VkDeviceMemory      vk_vertex_buffer_memory;
+    VkDeviceMemory      vk_index_buffer_memory;
+    VkDeviceSize        vk_vertex_vuffer_size;
+    VkDeviceSize        vk_index_buffer_size;
+    VkBuffer            vk_vertex_buffer;
+    VkBuffer            vk_index_buffer;
 };
 
 // Backend window state
@@ -349,9 +356,6 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
     VkResult err;
 
     struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
-
-    //VkSemaphore image_acquired_semaphore  = fd->s->vw.FrameSemaphores[s->vw.SemaphoreIndex].ImageAcquiredSemaphore;
-    //VkSemaphore render_complete_semaphore = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].RenderCompleteSemaphore;
     err = vkAcquireNextImageKHR(s->vk_device, s->vk_swapchain, UINT64_MAX, fd->vk_image_acquired_sema, VK_NULL_HANDLE, &s->frame_index);
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
         s->swapchain_rebuild = true;

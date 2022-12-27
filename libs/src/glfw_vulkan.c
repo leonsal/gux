@@ -60,9 +60,8 @@ typedef struct {
     gb_vec4_t                       clear_color;            // Current color to clear color buffer before rendering
     uint32_t                        min_image_count;        // Minimum number of framebuffers in the swapchain
     uint32_t                        queue_family;           // Vulkan queue family
-    VkSampleCountFlagBits           vk_msaa_samples; 
+    VkSampleCountFlagBits           vk_msaa_samples;        // Requested number of AA samples
     VkDeviceSize                    vk_buffer_memory_alignment;
-
     // Initialization fields
     VkInstance                      vk_instance;
     VkDebugReportCallbackEXT        vk_debug_report;
@@ -73,13 +72,11 @@ typedef struct {
     VkDescriptorPool                vk_descriptor_pool;
     VkShaderModule                  vk_shader_module_vert;
     VkShaderModule                  vk_shader_module_frag;
-
     VkDescriptorSetLayout           vk_descriptor_set_layout;
     VkSampler                       vk_font_sampler;
     VkPipelineLayout                vk_pipeline_layout;
     VkPipelineCreateFlags           vk_pipeline_create_flags;
     VkPipelineCache                 vk_pipeline_cache;
-
     // Window related
     int                             width;
     int                             height;

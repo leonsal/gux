@@ -7,33 +7,35 @@ typedef struct gb_config {
     struct {
         bool es;
         int  msaa;
-        struct {
-            float r; float g; float b; float a;
-        } clearColor;
     } opengl;
+    struct {
+        bool validation_layer;
+    } vulkan;
 } gb_config_t;
 
 // Opaque backend window pointer
 typedef void* gb_window_t;
 
+// Vector with 2 components
 typedef struct gb_vec2 {
     float x;
     float y;
 } gb_vec2_t;
 
+// Vector with 3 components
 typedef struct gb_vec3 {
     float x;
     float y;
     float z;
 } gb_vec3_t;
 
+// Vector with 4 components
 typedef struct gb_vec4 {
     float x;
     float y;
     float z;
     float w;
 } gb_vec4_t;
-
 
 // Packed color containg RGBA components each as an unsigned byte
 typedef uint32_t gb_rgba_t;

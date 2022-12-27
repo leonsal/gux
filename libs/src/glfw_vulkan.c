@@ -86,6 +86,7 @@ typedef struct {
     struct vulkan_frame*        vk_frames;
     bool                        swapchain_rebuild;
     uint32_t                    frame_index;
+    uint32_t                    sema_index;
 
     VkDescriptorSetLayout       vk_descriptor_set_layout;
     VkSampler                   vk_font_sampler;
@@ -125,7 +126,7 @@ VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, 
 void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set);
 static void _gb_create_shader_modules(gb_state_t* s);
 //static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator);
-//static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
+static void _gb_destroy_frame(gb_state_t* s, struct vulkan_frame* fd);
 //static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
 //static void _gb_destroy_frame_render_buffers(VkDevice device, struct vulkan_frame_render_buffers* buffers, const VkAllocationCallbacks* allocator);
 //static void _gb_destroy_window_render_buffers(VkDevice device, struct vulkan_window_render_buffers* buffers, const VkAllocationCallbacks* allocator);
@@ -264,8 +265,8 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
 
     VkResult err;
 
-    VkSemaphore image_acquired_sema  = s->vk_frames[s->frame_index].vk_image_acquired_sema;
-    VkSemaphore render_complete_sema = s->vk_frames[s->frame_index].vk_render_complete_sema;
+    VkSemaphore image_acquired_sema  = s->vk_frames[s->sema_index].vk_image_acquired_sema;
+    VkSemaphore render_complete_sema = s->vk_frames[s->sema_index].vk_render_complete_sema;
     err = vkAcquireNextImageKHR(s->vk_device, s->vk_swapchain, UINT64_MAX, image_acquired_sema, VK_NULL_HANDLE, &s->frame_index);
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
         s->swapchain_rebuild = true;
@@ -437,7 +438,7 @@ static void _gb_frame_present(gb_state_t* s) {
     if (s->swapchain_rebuild) {
         return;
     }
-    VkSemaphore render_complete_sema = s->vk_frames[s->frame_index].vk_render_complete_sema;
+    VkSemaphore render_complete_sema = s->vk_frames[s->sema_index].vk_render_complete_sema;
     VkPresentInfoKHR info = {};
     info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     info.waitSemaphoreCount = 1;
@@ -451,7 +452,7 @@ static void _gb_frame_present(gb_state_t* s) {
         return;
     }
     GB_VK_CHECK(err);
-    //s->vw.SemaphoreIndex = (s->vw.SemaphoreIndex + 1) % s->vw.ImageCount; // Now we can use the next set of semaphores
+    s->sema_index = (s->sema_index + 1) % s->image_count; // Now we can use the next set of semaphores
 }
 
 static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, struct vulkan_frame* fd) {
@@ -795,8 +796,7 @@ static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h) {
     // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
     // Destroy old Framebuffer
     for (uint32_t i = 0; i < s->image_count; i++) {
-        //_gb_destroy_frame(device, &wd->Frames[i], allocator);
-        //_gb_destroy_frame_semaphores(device, &wd->FrameSemaphores[i], allocator);
+        _gb_destroy_frame(s, &s->vk_frames[i]);
     }
     _gb_free(s->vk_frames);
     s->vk_frames = NULL;
@@ -1617,25 +1617,23 @@ static void _gb_create_shader_modules(gb_state_t* s) {
 //    //*wd = ImGui_ImplVulkanH_Window();
 //}
 //
-//static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator) {
-//
-//    vkDestroyFence(device, fd->Fence, allocator);
-//    vkFreeCommandBuffers(device, fd->CommandPool, 1, &fd->CommandBuffer);
-//    vkDestroyCommandPool(device, fd->CommandPool, allocator);
-//    fd->Fence = VK_NULL_HANDLE;
-//    fd->CommandBuffer = VK_NULL_HANDLE;
-//    fd->CommandPool = VK_NULL_HANDLE;
-//
-//    vkDestroyImageView(device, fd->BackbufferView, allocator);
-//    vkDestroyFramebuffer(device, fd->Framebuffer, allocator);
-//}
-//
-//static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator) {
-//
-//    vkDestroySemaphore(device, fsd->ImageAcquiredSemaphore, allocator);
-//    vkDestroySemaphore(device, fsd->RenderCompleteSemaphore, allocator);
-//    fsd->ImageAcquiredSemaphore = fsd->RenderCompleteSemaphore = VK_NULL_HANDLE;
-//}
+static void _gb_destroy_frame(gb_state_t* s, struct vulkan_frame* fd) {
+
+    vkDestroyFence(s->vk_device, fd->vk_fence, s->vk_allocator);
+    vkFreeCommandBuffers(s->vk_device, fd->vk_command_pool, 1, &fd->vk_command_buffer);
+    vkDestroyCommandPool(s->vk_device, fd->vk_command_pool, s->vk_allocator);
+    fd->vk_fence = VK_NULL_HANDLE;
+    fd->vk_command_buffer = VK_NULL_HANDLE;
+    fd->vk_command_pool = VK_NULL_HANDLE;
+
+    vkDestroyImageView(s->vk_device, fd->vk_backbuffer_view, s->vk_allocator);
+    vkDestroyFramebuffer(s->vk_device, fd->vk_framebuffer, s->vk_allocator);
+
+    vkDestroySemaphore(s->vk_device, fd->vk_image_acquired_sema, s->vk_allocator);
+    vkDestroySemaphore(s->vk_device, fd->vk_render_complete_sema, s->vk_allocator);
+    fd->vk_image_acquired_sema = fd->vk_render_complete_sema = VK_NULL_HANDLE;
+}
+
 //
 //static void _gb_destroy_frame_render_buffers(VkDevice device, struct vulkan_frame_render_buffers* buffers, const VkAllocationCallbacks* allocator) {
 //

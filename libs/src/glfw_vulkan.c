@@ -93,7 +93,7 @@ typedef struct {
     uint32_t                        subpass;
     uint32_t                        image_count;
     struct vulkan_frame*            vk_frames;
-    struct vulkan_frame_buffers*          vk_buffers;
+    struct vulkan_frame_buffers*    vk_buffers;
     uint32_t                        frame_index;
     uint32_t                        sema_index;
     uint32_t                        buffers_index;
@@ -128,12 +128,12 @@ static void _gb_create_font_sampler(gb_state_t* s);
 static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels);
 static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex);
 VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
-void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set);
 static void _gb_create_shader_modules(gb_state_t* s);
 static void _gb_destroy_window(gb_state_t* s);
 static void _gb_destroy_frame(gb_state_t* s, struct vulkan_frame* fd);
 static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers* buffers);
 static void _gb_destroy_window_frame_buffers(gb_state_t* s);
+static void _gb_destroy_vulkan(gb_state_t* s);
 static void _gb_check_vk_result(VkResult err, int line);
 #ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
@@ -190,12 +190,10 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     VkResult err = glfwCreateWindowSurface(s->vk_instance, win, s->vk_allocator, &s->vk_surface);
     GB_VK_CHECK(err);
 
-    // Create Framebuffers
+    // Initialize vulkan window
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, w, h);
-
-    // Initialize Vulkan
     _gb_create_device_objects(s);
 
     // Set window event handlers
@@ -203,6 +201,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     return s;
 }
 
+// Destroy graphics backend window
 void gb_window_destroy(gb_window_t win) {
 
     gb_state_t* s = (gb_state_t*)(win);
@@ -253,8 +252,11 @@ gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rg
     return _gb_create_texture(s, width, height, data);
 }
 
-void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
+// Deletes the specified texture
+void gb_delete_texture(gb_window_t win, gb_texid_t texid) {
 
+    gb_state_t* s = (gb_state_t*)(win);
+    _gb_destroy_texture(s, (struct vulkan_texinfo*)(texid));
 }
 
 
@@ -1426,6 +1428,10 @@ static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex)  {
         vkFreeMemory(s->vk_device, tex->vk_memory, s->vk_allocator);
         tex->vk_memory = VK_NULL_HANDLE;
     }
+    if (tex->vk_descriptor_set != VK_NULL_HANDLE) {
+        vkFreeDescriptorSets(s->vk_device, s->vk_descriptor_pool, 1, &tex->vk_descriptor_set);
+        tex->vk_descriptor_set = VK_NULL_HANDLE;
+    }
     _gb_free(tex);
 }
 
@@ -1459,12 +1465,6 @@ VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, 
     }
     return descriptor_set;
 }
-
-void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set) {
-
-    vkFreeDescriptorSets(s->vk_device, s->vk_descriptor_pool, 1, &descriptor_set);
-}
-
 
 
 // glsl_shader.vert, compiled with:
@@ -1657,6 +1657,20 @@ static void _gb_destroy_window_frame_buffers(gb_state_t* s) {
     }
     _gb_free(s->vk_buffers);
     s->vk_buffers = NULL;
+}
+
+static void _gb_destroy_vulkan(gb_state_t* s) {
+
+    vkDestroyDescriptorPool(s->vk_device, s->vk_descriptor_pool, s->vk_allocator);
+
+#ifdef IMGUI_VULKAN_DEBUG_REPORT
+    // Remove the debug report callback
+    auto vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkDestroyDebugReportCallbackEXT");
+    vkDestroyDebugReportCallbackEXT(s->vk_instance, s->vk_debug_report, s->vk_allocator);
+#endif // IMGUI_VULKAN_DEBUG_REPORT
+
+    vkDestroyDevice(s->vk_device, s->vk_allocator);
+    vkDestroyInstance(s->vk_instance, s->vk_allocator);
 }
 
 static void _gb_check_vk_result(VkResult err, int line) {

@@ -253,7 +253,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
         GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(gb_index_t))));
     }
 
-    _gb_print_draw_list(dl);
+    //_gb_print_draw_list(dl);
 }
 
 // Load OpenGL functions and initialize its state

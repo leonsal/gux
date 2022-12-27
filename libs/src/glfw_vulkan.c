@@ -133,6 +133,7 @@ typedef struct {
     gb_vec4_t                   clear_color;            // Current color to clear color buffer before rendering
     uint32_t                    min_image_count;        // Minimum number of framebuffers in the swapchain
     uint32_t                    queue_family;           // Vulkan queue family
+    VkSampleCountFlagBits       vk_msaa_samples; 
     VkDeviceSize                buffer_memory_alignment;
 
     // Initialization fields
@@ -143,6 +144,8 @@ typedef struct {
     VkAllocationCallbacks*      vk_allocator;
     VkQueue                     vk_queue;
     VkDescriptorPool            vk_descriptor_pool;
+    VkShaderModule              vk_shader_module_vert;
+    VkShaderModule              vk_shader_module_frag;
 
     // Window related
     int                         width;
@@ -156,6 +159,14 @@ typedef struct {
     uint32_t                    subpass;
     uint32_t                    image_count;
     struct vulkan_frame*        vk_frames;
+
+    VkDescriptorSetLayout       vk_descriptor_set_layout;
+    VkSampler                   vk_font_sampler;
+    VkPipelineLayout            vk_pipeline_layout;
+    VkPipelineCreateFlags       vk_pipeline_create_flags;
+    VkPipelineCache             vk_pipeline_cache;
+
+
 
 //    struct vulkan_init      vi;             // Vulkan initialization info                                    
 //    struct vulkan_window    vw;             // Vulkan window data
@@ -182,19 +193,17 @@ static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h);
 static void _gb_create_window_command_buffers(gb_state_t* s);
 static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 //static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
-//static bool _gb_create_device_objects(gb_state_t* s);
-//static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
-//    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass);
-//static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
-//static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
-//static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
-//
+static bool _gb_create_device_objects(gb_state_t* s);
+static void _gb_create_pipeline(gb_state_t* s);
+static void _gb_create_pipeline_layout(gb_state_t* s);
+static void _gb_create_descriptor_set_layout(gb_state_t* s);
+static void _gb_create_font_sampler(gb_state_t* s);
 //static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels);
 //static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex);
 //VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
 //void _gb_destroy_tex_descriptor_set(gb_state_t* s, VkDescriptorSet descriptor_set);
 //
-//static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator);
+static void _gb_create_shader_modules(gb_state_t* s);
 //static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator);
 //static void _gb_destroy_frame(VkDevice device, struct vulkan_frame* fd, const VkAllocationCallbacks* allocator);
 //static void _gb_destroy_frame_semaphores(VkDevice device, struct vulkan_frame_semaphores* fsd, const VkAllocationCallbacks* allocator);
@@ -262,14 +271,12 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, w, h);
 
-//    // Initialize Vulkan
-//    s->vd.RenderPass = s->vw.RenderPass;
-//    s->vd.Subpass = s->vi.Subpass;
-//    _gb_create_device_objects(s);
-//
-//    // Set window event handlers
-//    _gb_set_ev_handlers(s);
-//    return s;
+    // Initialize Vulkan
+    _gb_create_device_objects(s);
+
+    // Set window event handlers
+    _gb_set_ev_handlers(s);
+    return s;
 }
 
 void gb_window_destroy(gb_window_t win) {
@@ -1099,235 +1106,234 @@ static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mo
 //    s->vi.MinImageCount = min_image_count;
 //}
 //
-//static bool _gb_create_device_objects(gb_state_t* s) {
-//
-//    VkResult err;
-//
-//    if (!s->vd.FontSampler) {
-//        VkSamplerCreateInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-//        info.magFilter = VK_FILTER_LINEAR;
-//        info.minFilter = VK_FILTER_LINEAR;
-//        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//        info.minLod = -1000;
-//        info.maxLod = 1000;
-//        info.maxAnisotropy = 1.0f;
-//        err = vkCreateSampler(s->vi.Device, &info, s->vi.Allocator, &s->vd.FontSampler);
-//        GB_VK_CHECK(err);
-//    }
-//
-//    if (!s->vd.DescriptorSetLayout) {
-//        VkSampler sampler[1] = {s->vd.FontSampler};
-//        VkDescriptorSetLayoutBinding binding[1] = {};
-//        binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-//        binding[0].descriptorCount = 1;
-//        binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-//        binding[0].pImmutableSamplers = sampler;
-//        VkDescriptorSetLayoutCreateInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-//        info.bindingCount = 1;
-//        info.pBindings = binding;
-//        err = vkCreateDescriptorSetLayout(s->vi.Device, &info, s->vi.Allocator, &s->vd.DescriptorSetLayout);
-//        GB_VK_CHECK(err);
-//    }
-//
-//    if (!s->vd.PipelineLayout) {
-//        // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
-//        VkPushConstantRange push_constants[1] = {};
-//        push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-//        push_constants[0].offset = sizeof(float) * 0;
-//        push_constants[0].size = sizeof(float) * 4;
-//        VkDescriptorSetLayout set_layout[1] = { s->vd.DescriptorSetLayout };
-//        VkPipelineLayoutCreateInfo layout_info = {};
-//        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//        layout_info.setLayoutCount = 1;
-//        layout_info.pSetLayouts = set_layout;
-//        layout_info.pushConstantRangeCount = 1;
-//        layout_info.pPushConstantRanges = push_constants;
-//        err = vkCreatePipelineLayout(s->vi.Device, &layout_info, s->vi.Allocator, &s->vd.PipelineLayout);
-//        GB_VK_CHECK(err);
-//    }
-//
-//    _gb_create_pipeline(s, s->vi.Device, s->vi.Allocator, s->vi.PipelineCache, s->vd.RenderPass, s->vi.MSAASamples, &s->vd.Pipeline, s->vd.Subpass);
-//
-//    return true;
-//}
-//
-//static void _gb_create_pipeline(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator, VkPipelineCache pipelineCache,
-//    VkRenderPass renderPass, VkSampleCountFlagBits MSAASamples, VkPipeline* pipeline, uint32_t subpass) {
-//
-//    _gb_create_shader_modules(s, device, allocator);
-//
-//    VkPipelineShaderStageCreateInfo stage[2] = {};
-//    stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    stage[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-//    stage[0].module = s->vd.ShaderModuleVert;
-//    stage[0].pName = "main";
-//    stage[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    stage[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-//    stage[1].module = s->vd.ShaderModuleFrag;
-//    stage[1].pName = "main";
-//
-//    VkVertexInputBindingDescription binding_desc[1] = {};
-//    binding_desc[0].stride = sizeof(gb_vertex_t);
-//    binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-//
-//    VkVertexInputAttributeDescription attribute_desc[3] = {};
-//    attribute_desc[0].location = 0;
-//    attribute_desc[0].binding = binding_desc[0].binding;
-//    attribute_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
-//    attribute_desc[0].offset = offsetof(gb_vertex_t, pos);
-//    attribute_desc[1].location = 1;
-//    attribute_desc[1].binding = binding_desc[0].binding;
-//    attribute_desc[1].format = VK_FORMAT_R32G32_SFLOAT;
-//    attribute_desc[1].offset = offsetof(gb_vertex_t, uv);
-//    attribute_desc[2].location = 2;
-//    attribute_desc[2].binding = binding_desc[0].binding;
-//    attribute_desc[2].format = VK_FORMAT_R8G8B8A8_UNORM;
-//    attribute_desc[2].offset = offsetof(gb_vertex_t, col);
-//
-//    VkPipelineVertexInputStateCreateInfo vertex_info = {};
-//    vertex_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-//    vertex_info.vertexBindingDescriptionCount = 1;
-//    vertex_info.pVertexBindingDescriptions = binding_desc;
-//    vertex_info.vertexAttributeDescriptionCount = 3;
-//    vertex_info.pVertexAttributeDescriptions = attribute_desc;
-//
-//    VkPipelineInputAssemblyStateCreateInfo ia_info = {};
-//    ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-//    ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-//
-//    VkPipelineViewportStateCreateInfo viewport_info = {};
-//    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-//    viewport_info.viewportCount = 1;
-//    viewport_info.scissorCount = 1;
-//
-//    VkPipelineRasterizationStateCreateInfo raster_info = {};
-//    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-//    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
-//    raster_info.cullMode = VK_CULL_MODE_NONE;
-//    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-//    raster_info.lineWidth = 1.0f;
-//
-//    VkPipelineMultisampleStateCreateInfo ms_info = {};
-//    ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-//    ms_info.rasterizationSamples = (MSAASamples != 0) ? MSAASamples : VK_SAMPLE_COUNT_1_BIT;
-//
-//    VkPipelineColorBlendAttachmentState color_attachment[1] = {};
-//    color_attachment[0].blendEnable = VK_TRUE;
-//    color_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-//    color_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    color_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
-//    color_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-//    color_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    color_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
-//    color_attachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-//
-//    VkPipelineDepthStencilStateCreateInfo depth_info = {};
-//    depth_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-//
-//    VkPipelineColorBlendStateCreateInfo blend_info = {};
-//    blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-//    blend_info.attachmentCount = 1;
-//    blend_info.pAttachments = color_attachment;
-//
-//    VkDynamicState dynamic_states[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-//    VkPipelineDynamicStateCreateInfo dynamic_state = {};
-//    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-//    dynamic_state.dynamicStateCount = (uint32_t)GB_ARRAYSIZE(dynamic_states);
-//    dynamic_state.pDynamicStates = dynamic_states;
-//
-//    _gb_create_pipeline_layout(s, device, allocator);
-//
-//    VkGraphicsPipelineCreateInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-//    info.flags = s->vd.PipelineCreateFlags;
-//    info.stageCount = 2;
-//    info.pStages = stage;
-//    info.pVertexInputState = &vertex_info;
-//    info.pInputAssemblyState = &ia_info;
-//    info.pViewportState = &viewport_info;
-//    info.pRasterizationState = &raster_info;
-//    info.pMultisampleState = &ms_info;
-//    info.pDepthStencilState = &depth_info;
-//    info.pColorBlendState = &blend_info;
-//    info.pDynamicState = &dynamic_state;
-//    info.layout = s->vd.PipelineLayout;
-//    info.renderPass = renderPass;
-//    info.subpass = subpass;
-//    VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &info, allocator, pipeline);
-//    GB_VK_CHECK(err);
-//}
-//
-//static void _gb_create_pipeline_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
-//
-//    if (s->vd.PipelineLayout) {
-//        return;
-//    }
-//
-//    // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
-//    _gb_create_descriptor_set_layout(s, device, allocator);
-//    VkPushConstantRange push_constants[1] = {};
-//    push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-//    push_constants[0].offset = sizeof(float) * 0;
-//    push_constants[0].size = sizeof(float) * 4;
-//    VkDescriptorSetLayout set_layout[1] = { s->vd.DescriptorSetLayout };
-//    VkPipelineLayoutCreateInfo layout_info = {};
-//    layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//    layout_info.setLayoutCount = 1;
-//    layout_info.pSetLayouts = set_layout;
-//    layout_info.pushConstantRangeCount = 1;
-//    layout_info.pPushConstantRanges = push_constants;
-//    VkResult  err = vkCreatePipelineLayout(device, &layout_info, allocator, &s->vd.PipelineLayout);
-//    GB_VK_CHECK(err);
-//}
-//
-//static void _gb_create_descriptor_set_layout(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
-//
-//    if (s->vd.DescriptorSetLayout) {
-//        return;
-//    }
-//
-//    _gb_create_font_sampler(s, device, allocator);
-//    VkSampler sampler[1] = { s->vd.FontSampler };
-//    VkDescriptorSetLayoutBinding binding[1] = {};
-//    binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-//    binding[0].descriptorCount = 1;
-//    binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-//    binding[0].pImmutableSamplers = sampler;
-//    VkDescriptorSetLayoutCreateInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-//    info.bindingCount = 1;
-//    info.pBindings = binding;
-//    VkResult err = vkCreateDescriptorSetLayout(device, &info, allocator, &s->vd.DescriptorSetLayout);
-//    GB_VK_CHECK(err);
-//}
-//
-//static void _gb_create_font_sampler(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
-//
-//    if (s->vd.FontSampler) {
-//        return;
-//    }
-//
-//    // Bilinear sampling is required by default.
-//    VkSamplerCreateInfo info = {};
-//    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-//    info.magFilter = VK_FILTER_LINEAR;
-//    info.minFilter = VK_FILTER_LINEAR;
-//    info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//    info.minLod = -1000;
-//    info.maxLod = 1000;
-//    info.maxAnisotropy = 1.0f;
-//    VkResult err = vkCreateSampler(device, &info, allocator, &s->vd.FontSampler);
-//    GB_VK_CHECK(err);
-//}
-//
+static bool _gb_create_device_objects(gb_state_t* s) {
+
+    VkResult err;
+
+    if (!s->vk_font_sampler) {
+        VkSamplerCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        info.magFilter = VK_FILTER_LINEAR;
+        info.minFilter = VK_FILTER_LINEAR;
+        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.minLod = -1000;
+        info.maxLod = 1000;
+        info.maxAnisotropy = 1.0f;
+        err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_font_sampler);
+        GB_VK_CHECK(err);
+    }
+
+    if (!s->vk_descriptor_set_layout) {
+        VkSampler sampler[1] = {s->vk_font_sampler};
+        VkDescriptorSetLayoutBinding binding[1] = {};
+        binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding[0].descriptorCount = 1;
+        binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        binding[0].pImmutableSamplers = sampler;
+        VkDescriptorSetLayoutCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        info.bindingCount = 1;
+        info.pBindings = binding;
+        err = vkCreateDescriptorSetLayout(s->vk_device, &info, s->vk_allocator, &s->vk_descriptor_set_layout);
+        GB_VK_CHECK(err);
+    }
+
+    if (!s->vk_pipeline_layout) {
+        // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+        VkPushConstantRange push_constants[1] = {};
+        push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        push_constants[0].offset = sizeof(float) * 0;
+        push_constants[0].size = sizeof(float) * 4;
+        VkDescriptorSetLayout set_layout[1] = { s->vk_descriptor_set_layout };
+        VkPipelineLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_info.setLayoutCount = 1;
+        layout_info.pSetLayouts = set_layout;
+        layout_info.pushConstantRangeCount = 1;
+        layout_info.pPushConstantRanges = push_constants;
+        err = vkCreatePipelineLayout(s->vk_device, &layout_info, s->vk_allocator, &s->vk_pipeline_layout);
+        GB_VK_CHECK(err);
+    }
+
+    _gb_create_pipeline(s);
+
+    return true;
+}
+
+static void _gb_create_pipeline(gb_state_t* s) {
+
+    _gb_create_shader_modules(s);
+
+    VkPipelineShaderStageCreateInfo stage[2] = {};
+    stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    stage[0].module = s->vk_shader_module_vert;
+    stage[0].pName = "main";
+    stage[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stage[1].module = s->vk_shader_module_frag;
+    stage[1].pName = "main";
+
+    VkVertexInputBindingDescription binding_desc[1] = {};
+    binding_desc[0].stride = sizeof(gb_vertex_t);
+    binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription attribute_desc[3] = {};
+    attribute_desc[0].location = 0;
+    attribute_desc[0].binding = binding_desc[0].binding;
+    attribute_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attribute_desc[0].offset = offsetof(gb_vertex_t, pos);
+    attribute_desc[1].location = 1;
+    attribute_desc[1].binding = binding_desc[0].binding;
+    attribute_desc[1].format = VK_FORMAT_R32G32_SFLOAT;
+    attribute_desc[1].offset = offsetof(gb_vertex_t, uv);
+    attribute_desc[2].location = 2;
+    attribute_desc[2].binding = binding_desc[0].binding;
+    attribute_desc[2].format = VK_FORMAT_R8G8B8A8_UNORM;
+    attribute_desc[2].offset = offsetof(gb_vertex_t, col);
+
+    VkPipelineVertexInputStateCreateInfo vertex_info = {};
+    vertex_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertex_info.vertexBindingDescriptionCount = 1;
+    vertex_info.pVertexBindingDescriptions = binding_desc;
+    vertex_info.vertexAttributeDescriptionCount = 3;
+    vertex_info.pVertexAttributeDescriptions = attribute_desc;
+
+    VkPipelineInputAssemblyStateCreateInfo ia_info = {};
+    ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkPipelineViewportStateCreateInfo viewport_info = {};
+    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewport_info.viewportCount = 1;
+    viewport_info.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo raster_info = {};
+    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+    raster_info.cullMode = VK_CULL_MODE_NONE;
+    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    raster_info.lineWidth = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo ms_info = {};
+    ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    ms_info.rasterizationSamples = (s->vk_msaa_samples != 0) ? s->vk_msaa_samples : VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineColorBlendAttachmentState color_attachment[1] = {};
+    color_attachment[0].blendEnable = VK_TRUE;
+    color_attachment[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_attachment[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_attachment[0].colorBlendOp = VK_BLEND_OP_ADD;
+    color_attachment[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_attachment[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_attachment[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    color_attachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depth_info = {};
+    depth_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+    VkPipelineColorBlendStateCreateInfo blend_info = {};
+    blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    blend_info.attachmentCount = 1;
+    blend_info.pAttachments = color_attachment;
+
+    VkDynamicState dynamic_states[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamic_state = {};
+    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamic_state.dynamicStateCount = (uint32_t)GB_ARRAYSIZE(dynamic_states);
+    dynamic_state.pDynamicStates = dynamic_states;
+
+    _gb_create_pipeline_layout(s);
+
+    VkGraphicsPipelineCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    info.flags = s->vk_pipeline_create_flags;
+    info.stageCount = 2;
+    info.pStages = stage;
+    info.pVertexInputState = &vertex_info;
+    info.pInputAssemblyState = &ia_info;
+    info.pViewportState = &viewport_info;
+    info.pRasterizationState = &raster_info;
+    info.pMultisampleState = &ms_info;
+    info.pDepthStencilState = &depth_info;
+    info.pColorBlendState = &blend_info;
+    info.pDynamicState = &dynamic_state;
+    info.layout = s->vk_pipeline_layout;
+    info.renderPass = s->vk_render_pass;
+    info.subpass = s->subpass;
+    VkResult err = vkCreateGraphicsPipelines(s->vk_device, s->vk_pipeline_cache, 1, &info, s->vk_allocator, &s->vk_pipeline);
+    GB_VK_CHECK(err);
+}
+
+static void _gb_create_pipeline_layout(gb_state_t* s) {
+
+    if (s->vk_pipeline_layout) {
+        return;
+    }
+
+    // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+    _gb_create_descriptor_set_layout(s);
+    VkPushConstantRange push_constants[1] = {};
+    push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    push_constants[0].offset = sizeof(float) * 0;
+    push_constants[0].size = sizeof(float) * 4;
+    VkDescriptorSetLayout set_layout[1] = { s->vk_descriptor_set_layout };
+    VkPipelineLayoutCreateInfo layout_info = {};
+    layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout_info.setLayoutCount = 1;
+    layout_info.pSetLayouts = set_layout;
+    layout_info.pushConstantRangeCount = 1;
+    layout_info.pPushConstantRanges = push_constants;
+    VkResult  err = vkCreatePipelineLayout(s->vk_device, &layout_info, s->vk_allocator, &s->vk_pipeline_layout);
+    GB_VK_CHECK(err);
+}
+
+static void _gb_create_descriptor_set_layout(gb_state_t* s) {
+
+    if (s->vk_descriptor_set_layout) {
+        return;
+    }
+
+    _gb_create_font_sampler(s);
+    VkSampler sampler[1] = { s->vk_font_sampler };
+    VkDescriptorSetLayoutBinding binding[1] = {};
+    binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    binding[0].descriptorCount = 1;
+    binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    binding[0].pImmutableSamplers = sampler;
+    VkDescriptorSetLayoutCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.bindingCount = 1;
+    info.pBindings = binding;
+    VkResult err = vkCreateDescriptorSetLayout(s->vk_device, &info, s->vk_allocator, &s->vk_descriptor_set_layout);
+    GB_VK_CHECK(err);
+}
+
+static void _gb_create_font_sampler(gb_state_t* s) {
+
+    if (s->vk_font_sampler) {
+        return;
+    }
+
+    // Bilinear sampling is required by default.
+    VkSamplerCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.magFilter = VK_FILTER_LINEAR;
+    info.minFilter = VK_FILTER_LINEAR;
+    info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    info.minLod = -1000;
+    info.maxLod = 1000;
+    info.maxAnisotropy = 1.0f;
+    VkResult err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_font_sampler);
+    GB_VK_CHECK(err);
+}
+
 //static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels)  {
 //
 //    VkResult        err;
@@ -1549,135 +1555,135 @@ static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mo
 //
 //    vkFreeDescriptorSets(s->vi.Device, s->vi.DescriptorPool, 1, &descriptor_set);
 //}
-//
-//
-//
-//// glsl_shader.vert, compiled with:
-//// # glslangValidator -V -x -o glsl_shader.vert.u32 glsl_shader.vert
-///*
-//#version 450 core
-//layout(location = 0) in vec2 aPos;
-//layout(location = 1) in vec2 aUV;
-//layout(location = 2) in vec4 aColor;
-//layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
-//
-//out gl_PerVertex { vec4 gl_Position; };
-//layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
-//
-//void main()
-//{
-//    Out.Color = aColor;
-//    Out.UV = aUV;
-//    gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
-//}
-//*/
-//static uint32_t __glsl_shader_vert_spv[] =
-//{
-//    0x07230203,0x00010000,0x00080001,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
-//    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
-//    0x000a000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000b,0x0000000f,0x00000015,
-//    0x0000001b,0x0000001c,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
-//    0x00000000,0x00030005,0x00000009,0x00000000,0x00050006,0x00000009,0x00000000,0x6f6c6f43,
-//    0x00000072,0x00040006,0x00000009,0x00000001,0x00005655,0x00030005,0x0000000b,0x0074754f,
-//    0x00040005,0x0000000f,0x6c6f4361,0x0000726f,0x00030005,0x00000015,0x00565561,0x00060005,
-//    0x00000019,0x505f6c67,0x65567265,0x78657472,0x00000000,0x00060006,0x00000019,0x00000000,
-//    0x505f6c67,0x7469736f,0x006e6f69,0x00030005,0x0000001b,0x00000000,0x00040005,0x0000001c,
-//    0x736f5061,0x00000000,0x00060005,0x0000001e,0x73755075,0x6e6f4368,0x6e617473,0x00000074,
-//    0x00050006,0x0000001e,0x00000000,0x61635375,0x0000656c,0x00060006,0x0000001e,0x00000001,
-//    0x61725475,0x616c736e,0x00006574,0x00030005,0x00000020,0x00006370,0x00040047,0x0000000b,
-//    0x0000001e,0x00000000,0x00040047,0x0000000f,0x0000001e,0x00000002,0x00040047,0x00000015,
-//    0x0000001e,0x00000001,0x00050048,0x00000019,0x00000000,0x0000000b,0x00000000,0x00030047,
-//    0x00000019,0x00000002,0x00040047,0x0000001c,0x0000001e,0x00000000,0x00050048,0x0000001e,
-//    0x00000000,0x00000023,0x00000000,0x00050048,0x0000001e,0x00000001,0x00000023,0x00000008,
-//    0x00030047,0x0000001e,0x00000002,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,
-//    0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040017,
-//    0x00000008,0x00000006,0x00000002,0x0004001e,0x00000009,0x00000007,0x00000008,0x00040020,
-//    0x0000000a,0x00000003,0x00000009,0x0004003b,0x0000000a,0x0000000b,0x00000003,0x00040015,
-//    0x0000000c,0x00000020,0x00000001,0x0004002b,0x0000000c,0x0000000d,0x00000000,0x00040020,
-//    0x0000000e,0x00000001,0x00000007,0x0004003b,0x0000000e,0x0000000f,0x00000001,0x00040020,
-//    0x00000011,0x00000003,0x00000007,0x0004002b,0x0000000c,0x00000013,0x00000001,0x00040020,
-//    0x00000014,0x00000001,0x00000008,0x0004003b,0x00000014,0x00000015,0x00000001,0x00040020,
-//    0x00000017,0x00000003,0x00000008,0x0003001e,0x00000019,0x00000007,0x00040020,0x0000001a,
-//    0x00000003,0x00000019,0x0004003b,0x0000001a,0x0000001b,0x00000003,0x0004003b,0x00000014,
-//    0x0000001c,0x00000001,0x0004001e,0x0000001e,0x00000008,0x00000008,0x00040020,0x0000001f,
-//    0x00000009,0x0000001e,0x0004003b,0x0000001f,0x00000020,0x00000009,0x00040020,0x00000021,
-//    0x00000009,0x00000008,0x0004002b,0x00000006,0x00000028,0x00000000,0x0004002b,0x00000006,
-//    0x00000029,0x3f800000,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,
-//    0x00000005,0x0004003d,0x00000007,0x00000010,0x0000000f,0x00050041,0x00000011,0x00000012,
-//    0x0000000b,0x0000000d,0x0003003e,0x00000012,0x00000010,0x0004003d,0x00000008,0x00000016,
-//    0x00000015,0x00050041,0x00000017,0x00000018,0x0000000b,0x00000013,0x0003003e,0x00000018,
-//    0x00000016,0x0004003d,0x00000008,0x0000001d,0x0000001c,0x00050041,0x00000021,0x00000022,
-//    0x00000020,0x0000000d,0x0004003d,0x00000008,0x00000023,0x00000022,0x00050085,0x00000008,
-//    0x00000024,0x0000001d,0x00000023,0x00050041,0x00000021,0x00000025,0x00000020,0x00000013,
-//    0x0004003d,0x00000008,0x00000026,0x00000025,0x00050081,0x00000008,0x00000027,0x00000024,
-//    0x00000026,0x00050051,0x00000006,0x0000002a,0x00000027,0x00000000,0x00050051,0x00000006,
-//    0x0000002b,0x00000027,0x00000001,0x00070050,0x00000007,0x0000002c,0x0000002a,0x0000002b,
-//    0x00000028,0x00000029,0x00050041,0x00000011,0x0000002d,0x0000001b,0x0000000d,0x0003003e,
-//    0x0000002d,0x0000002c,0x000100fd,0x00010038
-//};
-//
-//// glsl_shader.frag, compiled with:
-//// # glslangValidator -V -x -o glsl_shader.frag.u32 glsl_shader.frag
-///*
-//#version 450 core
-//layout(location = 0) out vec4 fColor;
-//layout(set=0, binding=0) uniform sampler2D sTexture;
-//layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
-//void main()
-//{
-//    fColor = In.Color * texture(sTexture, In.UV.st);
-//}
-//*/
-//static uint32_t __glsl_shader_frag_spv[] =
-//{
-//    0x07230203,0x00010000,0x00080001,0x0000001e,0x00000000,0x00020011,0x00000001,0x0006000b,
-//    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
-//    0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x0000000d,0x00030010,
-//    0x00000004,0x00000007,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
-//    0x00000000,0x00040005,0x00000009,0x6c6f4366,0x0000726f,0x00030005,0x0000000b,0x00000000,
-//    0x00050006,0x0000000b,0x00000000,0x6f6c6f43,0x00000072,0x00040006,0x0000000b,0x00000001,
-//    0x00005655,0x00030005,0x0000000d,0x00006e49,0x00050005,0x00000016,0x78655473,0x65727574,
-//    0x00000000,0x00040047,0x00000009,0x0000001e,0x00000000,0x00040047,0x0000000d,0x0000001e,
-//    0x00000000,0x00040047,0x00000016,0x00000022,0x00000000,0x00040047,0x00000016,0x00000021,
-//    0x00000000,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,
-//    0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040020,0x00000008,0x00000003,
-//    0x00000007,0x0004003b,0x00000008,0x00000009,0x00000003,0x00040017,0x0000000a,0x00000006,
-//    0x00000002,0x0004001e,0x0000000b,0x00000007,0x0000000a,0x00040020,0x0000000c,0x00000001,
-//    0x0000000b,0x0004003b,0x0000000c,0x0000000d,0x00000001,0x00040015,0x0000000e,0x00000020,
-//    0x00000001,0x0004002b,0x0000000e,0x0000000f,0x00000000,0x00040020,0x00000010,0x00000001,
-//    0x00000007,0x00090019,0x00000013,0x00000006,0x00000001,0x00000000,0x00000000,0x00000000,
-//    0x00000001,0x00000000,0x0003001b,0x00000014,0x00000013,0x00040020,0x00000015,0x00000000,
-//    0x00000014,0x0004003b,0x00000015,0x00000016,0x00000000,0x0004002b,0x0000000e,0x00000018,
-//    0x00000001,0x00040020,0x00000019,0x00000001,0x0000000a,0x00050036,0x00000002,0x00000004,
-//    0x00000000,0x00000003,0x000200f8,0x00000005,0x00050041,0x00000010,0x00000011,0x0000000d,
-//    0x0000000f,0x0004003d,0x00000007,0x00000012,0x00000011,0x0004003d,0x00000014,0x00000017,
-//    0x00000016,0x00050041,0x00000019,0x0000001a,0x0000000d,0x00000018,0x0004003d,0x0000000a,
-//    0x0000001b,0x0000001a,0x00050057,0x00000007,0x0000001c,0x00000017,0x0000001b,0x00050085,
-//    0x00000007,0x0000001d,0x00000012,0x0000001c,0x0003003e,0x00000009,0x0000001d,0x000100fd,
-//    0x00010038
-//};
-//
-//static void _gb_create_shader_modules(gb_state_t* s, VkDevice device, const VkAllocationCallbacks* allocator) {
-//
-//    // Create the shader modules
-//    if (s->vd.ShaderModuleVert == VK_NULL_HANDLE) {
-//        VkShaderModuleCreateInfo vert_info = {};
-//        vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//        vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
-//        vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
-//        VkResult err = vkCreateShaderModule(device, &vert_info, allocator, &s->vd.ShaderModuleVert);
-//        GB_VK_CHECK(err);
-//    }
-//    if (s->vd.ShaderModuleFrag == VK_NULL_HANDLE) {
-//        VkShaderModuleCreateInfo frag_info = {};
-//        frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//        frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
-//        frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
-//        VkResult err = vkCreateShaderModule(device, &frag_info, allocator, &s->vd.ShaderModuleFrag);
-//        GB_VK_CHECK(err);
-//    }
-//}
-//
+
+
+
+// glsl_shader.vert, compiled with:
+// # glslangValidator -V -x -o glsl_shader.vert.u32 glsl_shader.vert
+/*
+#version 450 core
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUV;
+layout(location = 2) in vec4 aColor;
+layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
+
+out gl_PerVertex { vec4 gl_Position; };
+layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
+
+void main()
+{
+    Out.Color = aColor;
+    Out.UV = aUV;
+    gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
+}
+*/
+static uint32_t __glsl_shader_vert_spv[] =
+{
+    0x07230203,0x00010000,0x00080001,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
+    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
+    0x000a000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000b,0x0000000f,0x00000015,
+    0x0000001b,0x0000001c,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
+    0x00000000,0x00030005,0x00000009,0x00000000,0x00050006,0x00000009,0x00000000,0x6f6c6f43,
+    0x00000072,0x00040006,0x00000009,0x00000001,0x00005655,0x00030005,0x0000000b,0x0074754f,
+    0x00040005,0x0000000f,0x6c6f4361,0x0000726f,0x00030005,0x00000015,0x00565561,0x00060005,
+    0x00000019,0x505f6c67,0x65567265,0x78657472,0x00000000,0x00060006,0x00000019,0x00000000,
+    0x505f6c67,0x7469736f,0x006e6f69,0x00030005,0x0000001b,0x00000000,0x00040005,0x0000001c,
+    0x736f5061,0x00000000,0x00060005,0x0000001e,0x73755075,0x6e6f4368,0x6e617473,0x00000074,
+    0x00050006,0x0000001e,0x00000000,0x61635375,0x0000656c,0x00060006,0x0000001e,0x00000001,
+    0x61725475,0x616c736e,0x00006574,0x00030005,0x00000020,0x00006370,0x00040047,0x0000000b,
+    0x0000001e,0x00000000,0x00040047,0x0000000f,0x0000001e,0x00000002,0x00040047,0x00000015,
+    0x0000001e,0x00000001,0x00050048,0x00000019,0x00000000,0x0000000b,0x00000000,0x00030047,
+    0x00000019,0x00000002,0x00040047,0x0000001c,0x0000001e,0x00000000,0x00050048,0x0000001e,
+    0x00000000,0x00000023,0x00000000,0x00050048,0x0000001e,0x00000001,0x00000023,0x00000008,
+    0x00030047,0x0000001e,0x00000002,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,
+    0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040017,
+    0x00000008,0x00000006,0x00000002,0x0004001e,0x00000009,0x00000007,0x00000008,0x00040020,
+    0x0000000a,0x00000003,0x00000009,0x0004003b,0x0000000a,0x0000000b,0x00000003,0x00040015,
+    0x0000000c,0x00000020,0x00000001,0x0004002b,0x0000000c,0x0000000d,0x00000000,0x00040020,
+    0x0000000e,0x00000001,0x00000007,0x0004003b,0x0000000e,0x0000000f,0x00000001,0x00040020,
+    0x00000011,0x00000003,0x00000007,0x0004002b,0x0000000c,0x00000013,0x00000001,0x00040020,
+    0x00000014,0x00000001,0x00000008,0x0004003b,0x00000014,0x00000015,0x00000001,0x00040020,
+    0x00000017,0x00000003,0x00000008,0x0003001e,0x00000019,0x00000007,0x00040020,0x0000001a,
+    0x00000003,0x00000019,0x0004003b,0x0000001a,0x0000001b,0x00000003,0x0004003b,0x00000014,
+    0x0000001c,0x00000001,0x0004001e,0x0000001e,0x00000008,0x00000008,0x00040020,0x0000001f,
+    0x00000009,0x0000001e,0x0004003b,0x0000001f,0x00000020,0x00000009,0x00040020,0x00000021,
+    0x00000009,0x00000008,0x0004002b,0x00000006,0x00000028,0x00000000,0x0004002b,0x00000006,
+    0x00000029,0x3f800000,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,
+    0x00000005,0x0004003d,0x00000007,0x00000010,0x0000000f,0x00050041,0x00000011,0x00000012,
+    0x0000000b,0x0000000d,0x0003003e,0x00000012,0x00000010,0x0004003d,0x00000008,0x00000016,
+    0x00000015,0x00050041,0x00000017,0x00000018,0x0000000b,0x00000013,0x0003003e,0x00000018,
+    0x00000016,0x0004003d,0x00000008,0x0000001d,0x0000001c,0x00050041,0x00000021,0x00000022,
+    0x00000020,0x0000000d,0x0004003d,0x00000008,0x00000023,0x00000022,0x00050085,0x00000008,
+    0x00000024,0x0000001d,0x00000023,0x00050041,0x00000021,0x00000025,0x00000020,0x00000013,
+    0x0004003d,0x00000008,0x00000026,0x00000025,0x00050081,0x00000008,0x00000027,0x00000024,
+    0x00000026,0x00050051,0x00000006,0x0000002a,0x00000027,0x00000000,0x00050051,0x00000006,
+    0x0000002b,0x00000027,0x00000001,0x00070050,0x00000007,0x0000002c,0x0000002a,0x0000002b,
+    0x00000028,0x00000029,0x00050041,0x00000011,0x0000002d,0x0000001b,0x0000000d,0x0003003e,
+    0x0000002d,0x0000002c,0x000100fd,0x00010038
+};
+
+// glsl_shader.frag, compiled with:
+// # glslangValidator -V -x -o glsl_shader.frag.u32 glsl_shader.frag
+/*
+#version 450 core
+layout(location = 0) out vec4 fColor;
+layout(set=0, binding=0) uniform sampler2D sTexture;
+layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+void main()
+{
+    fColor = In.Color * texture(sTexture, In.UV.st);
+}
+*/
+static uint32_t __glsl_shader_frag_spv[] =
+{
+    0x07230203,0x00010000,0x00080001,0x0000001e,0x00000000,0x00020011,0x00000001,0x0006000b,
+    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
+    0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x0000000d,0x00030010,
+    0x00000004,0x00000007,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
+    0x00000000,0x00040005,0x00000009,0x6c6f4366,0x0000726f,0x00030005,0x0000000b,0x00000000,
+    0x00050006,0x0000000b,0x00000000,0x6f6c6f43,0x00000072,0x00040006,0x0000000b,0x00000001,
+    0x00005655,0x00030005,0x0000000d,0x00006e49,0x00050005,0x00000016,0x78655473,0x65727574,
+    0x00000000,0x00040047,0x00000009,0x0000001e,0x00000000,0x00040047,0x0000000d,0x0000001e,
+    0x00000000,0x00040047,0x00000016,0x00000022,0x00000000,0x00040047,0x00000016,0x00000021,
+    0x00000000,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,
+    0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040020,0x00000008,0x00000003,
+    0x00000007,0x0004003b,0x00000008,0x00000009,0x00000003,0x00040017,0x0000000a,0x00000006,
+    0x00000002,0x0004001e,0x0000000b,0x00000007,0x0000000a,0x00040020,0x0000000c,0x00000001,
+    0x0000000b,0x0004003b,0x0000000c,0x0000000d,0x00000001,0x00040015,0x0000000e,0x00000020,
+    0x00000001,0x0004002b,0x0000000e,0x0000000f,0x00000000,0x00040020,0x00000010,0x00000001,
+    0x00000007,0x00090019,0x00000013,0x00000006,0x00000001,0x00000000,0x00000000,0x00000000,
+    0x00000001,0x00000000,0x0003001b,0x00000014,0x00000013,0x00040020,0x00000015,0x00000000,
+    0x00000014,0x0004003b,0x00000015,0x00000016,0x00000000,0x0004002b,0x0000000e,0x00000018,
+    0x00000001,0x00040020,0x00000019,0x00000001,0x0000000a,0x00050036,0x00000002,0x00000004,
+    0x00000000,0x00000003,0x000200f8,0x00000005,0x00050041,0x00000010,0x00000011,0x0000000d,
+    0x0000000f,0x0004003d,0x00000007,0x00000012,0x00000011,0x0004003d,0x00000014,0x00000017,
+    0x00000016,0x00050041,0x00000019,0x0000001a,0x0000000d,0x00000018,0x0004003d,0x0000000a,
+    0x0000001b,0x0000001a,0x00050057,0x00000007,0x0000001c,0x00000017,0x0000001b,0x00050085,
+    0x00000007,0x0000001d,0x00000012,0x0000001c,0x0003003e,0x00000009,0x0000001d,0x000100fd,
+    0x00010038
+};
+
+static void _gb_create_shader_modules(gb_state_t* s) {
+
+    // Create the shader modules
+    if (s->vk_shader_module_vert == VK_NULL_HANDLE) {
+        VkShaderModuleCreateInfo vert_info = {};
+        vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
+        vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
+        VkResult err = vkCreateShaderModule(s->vk_device, &vert_info, s->vk_allocator, &s->vk_shader_module_vert);
+        GB_VK_CHECK(err);
+    }
+    if (s->vk_shader_module_frag == VK_NULL_HANDLE) {
+        VkShaderModuleCreateInfo frag_info = {};
+        frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
+        frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
+        VkResult err = vkCreateShaderModule(s->vk_device, &frag_info, s->vk_allocator, &s->vk_shader_module_frag);
+        GB_VK_CHECK(err);
+    }
+}
+
 //static void gb_destroy_window(VkInstance instance, VkDevice device, struct vulkan_window* wd, const VkAllocationCallbacks* allocator) {
 //
 //    vkDeviceWaitIdle(device); // FIXME: We could wait on the Queue if we had the queue in wd-> (otherwise VulkanH functions can't use globals)

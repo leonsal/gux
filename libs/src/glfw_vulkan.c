@@ -203,6 +203,8 @@ void gb_window_destroy(gb_window_t win) {
 
     gb_state_t* s = (gb_state_t*)(win);
     _gb_destroy_window(s);
+    _gb_destroy_vulkan(s);
+    _gb_free(s);
 }
 
 // Starts the frame returning frame information
@@ -1660,9 +1662,9 @@ static void _gb_destroy_vulkan(gb_state_t* s) {
 
     vkDestroyDescriptorPool(s->vk_device, s->vk_descriptor_pool, s->vk_allocator);
 
-#ifdef IMGUI_VULKAN_DEBUG_REPORT
+#ifdef GB_VULKAN_DEBUG_REPORT
     // Remove the debug report callback
-    auto vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkDestroyDebugReportCallbackEXT");
+    PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkDestroyDebugReportCallbackEXT");
     vkDestroyDebugReportCallbackEXT(s->vk_instance, s->vk_debug_report, s->vk_allocator);
 #endif // IMGUI_VULKAN_DEBUG_REPORT
 

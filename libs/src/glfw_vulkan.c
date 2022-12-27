@@ -264,13 +264,15 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
 
     VkResult err;
 
-    struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
-    err = vkAcquireNextImageKHR(s->vk_device, s->vk_swapchain, UINT64_MAX, fd->vk_image_acquired_sema, VK_NULL_HANDLE, &s->frame_index);
+    VkSemaphore image_acquired_sema  = s->vk_frames[s->frame_index].vk_image_acquired_sema;
+    VkSemaphore render_complete_sema = s->vk_frames[s->frame_index].vk_render_complete_sema;
+    err = vkAcquireNextImageKHR(s->vk_device, s->vk_swapchain, UINT64_MAX, image_acquired_sema, VK_NULL_HANDLE, &s->frame_index);
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
         s->swapchain_rebuild = true;
         return;
     }
     GB_VK_CHECK(err);
+    struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
 
     {
         err = vkWaitForFences(s->vk_device, 1, &fd->vk_fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
@@ -310,12 +312,12 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
         VkSubmitInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         info.waitSemaphoreCount = 1;
-        info.pWaitSemaphores = &fd->vk_image_acquired_sema;
+        info.pWaitSemaphores = &image_acquired_sema;
         info.pWaitDstStageMask = &wait_stage;
         info.commandBufferCount = 1;
         info.pCommandBuffers = &fd->vk_command_buffer;
         info.signalSemaphoreCount = 1;
-        info.pSignalSemaphores = &fd->vk_render_complete_sema;
+        info.pSignalSemaphores = &render_complete_sema;
 
         err = vkEndCommandBuffer(fd->vk_command_buffer);
         GB_VK_CHECK(err);

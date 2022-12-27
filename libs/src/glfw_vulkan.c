@@ -902,9 +902,8 @@ static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h) {
         err = vkCreateRenderPass(s->vk_device, &info, s->vk_allocator, &s->vk_render_pass);
         GB_VK_CHECK(err);
 
-        // We do not create a pipeline by default as this is also used by examples' main.cpp,
-        // but secondary viewport in multi-viewport mode may want to create one with:
-        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, bd->Subpass);
+        // Creates the window pipeline
+        _gb_create_pipeline(s);
     }
 
     // Create The Image Views
@@ -1072,7 +1071,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         GB_VK_CHECK(err);
     }
 
-    _gb_create_pipeline(s);
+    //_gb_create_pipeline(s);
 
     return true;
 }

@@ -32,23 +32,23 @@ struct vulkan_texinfo {
     VkDescriptorSet         vk_descriptor_set;
 };
 
-// Vulkan 
+// Vulkan frame info which must be recreated if window is resized
 struct vulkan_frame {
-    VkCommandPool       vk_command_pool;
-    VkCommandBuffer     vk_command_buffer;
-    VkFence             vk_fence;
-    VkImage             vk_backbuffer;
-    VkImageView         vk_backbuffer_view;
-    VkFramebuffer       vk_framebuffer;
-    VkSemaphore         vk_image_acquired_sema;
-    VkSemaphore         vk_render_complete_sema;
+    VkCommandPool           vk_command_pool;
+    VkCommandBuffer         vk_command_buffer;
+    VkFence                 vk_fence;
+    VkImage                 vk_backbuffer;
+    VkImageView             vk_backbuffer_view;
+    VkFramebuffer           vk_framebuffer;
+    VkSemaphore             vk_image_acquired_sema;
+    VkSemaphore             vk_render_complete_sema;
     // Render buffers
-    VkDeviceMemory      vk_vertex_buffer_memory;
-    VkDeviceMemory      vk_index_buffer_memory;
-    VkDeviceSize        vk_vertex_buffer_size;
-    VkDeviceSize        vk_index_buffer_size;
-    VkBuffer            vk_vertex_buffer;
-    VkBuffer            vk_index_buffer;
+    VkDeviceMemory          vk_vertex_buffer_memory;
+    VkDeviceMemory          vk_index_buffer_memory;
+    VkDeviceSize            vk_vertex_buffer_size;
+    VkDeviceSize            vk_index_buffer_size;
+    VkBuffer                vk_vertex_buffer;
+    VkBuffer                vk_index_buffer;
 };
 
 // Backend window state

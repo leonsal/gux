@@ -134,7 +134,7 @@ typedef struct {
     uint32_t                    min_image_count;        // Minimum number of framebuffers in the swapchain
     uint32_t                    queue_family;           // Vulkan queue family
     VkSampleCountFlagBits       vk_msaa_samples; 
-    VkDeviceSize                buffer_memory_alignment;
+    VkDeviceSize                vk_buffer_memory_alignment;
 
     // Initialization fields
     VkInstance                  vk_instance;
@@ -156,9 +156,12 @@ typedef struct {
     VkSwapchainKHR              vk_swapchain;
     VkRenderPass                vk_render_pass;
     VkPipeline                  vk_pipeline;
+    VkClearValue                vk_clear_value;
     uint32_t                    subpass;
     uint32_t                    image_count;
     struct vulkan_frame*        vk_frames;
+    bool                        swapchain_rebuild;
+    uint32_t                    frame_index;
 
     VkDescriptorSetLayout       vk_descriptor_set_layout;
     VkSampler                   vk_font_sampler;
@@ -177,13 +180,13 @@ typedef struct {
 
 // Forward declarations of internal functions
 //static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
-//static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline);
+static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer);
 //static void _gb_frame_present(gb_state_t* s);
 //static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, VkPipeline pipeline, VkCommandBuffer command_buffer,
 //    struct vulkan_frame_render_buffers* rb);
-//static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
-//    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
-//static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
+    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
+static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count);
 static void _gb_setup_vulkan_window(gb_state_t* s, int width, int height);
 static VkSurfaceFormatKHR _gb_select_surface_format(gb_state_t* s, const VkFormat* request_formats, int request_formats_count, VkColorSpaceKHR request_color_space);
@@ -192,7 +195,7 @@ static void _gb_create_or_resize_window(gb_state_t* s, int width, int height);
 static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h);
 static void _gb_create_window_command_buffers(gb_state_t* s);
 static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
-//static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
+static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
 static bool _gb_create_device_objects(gb_state_t* s);
 static void _gb_create_pipeline(gb_state_t* s);
 static void _gb_create_pipeline_layout(gb_state_t* s);
@@ -254,7 +257,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->w = win;
     s->min_image_count = 2;
     s->queue_family = (uint32_t)-1;
-    s->buffer_memory_alignment = 256;
+    s->vk_buffer_memory_alignment = 256;
     glfwSetWindowUserPointer(win, s);
 
     // Get required vulkan extensions from GLFW (WSI)
@@ -290,24 +293,23 @@ void gb_window_destroy(gb_window_t win) {
 // Starts the frame returning frame information
 gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params) {
 
-//    // Checks if user requested window close
-//    gb_state_t* s = (gb_state_t*)(bw);
-//    s->clear_color = params->clear_color;
-//    _gb_update_frame_info(s, params->ev_timeout);
-//
-//    // Resize swap chain?
-//    if (s->vw.SwapChainRebuild) {
-//        int width, height;
-//        glfwGetFramebufferSize(s->w, &width, &height);
-//        if (width > 0 && height > 0) {
-//            _gb_set_min_image_count(s, s->vi.MinImageCount);
-//            _gb_create_or_resize_window(s->vi.Instance, s->vi.PhysicalDevice, s->vi.Device, &s->vw, s->vi.QueueFamily,
-//                    s->vi.Allocator, width, height, s->vi.MinImageCount);
-//            s->vw.FrameIndex = 0;
-//            s->vw.SwapChainRebuild = false;
-//        }
-//    }
-//    return &s->frame;
+    // Checks if user requested window close
+    gb_state_t* s = (gb_state_t*)(bw);
+    s->clear_color = params->clear_color;
+    _gb_update_frame_info(s, params->ev_timeout);
+
+    // Resize swap chain?
+    if (s->swapchain_rebuild) {
+        int width, height;
+        glfwGetFramebufferSize(s->w, &width, &height);
+        if (width > 0 && height > 0) {
+            _gb_set_min_image_count(s, s->min_image_count);
+            _gb_create_or_resize_window(s, width, height);
+            s->frame_index  = 0;
+            s->swapchain_rebuild = false;
+        }
+    }
+    return &s->frame;
 }
 
 // Renders the frame draw list
@@ -341,85 +343,81 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 // Internal functions
 //-----------------------------------------------------------------------------
 
-//// Executes draw commands
-//static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
-//
-//    _gb_print_draw_list(dl);
-//    VkResult err;
-//
-//    VkSemaphore image_acquired_semaphore  = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].ImageAcquiredSemaphore;
-//    VkSemaphore render_complete_semaphore = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].RenderCompleteSemaphore;
-//    err = vkAcquireNextImageKHR(s->vi.Device, s->vw.Swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &s->vw.FrameIndex);
-//    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
-//        s->vw.SwapChainRebuild = true;
-//        return;
-//    }
-//    GB_VK_CHECK(err);
-//
-//    struct vulkan_frame* fd = &s->vw.Frames[s->vw.FrameIndex];
-//    {
-//        err = vkWaitForFences(s->vi.Device, 1, &fd->Fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
-//        GB_VK_CHECK(err);
-//
-//        err = vkResetFences(s->vi.Device, 1, &fd->Fence);
-//        GB_VK_CHECK(err);
-//    }
-//    {
-//        err = vkResetCommandPool(s->vi.Device, fd->CommandPool, 0);
-//        GB_VK_CHECK(err);
-//        VkCommandBufferBeginInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//        info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-//        err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
-//        GB_VK_CHECK(err);
-//    }
-//    {
-//        VkRenderPassBeginInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-//        info.renderPass = s->vw.RenderPass;
-//        info.framebuffer = fd->Framebuffer;
-//        info.renderArea.extent.width = s->vw.Width;
-//        info.renderArea.extent.height = s->vw.Height;
-//        info.clearValueCount = 1;
-//        info.pClearValues = &s->vw.ClearValue;
-//        vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-//    }
-//
-//    // Record primitives into command buffer
-//    _gb_vulkan_render_draw_data(s, dl, fd->CommandBuffer, s->vw.Pipeline);
-//
-//    // Submit command buffer
-//    vkCmdEndRenderPass(fd->CommandBuffer);
-//    {
-//        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//        VkSubmitInfo info = {};
-//        info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//        info.waitSemaphoreCount = 1;
-//        info.pWaitSemaphores = &image_acquired_semaphore;
-//        info.pWaitDstStageMask = &wait_stage;
-//        info.commandBufferCount = 1;
-//        info.pCommandBuffers = &fd->CommandBuffer;
-//        info.signalSemaphoreCount = 1;
-//        info.pSignalSemaphores = &render_complete_semaphore;
-//
-//        err = vkEndCommandBuffer(fd->CommandBuffer);
-//        GB_VK_CHECK(err);
-//        err = vkQueueSubmit(s->vi.Queue, 1, &info, fd->Fence);
-//        GB_VK_CHECK(err);
-//    }
-//}
-//
-//static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer, VkPipeline pipeline) {
-//
-//    // Do not render when minimized
-//    if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {
-//        return;
-//    }
-//
-//    if (pipeline == VK_NULL_HANDLE) {
-//        pipeline = s->vd.Pipeline;
-//    }
-//
+// Executes draw commands
+static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
+
+    VkResult err;
+
+    struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
+
+    //VkSemaphore image_acquired_semaphore  = fd->s->vw.FrameSemaphores[s->vw.SemaphoreIndex].ImageAcquiredSemaphore;
+    //VkSemaphore render_complete_semaphore = s->vw.FrameSemaphores[s->vw.SemaphoreIndex].RenderCompleteSemaphore;
+    err = vkAcquireNextImageKHR(s->vk_device, s->vk_swapchain, UINT64_MAX, fd->vk_image_acquired_sema, VK_NULL_HANDLE, &s->frame_index);
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+        s->swapchain_rebuild = true;
+        return;
+    }
+    GB_VK_CHECK(err);
+
+    {
+        err = vkWaitForFences(s->vk_device, 1, &fd->vk_fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
+        GB_VK_CHECK(err);
+
+        err = vkResetFences(s->vk_device, 1, &fd->vk_fence);
+        GB_VK_CHECK(err);
+    }
+    {
+        err = vkResetCommandPool(s->vk_device, fd->vk_command_pool, 0);
+        GB_VK_CHECK(err);
+        VkCommandBufferBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(fd->vk_command_buffer, &info);
+        GB_VK_CHECK(err);
+    }
+    {
+        VkRenderPassBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        info.renderPass = s->vk_render_pass;
+        info.framebuffer = fd->vk_framebuffer;
+        info.renderArea.extent.width = s->width;
+        info.renderArea.extent.height = s->height;
+        info.clearValueCount = 1;
+        info.pClearValues = &s->vk_clear_value;
+        vkCmdBeginRenderPass(fd->vk_command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    // Record primitives into command buffer
+    _gb_vulkan_render_draw_data(s, dl, fd->vk_command_buffer);
+
+    // Submit command buffer
+    vkCmdEndRenderPass(fd->vk_command_buffer);
+    {
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        info.waitSemaphoreCount = 1;
+        info.pWaitSemaphores = &fd->vk_image_acquired_sema;
+        info.pWaitDstStageMask = &wait_stage;
+        info.commandBufferCount = 1;
+        info.pCommandBuffers = &fd->vk_command_buffer;
+        info.signalSemaphoreCount = 1;
+        info.pSignalSemaphores = &fd->vk_render_complete_sema;
+
+        err = vkEndCommandBuffer(fd->vk_command_buffer);
+        GB_VK_CHECK(err);
+        err = vkQueueSubmit(s->vk_queue, 1, &info, fd->vk_fence);
+        GB_VK_CHECK(err);
+    }
+}
+
+static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer) {
+
+    // Do not render when minimized
+    if (s->frame.fb_size.x <= 0 || s->frame.fb_size.y <= 0) {
+        return;
+    }
+
 //    // Allocate array to store enough vertex/index buffers. Each unique viewport gets its own storage.
 //    // GB-> PER WINDOW
 //    struct vulkan_window_render_buffers* wrb = &s->vw.RenderBuffers;
@@ -431,92 +429,92 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 //    GB_ASSERT(wrb->Count == s->vw.ImageCount); // CHANGED from s->vi.ImageCount
 //    wrb->Index = (wrb->Index + 1) % wrb->Count;
 //    struct vulkan_frame_render_buffers* rb = &wrb->FrameRenderBuffers[wrb->Index];
-//
-//    if (dl.vtx_count > 0) {
-//        // Create or resize the vertex/index buffers
-//        size_t vertex_size = dl.vtx_count * sizeof(gb_vertex_t);
-//        size_t index_size = dl.idx_count * sizeof(gb_index_t);
-//        if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size) {
-//            _gb_create_or_resize_buffer(s, &rb->VertexBuffer, &rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-//        }
-//        if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size) {
-//            _gb_create_or_resize_buffer(s, &rb->IndexBuffer, &rb->IndexBufferMemory, &rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-//        }
-//
-//        // Upload vertex/index data into a single contiguous GPU buffer
-//        gb_vertex_t* vtx_dst = NULL;
-//        gb_index_t*  idx_dst = NULL;
-//        VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
-//        GB_VK_CHECK(err);
-//        err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
-//        GB_VK_CHECK(err);
-//
-//        memcpy(vtx_dst, dl.buf_vtx, vertex_size);
-//        memcpy(idx_dst, dl.buf_idx, index_size);
-//
-//        VkMappedMemoryRange range[2] = {};
-//        range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-//        range[0].memory = rb->VertexBufferMemory;
-//        range[0].size = VK_WHOLE_SIZE;
-//        range[1].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-//        range[1].memory = rb->IndexBufferMemory;
-//        range[1].size = VK_WHOLE_SIZE;
-//        err = vkFlushMappedMemoryRanges(s->vi.Device, 2, range);
-//        GB_VK_CHECK(err);
-//        vkUnmapMemory(s->vi.Device, rb->VertexBufferMemory);
-//        vkUnmapMemory(s->vi.Device, rb->IndexBufferMemory);
-//    }
-//
-//    // Setup desired Vulkan state
-//    _gb_vulkan_setup_render_state(s, dl, pipeline, command_buffer, rb);
-//
-//    // Will project scissor/clipping rectangles into framebuffer space
-//    gb_vec2_t clip_off = {0,0};
-//    gb_vec2_t clip_scale = s->frame.fb_scale;
-//
-//    // Apply draw commands
-//    for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
-//        gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
-//        // Project scissor/clipping rectangles into framebuffer space
-//        gb_vec2_t clip_min = {(pcmd->clip_rect.x - clip_off.x) * clip_scale.x, (pcmd->clip_rect.y - clip_off.y) * clip_scale.y};
-//        gb_vec2_t clip_max = {(pcmd->clip_rect.z - clip_off.x) * clip_scale.x, (pcmd->clip_rect.w - clip_off.y) * clip_scale.y};
-//
-//        // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
-//        if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
-//        if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
-//        if (clip_max.x > s->frame.fb_size.x) { clip_max.x = s->frame.fb_size.x; }
-//        if (clip_max.y > s->frame.fb_size.y) { clip_max.y = s->frame.fb_size.y; }
-//        if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) {
-//            continue;
-//        }
-//
-//        // Apply scissor/clipping rectangle
-//        VkRect2D scissor;
-//        scissor.offset.x = (int32_t)(clip_min.x);
-//        scissor.offset.y = (int32_t)(clip_min.y);
-//        scissor.extent.width = (uint32_t)(clip_max.x - clip_min.x);
-//        scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
-//        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-//
-//        // Bind DescriptorSet with font or user texture
-//        struct vulkan_texinfo* texinfo = (struct vulkan_texinfo*)(pcmd->texid);
-//        VkDescriptorSet desc_set[1] = { texinfo->descriptor_set };
-//        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
-//        // Draw
-//        vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
-//    }
-//
-//    // Note: at this point both vkCmdSetViewport() and vkCmdSetScissor() have been called.
-//    // Our last values will leak into user/application rendering IF:
-//    // - Your app uses a pipeline with VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR dynamic state
-//    // - And you forgot to call vkCmdSetViewport() and vkCmdSetScissor() yourself to explicitly set that state.
-//    // If you use VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR you are responsible for setting the values before rendering.
-//    // In theory we should aim to backup/restore those values but I am not sure this is possible.
-//    // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
-//    VkRect2D scissor = { { 0, 0 }, { (uint32_t)s->frame.fb_size.x, (uint32_t)s->frame.fb_size.y } };
-//    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-//}
-//
+
+    if (dl.vtx_count > 0) {
+        // Create or resize the vertex/index buffers
+        size_t vertex_size = dl.vtx_count * sizeof(gb_vertex_t);
+        size_t index_size = dl.idx_count * sizeof(gb_index_t);
+        if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size) {
+            _gb_create_or_resize_buffer(s, &rb->VertexBuffer, &rb->VertexBufferMemory, &rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        }
+        if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size) {
+            _gb_create_or_resize_buffer(s, &rb->IndexBuffer, &rb->IndexBufferMemory, &rb->IndexBufferSize, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        }
+
+        // Upload vertex/index data into a single contiguous GPU buffer
+        gb_vertex_t* vtx_dst = NULL;
+        gb_index_t*  idx_dst = NULL;
+        VkResult err = vkMapMemory(s->vi.Device, rb->VertexBufferMemory, 0, rb->VertexBufferSize, 0, (void**)(&vtx_dst));
+        GB_VK_CHECK(err);
+        err = vkMapMemory(s->vi.Device, rb->IndexBufferMemory, 0, rb->IndexBufferSize, 0, (void**)(&idx_dst));
+        GB_VK_CHECK(err);
+
+        memcpy(vtx_dst, dl.buf_vtx, vertex_size);
+        memcpy(idx_dst, dl.buf_idx, index_size);
+
+        VkMappedMemoryRange range[2] = {};
+        range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range[0].memory = rb->VertexBufferMemory;
+        range[0].size = VK_WHOLE_SIZE;
+        range[1].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        range[1].memory = rb->IndexBufferMemory;
+        range[1].size = VK_WHOLE_SIZE;
+        err = vkFlushMappedMemoryRanges(s->vi.Device, 2, range);
+        GB_VK_CHECK(err);
+        vkUnmapMemory(s->vi.Device, rb->VertexBufferMemory);
+        vkUnmapMemory(s->vi.Device, rb->IndexBufferMemory);
+    }
+
+    // Setup desired Vulkan state
+    _gb_vulkan_setup_render_state(s, dl, pipeline, command_buffer, rb);
+
+    // Will project scissor/clipping rectangles into framebuffer space
+    gb_vec2_t clip_off = {0,0};
+    gb_vec2_t clip_scale = s->frame.fb_scale;
+
+    // Apply draw commands
+    for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
+        gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
+        // Project scissor/clipping rectangles into framebuffer space
+        gb_vec2_t clip_min = {(pcmd->clip_rect.x - clip_off.x) * clip_scale.x, (pcmd->clip_rect.y - clip_off.y) * clip_scale.y};
+        gb_vec2_t clip_max = {(pcmd->clip_rect.z - clip_off.x) * clip_scale.x, (pcmd->clip_rect.w - clip_off.y) * clip_scale.y};
+
+        // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
+        if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
+        if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
+        if (clip_max.x > s->frame.fb_size.x) { clip_max.x = s->frame.fb_size.x; }
+        if (clip_max.y > s->frame.fb_size.y) { clip_max.y = s->frame.fb_size.y; }
+        if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) {
+            continue;
+        }
+
+        // Apply scissor/clipping rectangle
+        VkRect2D scissor;
+        scissor.offset.x = (int32_t)(clip_min.x);
+        scissor.offset.y = (int32_t)(clip_min.y);
+        scissor.extent.width = (uint32_t)(clip_max.x - clip_min.x);
+        scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        // Bind DescriptorSet with font or user texture
+        struct vulkan_texinfo* texinfo = (struct vulkan_texinfo*)(pcmd->texid);
+        VkDescriptorSet desc_set[1] = { texinfo->descriptor_set };
+        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->vd.PipelineLayout, 0, 1, desc_set, 0, NULL);
+        // Draw
+        vkCmdDrawIndexed(command_buffer, pcmd->elem_count, 1, pcmd->idx_offset, pcmd->vtx_offset, 0);
+    }
+
+    // Note: at this point both vkCmdSetViewport() and vkCmdSetScissor() have been called.
+    // Our last values will leak into user/application rendering IF:
+    // - Your app uses a pipeline with VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR dynamic state
+    // - And you forgot to call vkCmdSetViewport() and vkCmdSetScissor() yourself to explicitly set that state.
+    // If you use VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR you are responsible for setting the values before rendering.
+    // In theory we should aim to backup/restore those values but I am not sure this is possible.
+    // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
+    VkRect2D scissor = { { 0, 0 }, { (uint32_t)s->frame.fb_size.x, (uint32_t)s->frame.fb_size.y } };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+}
+
 //static void _gb_frame_present(gb_state_t* s) {
 //
 //    if (s->vw.SwapChainRebuild) {
@@ -581,54 +579,54 @@ void gb_delete_texture(gb_window_t w, gb_texid_t texid) {
 //    }
 //}
 //
-//static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
-//    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage) {
-//
-//    VkResult err;
-//    if (*buffer != VK_NULL_HANDLE) {
-//        vkDestroyBuffer(s->vi.Device, *buffer, s->vi.Allocator);
-//    }
-//    if (*buffer_memory != VK_NULL_HANDLE) {
-//        vkFreeMemory(s->vi.Device, *buffer_memory, s->vi.Allocator);
-//    }
-//
-//    VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / s->vd.BufferMemoryAlignment + 1) * s->vd.BufferMemoryAlignment;
-//    VkBufferCreateInfo buffer_info = {};
-//    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-//    buffer_info.size = vertex_buffer_size_aligned;
-//    buffer_info.usage = usage;
-//    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-//    err = vkCreateBuffer(s->vi.Device, &buffer_info, s->vi.Allocator, buffer);
-//    GB_VK_CHECK(err);
-//
-//    VkMemoryRequirements req;
-//    vkGetBufferMemoryRequirements(s->vi.Device, *buffer, &req);
-//    s->vd.BufferMemoryAlignment = (s->vd.BufferMemoryAlignment > req.alignment) ? s->vd.BufferMemoryAlignment : req.alignment;
-//    VkMemoryAllocateInfo alloc_info = {};
-//    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-//    alloc_info.allocationSize = req.size;
-//    alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
-//    err = vkAllocateMemory(s->vi.Device, &alloc_info, s->vi.Allocator, buffer_memory);
-//    GB_VK_CHECK(err);
-//
-//    err = vkBindBufferMemory(s->vi.Device, *buffer, *buffer_memory, 0);
-//    GB_VK_CHECK(err);
-//    *p_buffer_size = req.size;
-//}
-//
-//static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits) {
-//
-//    VkPhysicalDeviceMemoryProperties prop;
-//    vkGetPhysicalDeviceMemoryProperties(s->vi.PhysicalDevice, &prop);
-//    for (uint32_t i = 0; i < prop.memoryTypeCount; i++) {
-//        if ((prop.memoryTypes[i].propertyFlags & properties) == properties && type_bits & (1 << i)) {
-//            return i;
-//        }
-//    }
-//    GB_ASSERT(0);
-//    return 0xFFFFFFFF; // Unable to find memoryType
-//}
-//
+static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
+    VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage) {
+
+    VkResult err;
+    if (*buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(s->vk_device, *buffer, s->vk_allocator);
+    }
+    if (*buffer_memory != VK_NULL_HANDLE) {
+        vkFreeMemory(s->vk_device, *buffer_memory, s->vk_allocator);
+    }
+
+    VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / s->vk_buffer_memory_alignment + 1) * s->vk_buffer_memory_alignment;
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = vertex_buffer_size_aligned;
+    buffer_info.usage = usage;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    err = vkCreateBuffer(s->vk_device, &buffer_info, s->vk_allocator, buffer);
+    GB_VK_CHECK(err);
+
+    VkMemoryRequirements req;
+    vkGetBufferMemoryRequirements(s->vk_device, *buffer, &req);
+    s->vd.BufferMemoryAlignment = (s->vk_buffer_memory_alignment > req.alignment) ? s->vk_buffer_memory_alignment : req.alignment;
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = req.size;
+    alloc_info.memoryTypeIndex = _gb_vulkan_memory_type(s, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
+    err = vkAllocateMemory(s->vk_device, &alloc_info, s->vk_allocator, buffer_memory);
+    GB_VK_CHECK(err);
+
+    err = vkBindBufferMemory(s->vk_device, *buffer, *buffer_memory, 0);
+    GB_VK_CHECK(err);
+    *p_buffer_size = req.size;
+}
+
+static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits) {
+
+    VkPhysicalDeviceMemoryProperties prop;
+    vkGetPhysicalDeviceMemoryProperties(s->vk_physical_device, &prop);
+    for (uint32_t i = 0; i < prop.memoryTypeCount; i++) {
+        if ((prop.memoryTypes[i].propertyFlags & properties) == properties && type_bits & (1 << i)) {
+            return i;
+        }
+    }
+    GB_ASSERT(0);
+    return 0xFFFFFFFF; // Unable to find memoryType
+}
+
 static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t extensions_count) {
     VkResult err;
 
@@ -1092,20 +1090,20 @@ static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mo
     return 1;
 }
 
-//static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
-//
-//    assert(min_image_count >= 2);
-//    if (s->vi.MinImageCount == min_image_count) {
-//        return;
-//    }
-//
-//    assert(0); // FIXME-VIEWPORT: Unsupported. Need to recreate all swap chains!
-//    VkResult err = vkDeviceWaitIdle(s->vi.Device);
-//    GB_VK_CHECK(err);
-//    _gb_destroy_all_viewports_render_buffers(s->vi.Device, s->vi.Allocator);
-//    s->vi.MinImageCount = min_image_count;
-//}
-//
+static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
+
+    assert(min_image_count >= 2);
+    if (s->min_image_count == min_image_count) {
+        return;
+    }
+
+    assert(0); // FIXME-VIEWPORT: Unsupported. Need to recreate all swap chains!
+    //VkResult err = vkDeviceWaitIdle(s->vk_device);
+    //GB_VK_CHECK(err);
+    //_gb_destroy_all_viewports_render_buffers(s->vi.Device, s->vi.Allocator);
+    //s->min_image_count = min_image_count;
+}
+
 static bool _gb_create_device_objects(gb_state_t* s) {
 
     VkResult err;

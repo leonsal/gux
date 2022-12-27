@@ -42,7 +42,10 @@ struct vulkan_frame {
     VkFramebuffer           vk_framebuffer;
     VkSemaphore             vk_image_acquired_sema;
     VkSemaphore             vk_render_complete_sema;
-    // Render buffers
+};
+
+// Vulkan render buffers
+struct vulkan_buffers {
     VkDeviceMemory          vk_vertex_buffer_memory;
     VkDeviceMemory          vk_index_buffer_memory;
     VkDeviceSize            vk_vertex_buffer_size;
@@ -84,9 +87,11 @@ typedef struct {
     uint32_t                    subpass;
     uint32_t                    image_count;
     struct vulkan_frame*        vk_frames;
-    bool                        swapchain_rebuild;
+    struct vulkan_buffers*      vk_buffers;
     uint32_t                    frame_index;
     uint32_t                    sema_index;
+    uint32_t                    buffers_index;
+    bool                        swapchain_rebuild;
 
     VkDescriptorSetLayout       vk_descriptor_set_layout;
     VkSampler                   vk_font_sampler;
@@ -102,7 +107,7 @@ typedef struct {
 static void _gb_render(gb_state_t* s, gb_draw_list_t dl);
 static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer);
 static void _gb_frame_present(gb_state_t* s);
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, struct vulkan_frame* fd);
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl);
 static void _gb_create_or_resize_buffer(gb_state_t* s, VkBuffer* buffer, VkDeviceMemory* buffer_memory,
     VkDeviceSize* p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage);
 static uint32_t _gb_vulkan_memory_type(gb_state_t* s, VkMemoryPropertyFlags properties, uint32_t type_bits);
@@ -334,7 +339,15 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         return;
     }
 
+    // Allocate render buffers if necessary
+    if (s->vk_buffers == NULL)  {
+        s->vk_buffers = (struct vulkan_buffers*)_gb_alloc(sizeof(struct vulkan_buffers) * s->image_count);
+    }
+    s->buffers_index = (s->buffers_index + 1) % s->image_count;
+
+
     struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
+    struct vulkan_buffers* buf = &s->vk_buffers[s->buffers_index];
 
 //    // Allocate array to store enough vertex/index buffers. Each unique viewport gets its own storage.
 //    // GB-> PER WINDOW
@@ -352,19 +365,19 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
         // Create or resize the vertex/index buffers
         size_t vertex_size = dl.vtx_count * sizeof(gb_vertex_t);
         size_t index_size = dl.idx_count * sizeof(gb_index_t);
-        if (fd->vk_vertex_buffer == VK_NULL_HANDLE || fd->vk_vertex_buffer_size < vertex_size) {
-            _gb_create_or_resize_buffer(s, &fd->vk_vertex_buffer, &fd->vk_vertex_buffer_memory, &fd->vk_vertex_buffer_size, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        if (buf->vk_vertex_buffer == VK_NULL_HANDLE || buf->vk_vertex_buffer_size < vertex_size) {
+            _gb_create_or_resize_buffer(s, &buf->vk_vertex_buffer, &buf->vk_vertex_buffer_memory, &buf->vk_vertex_buffer_size, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         }
-        if (fd->vk_index_buffer == VK_NULL_HANDLE || fd->vk_index_buffer_size < index_size) {
-            _gb_create_or_resize_buffer(s, &fd->vk_index_buffer, &fd->vk_index_buffer_memory, &fd->vk_index_buffer_size, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        if (buf->vk_index_buffer == VK_NULL_HANDLE || buf->vk_index_buffer_size < index_size) {
+            _gb_create_or_resize_buffer(s, &buf->vk_index_buffer, &buf->vk_index_buffer_memory, &buf->vk_index_buffer_size, index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         }
 
         // Upload vertex/index data into a single contiguous GPU buffer
         gb_vertex_t* vtx_dst = NULL;
         gb_index_t*  idx_dst = NULL;
-        VkResult err = vkMapMemory(s->vk_device, fd->vk_vertex_buffer_memory, 0, fd->vk_vertex_buffer_size, 0, (void**)(&vtx_dst));
+        VkResult err = vkMapMemory(s->vk_device, buf->vk_vertex_buffer_memory, 0, buf->vk_vertex_buffer_size, 0, (void**)(&vtx_dst));
         GB_VK_CHECK(err);
-        err = vkMapMemory(s->vk_device, fd->vk_index_buffer_memory, 0, fd->vk_index_buffer_size, 0, (void**)(&idx_dst));
+        err = vkMapMemory(s->vk_device, buf->vk_index_buffer_memory, 0, buf->vk_index_buffer_size, 0, (void**)(&idx_dst));
         GB_VK_CHECK(err);
 
         memcpy(vtx_dst, dl.buf_vtx, vertex_size);
@@ -372,19 +385,19 @@ static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkComm
 
         VkMappedMemoryRange range[2] = {};
         range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        range[0].memory = fd->vk_vertex_buffer_memory;
+        range[0].memory = buf->vk_vertex_buffer_memory;
         range[0].size = VK_WHOLE_SIZE;
         range[1].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        range[1].memory = fd->vk_index_buffer_memory;
+        range[1].memory = buf->vk_index_buffer_memory;
         range[1].size = VK_WHOLE_SIZE;
         err = vkFlushMappedMemoryRanges(s->vk_device, 2, range);
         GB_VK_CHECK(err);
-        vkUnmapMemory(s->vk_device, fd->vk_vertex_buffer_memory);
-        vkUnmapMemory(s->vk_device, fd->vk_index_buffer_memory);
+        vkUnmapMemory(s->vk_device, buf->vk_vertex_buffer_memory);
+        vkUnmapMemory(s->vk_device, buf->vk_index_buffer_memory);
     }
 
     // Setup desired Vulkan state
-    _gb_vulkan_setup_render_state(s, dl, fd);
+    _gb_vulkan_setup_render_state(s, dl);
 
     // Will project scissor/clipping rectangles into framebuffer space
     gb_vec2_t clip_off = {0,0};
@@ -455,7 +468,10 @@ static void _gb_frame_present(gb_state_t* s) {
     s->sema_index = (s->sema_index + 1) % s->image_count; // Now we can use the next set of semaphores
 }
 
-static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, struct vulkan_frame* fd) {
+static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl) {
+
+    struct vulkan_frame* fd = &s->vk_frames[s->frame_index];
+    struct vulkan_buffers* buf = &s->vk_buffers[s->buffers_index];
 
     // Bind pipeline:
     {
@@ -464,10 +480,10 @@ static void _gb_vulkan_setup_render_state(gb_state_t* s, gb_draw_list_t dl, stru
 
     // Bind Vertex And Index Buffer:
     if (dl.vtx_count > 0) {
-        VkBuffer vertex_buffers[1] = { fd->vk_vertex_buffer };
+        VkBuffer vertex_buffers[1] = { buf->vk_vertex_buffer };
         VkDeviceSize vertex_offset[1] = { 0 };
         vkCmdBindVertexBuffers(fd->vk_command_buffer, 0, 1, vertex_buffers, vertex_offset);
-        vkCmdBindIndexBuffer(fd->vk_command_buffer, fd->vk_index_buffer, 0, sizeof(gb_index_t) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(fd->vk_command_buffer, buf->vk_index_buffer, 0, sizeof(gb_index_t) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
     }
 
     // Setup viewport:

@@ -32,7 +32,7 @@ struct vulkan_texinfo {
     VkDescriptorSet         vk_descriptor_set;
 };
 
-// Vulkan frame info which must be recreated if window is resized
+// Vulkan frame info for each swapchain image count
 struct vulkan_frame {
     VkCommandPool           vk_command_pool;
     VkCommandBuffer         vk_command_buffer;
@@ -44,7 +44,7 @@ struct vulkan_frame {
     VkSemaphore             vk_render_complete_sema;
 };
 
-// Vulkan frame buffers
+// Vulkan frame buffers for each swapchain image count
 struct vulkan_frame_buffers {
     VkDeviceMemory          vk_vertex_buffer_memory;
     VkDeviceMemory          vk_index_buffer_memory;
@@ -115,13 +115,10 @@ static VkPresentModeKHR _gb_select_present_mode(gb_state_t* s, const VkPresentMo
 static void _gb_create_or_resize_window(gb_state_t* s, int width, int height);
 static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h);
 static void _gb_create_window_command_buffers(gb_state_t* s);
-static int _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
+static int  _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
-static bool _gb_create_device_objects(gb_state_t* s);
+static void _gb_create_device_objects(gb_state_t* s);
 static void _gb_create_pipeline(gb_state_t* s);
-static void _gb_create_pipeline_layout(gb_state_t* s);
-static void _gb_create_descriptor_set_layout(gb_state_t* s);
-static void _gb_create_font_sampler(gb_state_t* s);
 static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels);
 static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex);
 VkDescriptorSet _gb_create_tex_descriptor_set(gb_state_t* s, VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
@@ -187,11 +184,12 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     VkResult err = glfwCreateWindowSurface(s->vk_instance, win, s->vk_allocator, &s->vk_surface);
     GB_VK_CHECK(err);
 
+    _gb_create_device_objects(s);
+
     // Initialize vulkan window
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, w, h);
-    _gb_create_device_objects(s);
 
     // Set window event handlers
     _gb_set_ev_handlers(s);
@@ -1020,7 +1018,7 @@ static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
     //s->min_image_count = min_image_count;
 }
 
-static bool _gb_create_device_objects(gb_state_t* s) {
+static void _gb_create_device_objects(gb_state_t* s) {
 
     VkResult err;
 
@@ -1056,7 +1054,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
     }
 
     if (!s->vk_pipeline_layout) {
-        // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+        // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
         VkPushConstantRange push_constants[1] = {};
         push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         push_constants[0].offset = sizeof(float) * 0;
@@ -1072,12 +1070,10 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         GB_VK_CHECK(err);
     }
 
-    return true;
+    _gb_create_shader_modules(s);
 }
 
 static void _gb_create_pipeline(gb_state_t* s) {
-
-    _gb_create_shader_modules(s);
 
     VkPipelineShaderStageCreateInfo stage[2] = {};
     stage[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1158,8 +1154,6 @@ static void _gb_create_pipeline(gb_state_t* s) {
     dynamic_state.dynamicStateCount = (uint32_t)GB_ARRAYSIZE(dynamic_states);
     dynamic_state.pDynamicStates = dynamic_states;
 
-    _gb_create_pipeline_layout(s);
-
     VkGraphicsPipelineCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     info.flags = s->vk_pipeline_create_flags;
@@ -1177,72 +1171,6 @@ static void _gb_create_pipeline(gb_state_t* s) {
     info.renderPass = s->vk_render_pass;
     info.subpass = s->subpass;
     VkResult err = vkCreateGraphicsPipelines(s->vk_device, s->vk_pipeline_cache, 1, &info, s->vk_allocator, &s->vk_pipeline);
-    GB_VK_CHECK(err);
-}
-
-static void _gb_create_pipeline_layout(gb_state_t* s) {
-
-    if (s->vk_pipeline_layout) {
-        return;
-    }
-
-    // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
-    _gb_create_descriptor_set_layout(s);
-    VkPushConstantRange push_constants[1] = {};
-    push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    push_constants[0].offset = sizeof(float) * 0;
-    push_constants[0].size = sizeof(float) * 4;
-    VkDescriptorSetLayout set_layout[1] = { s->vk_descriptor_set_layout };
-    VkPipelineLayoutCreateInfo layout_info = {};
-    layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layout_info.setLayoutCount = 1;
-    layout_info.pSetLayouts = set_layout;
-    layout_info.pushConstantRangeCount = 1;
-    layout_info.pPushConstantRanges = push_constants;
-    VkResult  err = vkCreatePipelineLayout(s->vk_device, &layout_info, s->vk_allocator, &s->vk_pipeline_layout);
-    GB_VK_CHECK(err);
-}
-
-static void _gb_create_descriptor_set_layout(gb_state_t* s) {
-
-    if (s->vk_descriptor_set_layout) {
-        return;
-    }
-
-    _gb_create_font_sampler(s);
-    VkSampler sampler[1] = { s->vk_sampler };
-    VkDescriptorSetLayoutBinding binding[1] = {};
-    binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    binding[0].descriptorCount = 1;
-    binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    binding[0].pImmutableSamplers = sampler;
-    VkDescriptorSetLayoutCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    info.bindingCount = 1;
-    info.pBindings = binding;
-    VkResult err = vkCreateDescriptorSetLayout(s->vk_device, &info, s->vk_allocator, &s->vk_descriptor_set_layout);
-    GB_VK_CHECK(err);
-}
-
-static void _gb_create_font_sampler(gb_state_t* s) {
-
-    if (s->vk_sampler) {
-        return;
-    }
-
-    // Bilinear sampling is required by default.
-    VkSamplerCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    info.magFilter = VK_FILTER_LINEAR;
-    info.minFilter = VK_FILTER_LINEAR;
-    info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    info.minLod = -1000;
-    info.maxLod = 1000;
-    info.maxAnisotropy = 1.0f;
-    VkResult err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_sampler);
     GB_VK_CHECK(err);
 }
 

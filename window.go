@@ -110,6 +110,8 @@ func (w *Window) AddList(src gb.DrawList) {
 
 func (w *Window) Destroy() {
 
+	w.DeleteTexture(w.TexWhiteId)
+	w.DeleteTexture(w.TexLinesId)
 	w.gbw.Destroy()
 }
 

@@ -73,7 +73,7 @@ typedef struct {
     VkShaderModule                  vk_shader_module_vert;
     VkShaderModule                  vk_shader_module_frag;
     VkDescriptorSetLayout           vk_descriptor_set_layout;
-    VkSampler                       vk_font_sampler;
+    VkSampler                       vk_sampler;
     VkPipelineLayout                vk_pipeline_layout;
     VkPipelineCreateFlags           vk_pipeline_create_flags;
     VkPipelineCache                 vk_pipeline_cache;
@@ -1024,7 +1024,7 @@ static bool _gb_create_device_objects(gb_state_t* s) {
 
     VkResult err;
 
-    if (!s->vk_font_sampler) {
+    if (!s->vk_sampler) {
         VkSamplerCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         info.magFilter = VK_FILTER_LINEAR;
@@ -1036,12 +1036,12 @@ static bool _gb_create_device_objects(gb_state_t* s) {
         info.minLod = -1000;
         info.maxLod = 1000;
         info.maxAnisotropy = 1.0f;
-        err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_font_sampler);
+        err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_sampler);
         GB_VK_CHECK(err);
     }
 
     if (!s->vk_descriptor_set_layout) {
-        VkSampler sampler[1] = {s->vk_font_sampler};
+        VkSampler sampler[1] = {s->vk_sampler};
         VkDescriptorSetLayoutBinding binding[1] = {};
         binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         binding[0].descriptorCount = 1;
@@ -1186,7 +1186,7 @@ static void _gb_create_pipeline_layout(gb_state_t* s) {
         return;
     }
 
-    // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+    // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
     _gb_create_descriptor_set_layout(s);
     VkPushConstantRange push_constants[1] = {};
     push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1210,7 +1210,7 @@ static void _gb_create_descriptor_set_layout(gb_state_t* s) {
     }
 
     _gb_create_font_sampler(s);
-    VkSampler sampler[1] = { s->vk_font_sampler };
+    VkSampler sampler[1] = { s->vk_sampler };
     VkDescriptorSetLayoutBinding binding[1] = {};
     binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     binding[0].descriptorCount = 1;
@@ -1226,7 +1226,7 @@ static void _gb_create_descriptor_set_layout(gb_state_t* s) {
 
 static void _gb_create_font_sampler(gb_state_t* s) {
 
-    if (s->vk_font_sampler) {
+    if (s->vk_sampler) {
         return;
     }
 
@@ -1242,7 +1242,7 @@ static void _gb_create_font_sampler(gb_state_t* s) {
     info.minLod = -1000;
     info.maxLod = 1000;
     info.maxAnisotropy = 1.0f;
-    VkResult err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_font_sampler);
+    VkResult err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_sampler);
     GB_VK_CHECK(err);
 }
 
@@ -1313,7 +1313,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
     }
 
     // Create the Descriptor Set
-    tex->vk_descriptor_set = _gb_create_tex_descriptor_set(s, s->vk_font_sampler, tex->vk_image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    tex->vk_descriptor_set = _gb_create_tex_descriptor_set(s, s->vk_sampler, tex->vk_image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     // Create the Upload Buffer:
     {
@@ -1415,6 +1415,8 @@ static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex)  {
     if (tex == NULL) {
         return;
     }
+    vkQueueWaitIdle(s->vk_queue);
+
     if (tex->vk_image_view != VK_NULL_HANDLE) {
         vkDestroyImageView(s->vk_device, tex->vk_image_view, s->vk_allocator);
         tex->vk_image_view = VK_NULL_HANDLE;
@@ -1571,6 +1573,7 @@ static uint32_t __glsl_shader_frag_spv[] =
     0x00010038
 };
 
+// Create shader modules if not already created
 static void _gb_create_shader_modules(gb_state_t* s) {
 
     // Create the shader modules

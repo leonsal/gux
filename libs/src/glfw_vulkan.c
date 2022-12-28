@@ -1536,19 +1536,29 @@ static void _gb_destroy_window(gb_state_t* s) {
 
 static void _gb_destroy_frame(gb_state_t* s, struct vulkan_frame* fd) {
 
-    vkDestroyFence(s->vk_device, fd->vk_fence, s->vk_allocator);
     vkFreeCommandBuffers(s->vk_device, fd->vk_command_pool, 1, &fd->vk_command_buffer);
-    vkDestroyCommandPool(s->vk_device, fd->vk_command_pool, s->vk_allocator);
-    fd->vk_fence = VK_NULL_HANDLE;
     fd->vk_command_buffer = VK_NULL_HANDLE;
+
+    vkDestroyCommandPool(s->vk_device, fd->vk_command_pool, s->vk_allocator);
     fd->vk_command_pool = VK_NULL_HANDLE;
 
+    vkDestroyFence(s->vk_device, fd->vk_fence, s->vk_allocator);
+    fd->vk_fence = VK_NULL_HANDLE;
+
+//    vkDestroyImage(s->vk_device, fd->vk_backbuffer, s->vk_allocator);
+//    fd->vk_backbuffer = VK_NULL_HANDLE;
+
     vkDestroyImageView(s->vk_device, fd->vk_backbuffer_view, s->vk_allocator);
+    fd->vk_backbuffer_view = VK_NULL_HANDLE;
+
     vkDestroyFramebuffer(s->vk_device, fd->vk_framebuffer, s->vk_allocator);
+    fd->vk_framebuffer = VK_NULL_HANDLE;
 
     vkDestroySemaphore(s->vk_device, fd->vk_image_acquired_sema, s->vk_allocator);
+    fd->vk_image_acquired_sema = VK_NULL_HANDLE;
+
     vkDestroySemaphore(s->vk_device, fd->vk_render_complete_sema, s->vk_allocator);
-    fd->vk_image_acquired_sema = fd->vk_render_complete_sema = VK_NULL_HANDLE;
+    fd->vk_render_complete_sema = VK_NULL_HANDLE;
 }
 
 static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers* buffers) {

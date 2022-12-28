@@ -36,7 +36,7 @@ func main() {
 			fmt.Println("SAVE ERROR:", err)
 		}
 	}
-	//texID, width, height := win.CreateTextImage(f, "text image")
+	texID, width, height := win.CreateTextImage(f, "text image")
 	//fmt.Println("TextImage:", texID, width, height)
 
 	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
@@ -54,8 +54,8 @@ func main() {
 
 	for win.StartFrame() {
 
-		testBasic(win)
-		//testText(win, fa, texID, width, height)
+		//testBasic(win)
+		testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
 		win.Render()
@@ -76,7 +76,7 @@ func main() {
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 
-	//win.DeleteTexture(texID)
+	win.DeleteTexture(texID)
 	win.Destroy()
 }
 

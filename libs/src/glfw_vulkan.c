@@ -1553,21 +1553,22 @@ static void _gb_destroy_frame(gb_state_t* s, struct vulkan_frame* fd) {
 
 static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers* buffers) {
 
-    if (buffers->vk_vertex_buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(s->vk_device, buffers->vk_vertex_buffer, s->vk_allocator);
-        buffers->vk_vertex_buffer = VK_NULL_HANDLE;
-    }
     if (buffers->vk_vertex_buffer_memory != VK_NULL_HANDLE) {
         vkFreeMemory(s->vk_device, buffers->vk_vertex_buffer_memory, s->vk_allocator);
         buffers->vk_vertex_buffer_memory = VK_NULL_HANDLE;
     }
-    if (buffers->vk_index_buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(s->vk_device, buffers->vk_index_buffer, s->vk_allocator);
-        buffers->vk_index_buffer = VK_NULL_HANDLE;
-    }
     if (buffers->vk_index_buffer_memory != VK_NULL_HANDLE) {
         vkFreeMemory(s->vk_device, buffers->vk_index_buffer_memory, s->vk_allocator);
         buffers->vk_index_buffer_memory = VK_NULL_HANDLE;
+    }
+
+    if (buffers->vk_vertex_buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(s->vk_device, buffers->vk_vertex_buffer, s->vk_allocator);
+        buffers->vk_vertex_buffer = VK_NULL_HANDLE;
+    }
+    if (buffers->vk_index_buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(s->vk_device, buffers->vk_index_buffer, s->vk_allocator);
+        buffers->vk_index_buffer = VK_NULL_HANDLE;
     }
     buffers->vk_vertex_buffer_size = 0;
     buffers->vk_index_buffer_size = 0;

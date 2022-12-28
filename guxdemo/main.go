@@ -36,8 +36,8 @@ func main() {
 			fmt.Println("SAVE ERROR:", err)
 		}
 	}
-	texID, width, height := win.CreateTextImage(f, "text image")
-	fmt.Println("TextImage:", texID, width, height)
+	//texID, width, height := win.CreateTextImage(f, "text image")
+	//fmt.Println("TextImage:", texID, width, height)
 
 	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
 	//1234567890()
@@ -76,6 +76,7 @@ func main() {
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 
+	//win.DeleteTexture(texID)
 	win.Destroy()
 }
 

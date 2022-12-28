@@ -1573,6 +1573,7 @@ static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers
     buffers->vk_index_buffer_size = 0;
 }
 
+// Destroy all Vulkan objects associated with the window
 static void _gb_destroy_window_frame_buffers(gb_state_t* s) {
 
     for (uint32_t n = 0; n < s->image_count; n++) {
@@ -1582,8 +1583,14 @@ static void _gb_destroy_window_frame_buffers(gb_state_t* s) {
     s->vk_buffers = NULL;
 }
 
+// Destroy all Vulkan common objects
 static void _gb_destroy_vulkan(gb_state_t* s) {
 
+    vkDestroyShaderModule(s->vk_device, s->vk_shader_module_frag, s->vk_allocator);
+    vkDestroyShaderModule(s->vk_device, s->vk_shader_module_vert, s->vk_allocator);
+    vkDestroyPipelineLayout(s->vk_device, s->vk_pipeline_layout, s->vk_allocator);
+    vkDestroyDescriptorSetLayout(s->vk_device, s->vk_descriptor_set_layout, s->vk_allocator);
+    vkDestroySampler(s->vk_device, s->vk_sampler, s->vk_allocator);
     vkDestroyDescriptorPool(s->vk_device, s->vk_descriptor_pool, s->vk_allocator);
 
 #ifdef GB_VULKAN_DEBUG_REPORT
@@ -1601,6 +1608,7 @@ static void _gb_check_vk_result(VkResult err, int line) {
     if (err == 0) {
         return;
     }
+    abort();
     fprintf(stderr, "Vulkan error: VkResult = %d at line:%d\n", err, line);
 }
 

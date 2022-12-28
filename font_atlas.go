@@ -136,6 +136,12 @@ func (w *Window) NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 	return a
 }
 
+// DestroyFontAtlas destroys the specified FontAtlas
+func (w *Window) DestroyFontAtlas(fa *FontAtlas) {
+
+	w.DeleteTexture(fa.TexID)
+}
+
 // SavePNG saves the current atlas image as a PNG image file
 func (a *FontAtlas) SavePNG(filename string) error {
 

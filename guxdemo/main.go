@@ -52,21 +52,21 @@ func main() {
 	var statsStart runtime.MemStats
 	frameCount := 0
 
-	//for win.StartFrame() {
+	for win.StartFrame() {
 
-	//	//testBasic(win)
-	//	testText(win, fa, texID, width, height)
-	//	//testLines(win)
-	//	//testPolygon(win)
-	//	win.Render()
+		testBasic(win)
+		//testText(win, fa, texID, width, height)
+		//testLines(win)
+		//testPolygon(win)
+		win.Render()
 
-	//	// All the allocations should be done in the first frame
-	//	frameCount++
-	//	if frameCount == 1 {
-	//		cgoCallsStart = runtime.NumCgoCall()
-	//		runtime.ReadMemStats(&statsStart)
-	//	}
-	//}
+		// All the allocations should be done in the first frame
+		frameCount++
+		if frameCount == 1 {
+			cgoCallsStart = runtime.NumCgoCall()
+			runtime.ReadMemStats(&statsStart)
+		}
+	}
 
 	// Calculates and shows allocations and cgo calls per frame
 	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
@@ -76,6 +76,7 @@ func main() {
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 
+	win.DestroyFontAtlas(fa)
 	win.DeleteTexture(texID)
 	win.Destroy()
 }
@@ -86,28 +87,6 @@ func testBasic(win *gux.Window) {
 	red := gb.MakeColor(255, 0, 0, 255)
 	green := gb.MakeColor(0, 255, 0, 255)
 	blue := gb.MakeColor(0, 0, 255, 255)
-
-	//// Single command with 3 triangles
-	//cmd, bufIdx, bufVtx := win.NewDrawCmd(dl, 3*3, 3*3)
-	//bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: red}
-	//bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 200}, Col: red}
-	//bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 10}, Col: red}
-	//bufVtx[3] = gb.Vertex{Pos: gb.Vec2{210, 10}, Col: green}
-	//bufVtx[4] = gb.Vertex{Pos: gb.Vec2{210, 200}, Col: green}
-	//bufVtx[5] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: green}
-	//bufVtx[6] = gb.Vertex{Pos: gb.Vec2{410, 10}, Col: blue}
-	//bufVtx[7] = gb.Vertex{Pos: gb.Vec2{410, 200}, Col: blue}
-	//bufVtx[8] = gb.Vertex{Pos: gb.Vec2{600, 10}, Col: blue}
-	//bufIdx[0] = 0
-	//bufIdx[1] = 1
-	//bufIdx[2] = 2
-	//bufIdx[3] = 3
-	//bufIdx[4] = 4
-	//bufIdx[5] = 5
-	//bufIdx[6] = 6
-	//bufIdx[7] = 7
-	//bufIdx[8] = 8
-	//dl.AdjustIdx(cmd)
 
 	// First group
 	_, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)

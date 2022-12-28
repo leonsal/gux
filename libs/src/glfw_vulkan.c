@@ -117,7 +117,6 @@ static void _gb_create_window_swap_chain(gb_state_t* s, int w, int h);
 static void _gb_create_window_command_buffers(gb_state_t* s);
 static int  _gb_get_min_image_count_from_present_mode(VkPresentModeKHR present_mode);
 static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count);
-static void _gb_create_device_objects(gb_state_t* s);
 static void _gb_create_pipeline(gb_state_t* s);
 static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const gb_rgba_t* pixels);
 static void _gb_destroy_texture(gb_state_t* s, struct vulkan_texinfo* tex);
@@ -175,18 +174,14 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->vk_buffer_memory_alignment = 256;
     glfwSetWindowUserPointer(win, s);
 
-    // Get required vulkan extensions from GLFW (WSI)
+    // Get required Vulkan extensions from GLFW (WSI) and initializes Vulkan
     uint32_t extensions_count = 0;
     const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
     _gb_setup_vulkan(s, extensions, extensions_count);
 
-    // Create Window Surface
+    // Create Window Surface and initializes Vulkan window
     VkResult err = glfwCreateWindowSurface(s->vk_instance, win, s->vk_allocator, &s->vk_surface);
     GB_VK_CHECK(err);
-
-    _gb_create_device_objects(s);
-
-    // Initialize vulkan window
     int w, h;
     glfwGetFramebufferSize(win, &w, &h);
     _gb_setup_vulkan_window(s, w, h);
@@ -677,6 +672,59 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
     };
     err = vkCreateDescriptorPool(s->vk_device, &pool_info, s->vk_allocator, &s->vk_descriptor_pool);
     GB_VK_CHECK(err);
+
+    // Creates texture sampler
+    if (!s->vk_sampler) {
+        VkSamplerCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        info.magFilter = VK_FILTER_LINEAR;
+        info.minFilter = VK_FILTER_LINEAR;
+        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        info.minLod = -1000;
+        info.maxLod = 1000;
+        info.maxAnisotropy = 1.0f;
+        err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_sampler);
+        GB_VK_CHECK(err);
+    }
+
+    // Creates Descriptor Set Layout
+    if (!s->vk_descriptor_set_layout) {
+        VkSampler sampler[1] = {s->vk_sampler};
+        VkDescriptorSetLayoutBinding binding[1] = {};
+        binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding[0].descriptorCount = 1;
+        binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        binding[0].pImmutableSamplers = sampler;
+        VkDescriptorSetLayoutCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        info.bindingCount = 1;
+        info.pBindings = binding;
+        err = vkCreateDescriptorSetLayout(s->vk_device, &info, s->vk_allocator, &s->vk_descriptor_set_layout);
+        GB_VK_CHECK(err);
+    }
+
+    // Creates Pipeline Layout
+    if (!s->vk_pipeline_layout) {
+        // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+        VkPushConstantRange push_constants[1] = {};
+        push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        push_constants[0].offset = sizeof(float) * 0;
+        push_constants[0].size = sizeof(float) * 4;
+        VkDescriptorSetLayout set_layout[1] = { s->vk_descriptor_set_layout };
+        VkPipelineLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_info.setLayoutCount = 1;
+        layout_info.pSetLayouts = set_layout;
+        layout_info.pushConstantRangeCount = 1;
+        layout_info.pPushConstantRanges = push_constants;
+        err = vkCreatePipelineLayout(s->vk_device, &layout_info, s->vk_allocator, &s->vk_pipeline_layout);
+        GB_VK_CHECK(err);
+    }
+
+    _gb_create_shader_modules(s);
 }
 
 static void _gb_setup_vulkan_window(gb_state_t* s, int width, int height) {
@@ -1016,61 +1064,6 @@ static void _gb_set_min_image_count(gb_state_t* s, uint32_t min_image_count) {
     //GB_VK_CHECK(err);
     //_gb_destroy_all_viewports_render_buffers(s->vi.Device, s->vi.Allocator);
     //s->min_image_count = min_image_count;
-}
-
-static void _gb_create_device_objects(gb_state_t* s) {
-
-    VkResult err;
-
-    if (!s->vk_sampler) {
-        VkSamplerCreateInfo info = {};
-        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        info.magFilter = VK_FILTER_LINEAR;
-        info.minFilter = VK_FILTER_LINEAR;
-        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        info.minLod = -1000;
-        info.maxLod = 1000;
-        info.maxAnisotropy = 1.0f;
-        err = vkCreateSampler(s->vk_device, &info, s->vk_allocator, &s->vk_sampler);
-        GB_VK_CHECK(err);
-    }
-
-    if (!s->vk_descriptor_set_layout) {
-        VkSampler sampler[1] = {s->vk_sampler};
-        VkDescriptorSetLayoutBinding binding[1] = {};
-        binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding[0].descriptorCount = 1;
-        binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        binding[0].pImmutableSamplers = sampler;
-        VkDescriptorSetLayoutCreateInfo info = {};
-        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        info.bindingCount = 1;
-        info.pBindings = binding;
-        err = vkCreateDescriptorSetLayout(s->vk_device, &info, s->vk_allocator, &s->vk_descriptor_set_layout);
-        GB_VK_CHECK(err);
-    }
-
-    if (!s->vk_pipeline_layout) {
-        // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
-        VkPushConstantRange push_constants[1] = {};
-        push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        push_constants[0].offset = sizeof(float) * 0;
-        push_constants[0].size = sizeof(float) * 4;
-        VkDescriptorSetLayout set_layout[1] = { s->vk_descriptor_set_layout };
-        VkPipelineLayoutCreateInfo layout_info = {};
-        layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        layout_info.setLayoutCount = 1;
-        layout_info.pSetLayouts = set_layout;
-        layout_info.pushConstantRangeCount = 1;
-        layout_info.pPushConstantRanges = push_constants;
-        err = vkCreatePipelineLayout(s->vk_device, &layout_info, s->vk_allocator, &s->vk_pipeline_layout);
-        GB_VK_CHECK(err);
-    }
-
-    _gb_create_shader_modules(s);
 }
 
 static void _gb_create_pipeline(gb_state_t* s) {

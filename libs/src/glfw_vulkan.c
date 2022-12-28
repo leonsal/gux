@@ -1587,6 +1587,9 @@ static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers
 // Destroy all Vulkan objects associated with the window
 static void _gb_destroy_window_frame_buffers(gb_state_t* s) {
 
+    if (s->vk_buffers == NULL) {
+        return;
+    }
     for (uint32_t n = 0; n < s->image_count; n++) {
         _gb_destroy_frame_buffers(s, &s->vk_buffers[n]);
     }

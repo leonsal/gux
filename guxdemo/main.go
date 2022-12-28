@@ -37,7 +37,7 @@ func main() {
 		}
 	}
 	texID, width, height := win.CreateTextImage(f, "text image")
-	//fmt.Println("TextImage:", texID, width, height)
+	fmt.Println("TextImage:", texID, width, height)
 
 	//text := `~!@#$%^&*()_+-={}[]:;'",<.>/?
 	//1234567890()
@@ -52,21 +52,21 @@ func main() {
 	var statsStart runtime.MemStats
 	frameCount := 0
 
-	for win.StartFrame() {
+	//for win.StartFrame() {
 
-		//testBasic(win)
-		testText(win, fa, texID, width, height)
-		//testLines(win)
-		//testPolygon(win)
-		win.Render()
+	//	//testBasic(win)
+	//	testText(win, fa, texID, width, height)
+	//	//testLines(win)
+	//	//testPolygon(win)
+	//	win.Render()
 
-		// All the allocations should be done in the first frame
-		frameCount++
-		if frameCount == 1 {
-			cgoCallsStart = runtime.NumCgoCall()
-			runtime.ReadMemStats(&statsStart)
-		}
-	}
+	//	// All the allocations should be done in the first frame
+	//	frameCount++
+	//	if frameCount == 1 {
+	//		cgoCallsStart = runtime.NumCgoCall()
+	//		runtime.ReadMemStats(&statsStart)
+	//	}
+	//}
 
 	// Calculates and shows allocations and cgo calls per frame
 	cgoCalls := runtime.NumCgoCall() - cgoCallsStart

@@ -1186,7 +1186,7 @@ static void _gb_create_pipeline_layout(gb_state_t* s) {
         return;
     }
 
-    // we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
+    // Using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
     _gb_create_descriptor_set_layout(s);
     VkPushConstantRange push_constants[1] = {};
     push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;

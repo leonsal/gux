@@ -24,6 +24,7 @@
 
 // Internal state
 typedef struct {
+    gb_config_t     cfg;                // User configuration
     GLFWwindow*     w;                  // GLFW window pointer
     gb_vec4_t       clear_color;        // Current color to clear color buffer before rendering
     GLuint          handle_shader;      // Handle of compiled shader program
@@ -52,7 +53,13 @@ static bool _gb_check_program(GLuint handle, const char* desc);
 #include "common.c"
 
 // Creates Graphics Backend window
-gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg) {
+gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* pcfg) {
+
+    // Initialize configuration
+    gb_config_t cfg;
+    if (pcfg != NULL) {
+        cfg = *pcfg;
+    }
 
     // Setup error callback and initializes GLFW
     glfwSetErrorCallback(_gb_glfw_error_callback);
@@ -66,26 +73,26 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     const char* glVersion;
     int vmajor;
     int vminor;
-//    if (cfg->opengl.es) {
-//        clientApi = GLFW_OPENGL_ES_API;
-//        glVersion ="#version 300 es";
-//        vmajor = 3;
-//        vminor = 1;
-//    } else {
+    if (cfg.opengl.es) {
+        clientApi = GLFW_OPENGL_ES_API;
+        glVersion ="#version 300 es";
+        vmajor = 3;
+        vminor = 1;
+    } else {
         clientApi = GLFW_OPENGL_API;
         glVersion ="#version 330";
         vmajor = 3;
         vminor = 3;
-//    }
+    }
 
     // Set GLFW hints
     glfwWindowHint(GLFW_CLIENT_API, clientApi);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, vmajor);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, vminor);
     glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-//    if (!cfg->opengl.es) {
+    if (!cfg.opengl.es) {
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-//    }
+    }
 //    if (cfg->opengl.msaa > 0 && cfg->opengl.msaa <= 16) {
 //        glfwWindowHint(GLFW_SAMPLES, 8);
 //    }
@@ -106,6 +113,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
         return NULL;
     }
     memset(s, 0, sizeof(gb_state_t));
+    s->cfg = cfg;
     s->w = win;
     glfwSetWindowUserPointer(win, s);
 

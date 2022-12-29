@@ -89,6 +89,20 @@ type FrameInfo struct {
 	Events   []Event // Events array
 }
 
+// Graphics backend configuration
+type ConfigOpenGL struct {
+	ES bool // Use OpenGL ES3.0 instead of OpenGL 3.3
+}
+
+type ConfigVulkan struct {
+	ValidationLayer bool // Enable Vulkan debug validation layer
+}
+
+type Config struct {
+	OpenGL ConfigOpenGL
+	Vulkan ConfigVulkan
+}
+
 // MakeColor makes and returns an RGBA packed color from the specified components
 func MakeColor(r, g, b, a byte) RGBA {
 
@@ -169,12 +183,20 @@ type Window struct {
 	c C.gb_window_t
 }
 
-func CreateWindow(title string, width, height int) (*Window, error) {
+func CreateWindow(title string, width, height int, cfg *Config) (*Window, error) {
+
+	var pcfg *C.gb_config_t
+	if cfg != nil {
+		ccfg := C.gb_config_t{}
+		ccfg.opengl.es = C.bool(cfg.OpenGL.ES)
+		ccfg.vulkan.validation_layer = C.bool(cfg.Vulkan.ValidationLayer)
+		pcfg = &ccfg
+	}
 
 	ctitle := C.CString(title)
 	defer C.free(unsafe.Pointer(ctitle))
 
-	cw := C.gb_create_window(ctitle, C.int(width), C.int(height), nil)
+	cw := C.gb_create_window(ctitle, C.int(width), C.int(height), pcfg)
 	if cw == nil {
 		return nil, errors.New("error creating window")
 	}

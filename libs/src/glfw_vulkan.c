@@ -21,9 +21,6 @@
 // Check Vulkan return error code
 #define GB_VK_CHECK(_ERR)   _gb_check_vk_result(_ERR, __LINE__);
 
-// Enable vulkan debug
-#define GB_VULKAN_DEBUG_REPORT 1
-
 // Vulkan texture information
 struct vulkan_texinfo {
     VkImage                 vk_image;
@@ -56,11 +53,12 @@ struct vulkan_frame_buffers {
 
 // Backend window state
 typedef struct {
-    GLFWwindow*                     w;                      // GLFW window pointer
-    gb_vec4_t                       clear_color;            // Current color to clear color buffer before rendering
-    uint32_t                        min_image_count;        // Minimum number of framebuffers in the swapchain
-    uint32_t                        queue_family;           // Vulkan queue family
-    VkSampleCountFlagBits           vk_msaa_samples;        // Requested number of AA samples
+    gb_config_t                     cfg;
+    GLFWwindow*                     w;
+    gb_vec4_t                       clear_color;
+    uint32_t                        min_image_count;
+    uint32_t                        queue_family;
+    VkSampleCountFlagBits           vk_msaa_samples;
     VkDeviceSize                    vk_buffer_memory_alignment;
     // Initialization fields
     VkInstance                      vk_instance;
@@ -128,10 +126,8 @@ static void _gb_destroy_frame_buffers(gb_state_t* s, struct vulkan_frame_buffers
 static void _gb_destroy_window_frame_buffers(gb_state_t* s);
 static void _gb_destroy_vulkan(gb_state_t* s);
 static void _gb_check_vk_result(VkResult err, int line);
-#ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
-#endif // IMGUI_VULKAN_DEBUG_REPORT
        
 // Include common internal functions
 #include "common.c"
@@ -173,6 +169,9 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->queue_family = (uint32_t)-1;
     s->vk_buffer_memory_alignment = 256;
     glfwSetWindowUserPointer(win, s);
+    if (cfg != NULL) {
+        s->cfg = *cfg;
+    }
 
     // Get required Vulkan extensions from GLFW (WSI) and initializes Vulkan
     uint32_t extensions_count = 0;
@@ -547,47 +546,48 @@ static void _gb_setup_vulkan(gb_state_t* s, const char** extensions, uint32_t ex
         .enabledExtensionCount = extensions_count,
         .ppEnabledExtensionNames = extensions,
     };
-#ifdef GB_VULKAN_DEBUG_REPORT
-    // Enabling validation layers
-    const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
-    create_info.enabledLayerCount = 1;
-    create_info.ppEnabledLayerNames = layers;
+    if (s->cfg.vulkan.validation_layer) {
+        // Enabling validation layers
+        const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
+        create_info.enabledLayerCount = 1;
+        create_info.ppEnabledLayerNames = layers;
 
-    // Enable debug report extension (we need additional storage, so we duplicate the user array to add our new extension to it)
-    const char** extensions_ext = (const char**)_gb_alloc(sizeof(const char*) * (extensions_count + 1));
-    memcpy(extensions_ext, extensions, extensions_count * sizeof(const char*));
-    extensions_ext[extensions_count] = "VK_EXT_debug_report";
-    create_info.enabledExtensionCount = extensions_count + 1;
-    create_info.ppEnabledExtensionNames = extensions_ext;
+        // Enable debug report extension (we need additional storage, so we duplicate the user array to add our new extension to it)
+        const char** extensions_ext = (const char**)_gb_alloc(sizeof(const char*) * (extensions_count + 1));
+        memcpy(extensions_ext, extensions, extensions_count * sizeof(const char*));
+        extensions_ext[extensions_count] = "VK_EXT_debug_report";
+        create_info.enabledExtensionCount = extensions_count + 1;
+        create_info.ppEnabledExtensionNames = extensions_ext;
 
-    // Create Vulkan Instance
-    err = vkCreateInstance(&create_info, s->vk_allocator, &s->vk_instance);
-    GB_VK_CHECK(err);
-    _gb_free(extensions_ext);
+        // Create Vulkan Instance
+        err = vkCreateInstance(&create_info, s->vk_allocator, &s->vk_instance);
+        GB_VK_CHECK(err);
+        _gb_free(extensions_ext);
 
-    // Load Vulkan functions for the instance
-    volkLoadInstance(s->vk_instance);
+        // Load Vulkan functions for the instance
+        volkLoadInstance(s->vk_instance);
 
-    // Get the function pointer (required for any extensions)
-    PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkCreateDebugReportCallbackEXT");
-    GB_ASSERT(vkCreateDebugReportCallbackEXT != NULL);
+        // Get the function pointer (required for any extensions)
+        PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkCreateDebugReportCallbackEXT");
+        GB_ASSERT(vkCreateDebugReportCallbackEXT != NULL);
 
-    // Setup the debug report callback
-    VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
-    debug_report_ci.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-    debug_report_ci.pfnCallback = _gb_debug_report;
-    debug_report_ci.pUserData = NULL;
-    err = vkCreateDebugReportCallbackEXT(s->vk_instance, &debug_report_ci, s->vk_allocator, &s->vk_debug_report);
-    GB_VK_CHECK(err);
-#else
-    // Create Vulkan Instance without any debug feature
-    err = vkCreateInstance(&create_info, s->vk_allocator, &s->vk_instance);
-    GB_VK_CHECK(err);
-    
-    // Load Vulkan functions for the instance
-    volkLoadInstance(s->vk_instance);
-#endif
+        // Setup the debug report callback
+        VkDebugReportCallbackCreateInfoEXT debug_report_ci = {};
+        debug_report_ci.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+        debug_report_ci.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+        debug_report_ci.pfnCallback = _gb_debug_report;
+        debug_report_ci.pUserData = NULL;
+        err = vkCreateDebugReportCallbackEXT(s->vk_instance, &debug_report_ci, s->vk_allocator, &s->vk_debug_report);
+        GB_VK_CHECK(err);
+        printf("VULKAN validation layer installed\n");
+    } else {
+        // Create Vulkan Instance without any debug feature
+        err = vkCreateInstance(&create_info, s->vk_allocator, &s->vk_instance);
+        GB_VK_CHECK(err);
+        
+        // Load Vulkan functions for the instance
+        volkLoadInstance(s->vk_instance);
+    }
 
     // Select GPU
     uint32_t gpu_count;
@@ -1607,11 +1607,11 @@ static void _gb_destroy_vulkan(gb_state_t* s) {
     vkDestroySampler(s->vk_device, s->vk_sampler, s->vk_allocator);
     vkDestroyDescriptorPool(s->vk_device, s->vk_descriptor_pool, s->vk_allocator);
 
-#ifdef GB_VULKAN_DEBUG_REPORT
-    // Remove the debug report callback
-    PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkDestroyDebugReportCallbackEXT");
-    vkDestroyDebugReportCallbackEXT(s->vk_instance, s->vk_debug_report, s->vk_allocator);
-#endif // IMGUI_VULKAN_DEBUG_REPORT
+    if (s->cfg.vulkan.validation_layer) {
+        // Remove the debug report callback
+        PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(s->vk_instance, "vkDestroyDebugReportCallbackEXT");
+        vkDestroyDebugReportCallbackEXT(s->vk_instance, s->vk_debug_report, s->vk_allocator);
+    }
 
     vkDestroyDevice(s->vk_device, s->vk_allocator);
     vkDestroyInstance(s->vk_instance, s->vk_allocator);
@@ -1626,7 +1626,6 @@ static void _gb_check_vk_result(VkResult err, int line) {
     fprintf(stderr, "Vulkan error: VkResult = %d at line:%d\n", err, line);
 }
 
-#ifdef GB_VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
 
@@ -1634,5 +1633,4 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL _gb_debug_report(VkDebugReportFlagsEXT fla
     fprintf(stderr, "[vulkan] Debug report from ObjectType: %i\nMessage: %s\n\n", objectType, pMessage);
     return VK_FALSE;
 }
-#endif // IMGUI_VULKAN_DEBUG_REPORT
 

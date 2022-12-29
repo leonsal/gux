@@ -46,12 +46,12 @@ type Window struct {
 }
 
 // New creates and returns a new Window
-func NewWindow(title string, width, height int) (*Window, error) {
+func NewWindow(title string, width, height int, cfg *gb.Config) (*Window, error) {
 
 	// Creates graphics backend native window
 	w := new(Window)
 	var err error
-	w.gbw, err = gb.CreateWindow(title, width, height)
+	w.gbw, err = gb.CreateWindow(title, width, height, cfg)
 	if err != nil {
 		return nil, err
 	}

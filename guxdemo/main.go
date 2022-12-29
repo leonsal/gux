@@ -13,7 +13,9 @@ func main() {
 	runtime.LockOSThread()
 
 	// Create window
-	win, err := gux.NewWindow("title", 2000, 1200)
+	cfg := gb.Config{}
+	cfg.Vulkan.ValidationLayer = true
+	win, err := gux.NewWindow("title", 2000, 1200, &cfg)
 	if err != nil {
 		panic(err)
 	}

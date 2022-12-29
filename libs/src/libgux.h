@@ -2,17 +2,6 @@
 #include <stdbool.h>    
 #include <stdint.h> // intptr_t
 
-// Graphics backend configuration 
-typedef struct gb_config {
-    struct {
-        bool es;
-        int  msaa;
-    } opengl;
-    struct {
-        bool validation_layer;
-    } vulkan;
-} gb_config_t;
-
 // Opaque backend window pointer
 typedef void* gb_window_t;
 
@@ -96,6 +85,20 @@ typedef struct gb_frame_info {
     gb_event_t*     events;         // Pointer to array of events
 } gb_frame_info_t;
 
+// Graphics backend configuration 
+typedef struct gb_config_open_t {
+    bool es;
+} gb_config_opengl_t;
+
+typedef struct gb_config_vulkan {
+    bool validation_layer;
+} gb_config_vulkan_t;
+
+typedef struct gb_config {
+    gb_config_opengl_t opengl;
+    gb_config_vulkan_t vulkan;
+} gb_config_t;
+
 // Event types
 enum {
     EVENT_KEY,                      // Key input event
@@ -107,7 +110,7 @@ enum {
 };
 
 // Public API
-gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* cfg);
+gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* pcfg);
 void gb_window_destroy(gb_window_t win);
 gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);

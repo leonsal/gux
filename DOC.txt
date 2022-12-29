@@ -1,4 +1,7 @@
 - TODO
+    - OpenGL ES:
+        - Copy DrawList index buffer before adjusting it as the
+        application may send the same list over and over.
     - Arc angle direction ?
     - Sine/Cosine interpolation table and Benchmark
     - Initializes Default circle used when numSegments == 0

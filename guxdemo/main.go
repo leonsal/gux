@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 
 	"github.com/leonsal/gux"
@@ -94,6 +95,8 @@ func testArc(win *gux.Window) {
 		gb.MakeColor(0, 255, 0, 255),
 		gb.MakeColor(0, 0, 255, 255),
 		gb.MakeColor(0, 0, 0, 255),
+		gb.MakeColor(255, 255, 0, 255),
+		gb.MakeColor(0, 255, 255, 255),
 		gb.MakeColor(255, 255, 255, 255),
 		gb.MakeColor(100, 100, 100, 255),
 	}
@@ -107,19 +110,44 @@ func testArc(win *gux.Window) {
 	center := gb.Vec2{radius + 10, radius + 10}
 	segs := 3
 	thickness := float32(2)
-	for i := 0; i < 10; i++ {
+	deltaY := 2*radius + 50
+	deltaX := 2*radius + 40
+	for i := 0; i < 12; i++ {
 		win.AddCircle(dl, center, radius, nextColor(i), segs, thickness)
-		center.X += 2*radius + 2 + 10
+		center.X += deltaX
 		segs += 3
 		thickness += 2
 	}
 
-	center = gb.Vec2{radius + 10, 3*radius + 20}
+	center = gb.Vec2{radius + 10, center.Y + deltaY}
 	segs = 3
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 12; i++ {
 		win.AddCircleFilled(dl, center, radius, nextColor(i), segs)
-		center.X += 2*radius + 2 + 10
+		center.X += deltaX
 		segs += 3
+	}
+
+	center = gb.Vec2{radius + 10, center.Y + deltaY}
+	segs = 3
+	thickness = float32(2)
+	for i := 0; i < 12; i++ {
+		amax := 2 * math.Pi * (float64(i) + 1) * 0.08
+		win.PathArcTo(dl, center, radius, 0, float32(amax), segs)
+		win.PathStroke(dl, nextColor(i), 0, thickness)
+		center.X += deltaX
+		segs += 3
+		thickness += 2
+	}
+
+	center = gb.Vec2{radius + 10, center.Y + deltaY}
+	segs = 3
+	for i := 0; i < 12; i++ {
+		amax := 2 * math.Pi * (float64(i) + 1) * 0.08
+		win.PathArcTo(dl, center, radius, 0, float32(amax), segs)
+		win.PathFillConvex(dl, nextColor(i))
+		center.X += deltaX
+		segs += 3
+		thickness += 2
 	}
 }
 

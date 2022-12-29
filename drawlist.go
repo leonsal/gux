@@ -103,10 +103,6 @@ func (w *Window) PathArcTo(dl *gb.DrawList, center gb.Vec2, radius, amin, amax f
 	}
 }
 
-func (w *Window) PathArcToFast(dl *gb.DrawList, center gb.Vec2, radius, amin12, amax12 float32) {
-
-}
-
 func (w *Window) PathRect(dl *gb.DrawList, rectMin, rectMax gb.Vec2, rounding float32, flags DrawFlags) {
 
 }
@@ -130,8 +126,6 @@ func (w *Window) AddCircle(dl *gb.DrawList, center gb.Vec2, radius float32, col 
 	if (col&gb.RGBAMaskA) == 0 || radius < 0.5 {
 		return
 	}
-
-	// Explicit segment count (still clamp to avoid drawing insanely tessellated shapes)
 	numSegments = Clamp(numSegments, 3, DrawListCircleSegmentMax)
 
 	// Because we are filling a closed shape we remove 1 from the count of segments/points
@@ -145,8 +139,6 @@ func (w *Window) AddCircleFilled(dl *gb.DrawList, center gb.Vec2, radius float32
 	if (col&gb.RGBAMaskA) == 0 || radius < 0.5 {
 		return
 	}
-
-	// Explicit segment count (still clamp to avoid drawing insanely tessellated shapes)
 	numSegments = Clamp(numSegments, 3, DrawListCircleSegmentMax)
 
 	// Because we are filling a closed shape we remove 1 from the count of segments/points

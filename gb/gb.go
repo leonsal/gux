@@ -99,8 +99,9 @@ type ConfigVulkan struct {
 }
 
 type Config struct {
-	OpenGL ConfigOpenGL
-	Vulkan ConfigVulkan
+	DebugPrintCmds bool
+	OpenGL         ConfigOpenGL
+	Vulkan         ConfigVulkan
 }
 
 // MakeColor makes and returns an RGBA packed color from the specified components
@@ -188,6 +189,7 @@ func CreateWindow(title string, width, height int, cfg *Config) (*Window, error)
 	var pcfg *C.gb_config_t
 	if cfg != nil {
 		ccfg := C.gb_config_t{}
+		ccfg.debug_print_cmds = C.bool(cfg.DebugPrintCmds)
 		ccfg.opengl.es = C.bool(cfg.OpenGL.ES)
 		ccfg.vulkan.validation_layer = C.bool(cfg.Vulkan.ValidationLayer)
 		pcfg = &ccfg

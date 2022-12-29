@@ -264,7 +264,9 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
         }
     }
 
-    //_gb_print_draw_list(dl);
+    if (s->cfg.debug_print_cmds) {
+        _gb_print_draw_list(dl);
+    }
 }
 
 // Load OpenGL functions and initialize its state

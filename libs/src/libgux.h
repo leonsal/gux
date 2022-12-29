@@ -95,8 +95,9 @@ typedef struct gb_config_vulkan {
 } gb_config_vulkan_t;
 
 typedef struct gb_config {
-    gb_config_opengl_t opengl;
-    gb_config_vulkan_t vulkan;
+    bool      debug_print_cmds;     // Print draw commands for debugging
+    gb_config_opengl_t  opengl;     // OpenGL configuration
+    gb_config_vulkan_t  vulkan;     // Vulkan configuration
 } gb_config_t;
 
 // Event types

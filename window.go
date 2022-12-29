@@ -9,8 +9,8 @@ const TexLinesWidthMax = 63
 type DrawFlags int
 
 const (
-	DrawFlags_None  DrawFlags = 0
-	DrawFlag_Closed DrawFlags = 1 << iota
+	DrawFlags_None   DrawFlags = 0
+	DrawFlags_Closed DrawFlags = 1 << iota
 	DrawFlags_RoundCornersTopLeft
 	DrawFlags_RoundCornersTopRight
 	DrawFlags_RoundCornersBottomLeft
@@ -28,6 +28,9 @@ type DrawListFlags int
 const (
 	DrawListFlags_AntiAliasedFill DrawListFlags = 1 << iota
 )
+const (
+	DrawListCircleSegmentMax = 512
+)
 
 // Window corresponds to a native platform Window
 type Window struct {
@@ -42,7 +45,6 @@ type Window struct {
 	drawFlags   DrawListFlags                 // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
 	frameParams gb.FrameParams
 	frameInfo   gb.FrameInfo
-	dlData      *DrawListSharedData
 }
 
 // New creates and returns a new Window
@@ -62,8 +64,6 @@ func NewWindow(title string, width, height int, cfg *gb.Config) (*Window, error)
 
 	w.drawFlags |= DrawListFlags_AntiAliasedFill
 	w.FringeScale = 1.0
-
-	w.dlData = NewDrawListSharedData()
 
 	w.frameParams.ClearColor = gb.Vec4{0.5, 0.5, 0.5, 1.0}
 

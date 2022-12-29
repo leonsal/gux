@@ -8,7 +8,11 @@ import (
 
 func (w *Window) AddPolyLine(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
 
-	//c.polyLineBasic(points, col, flags, thickness)
+	if thickness <= float32(TexLinesWidthMax) {
+		w.AddPolyLineTextured(dl, points, col, flags, thickness)
+	} else {
+		w.AddPolyLineAntiAliased(dl, points, col, flags, thickness)
+	}
 }
 
 func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col gb.RGBA, flags DrawFlags, thickness float32) {
@@ -17,7 +21,7 @@ func (w *Window) AddPolyLineAntiAliased(dl *gb.DrawList, points []gb.Vec2, col g
 	AA_SIZE := w.FringeScale
 	colTrans := gb.RGBA(col & ^gb.RGBAMaskA)
 	var closed bool
-	if (flags & DrawFlag_Closed) != 0 {
+	if (flags & DrawFlags_Closed) != 0 {
 		closed = true
 	}
 
@@ -293,7 +297,7 @@ func (w *Window) AddPolyLineTextured(dl *gb.DrawList, points []gb.Vec2, col gb.R
 
 	// Checks if 'flags' specifies closed line path (last point == first point)
 	var closed bool
-	if (flags & DrawFlag_Closed) != 0 {
+	if (flags & DrawFlags_Closed) != 0 {
 		closed = true
 	}
 

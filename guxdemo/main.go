@@ -58,7 +58,8 @@ func main() {
 
 	for win.StartFrame() {
 
-		testBasic(win)
+		testArc(win)
+		//testBasic(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
@@ -83,6 +84,43 @@ func main() {
 	win.DestroyFontAtlas(fa)
 	win.DeleteTexture(texID)
 	win.Destroy()
+}
+
+func testArc(win *gux.Window) {
+
+	dl := win.DrawList()
+	colors := []gb.RGBA{
+		gb.MakeColor(255, 0, 0, 255),
+		gb.MakeColor(0, 255, 0, 255),
+		gb.MakeColor(0, 0, 255, 255),
+		gb.MakeColor(0, 0, 0, 255),
+		gb.MakeColor(255, 255, 255, 255),
+		gb.MakeColor(100, 100, 100, 255),
+	}
+
+	nextColor := func(i int) gb.RGBA {
+		ci := i % len(colors)
+		return colors[ci]
+	}
+
+	radius := float32(100)
+	center := gb.Vec2{radius + 10, radius + 10}
+	segs := 3
+	thickness := float32(2)
+	for i := 0; i < 10; i++ {
+		win.AddCircle(dl, center, radius, nextColor(i), segs, thickness)
+		center.X += 2*radius + 2 + 10
+		segs += 3
+		thickness += 2
+	}
+
+	center = gb.Vec2{radius + 10, 3*radius + 20}
+	segs = 3
+	for i := 0; i < 10; i++ {
+		win.AddCircleFilled(dl, center, radius, nextColor(i), segs)
+		center.X += 2*radius + 2 + 10
+		segs += 3
+	}
 }
 
 func testBasic(win *gux.Window) {
@@ -230,7 +268,7 @@ func testLines(w *gux.Window) {
 	translatePoints(points1, gb.Vec2{10, 10})
 	dl := w.DrawList()
 	for width := 1; width < 60; width += 8 {
-		w.AddPolyLineAntiAliased(dl, points1, gb.MakeColor(0, 0, 0, 255), 0, float32(width))
+		w.AddPolyLineAntiAliased(dl, points1, gb.MakeColor(0, 0, 0, 255), gux.DrawFlags_None, float32(width))
 		translatePoints(points1, gb.Vec2{0, 120})
 	}
 

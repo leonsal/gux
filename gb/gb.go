@@ -64,7 +64,7 @@ type DrawList struct {
 	bufCmd []DrawCmd // Buffer with draw commands
 	bufIdx []uint32  // Buffer with vertices indices
 	bufVtx []Vertex  // Buffer with vertices info
-	Path   []Vec2    // Path being built
+	Path   []Vec2    // Temporary list of path points
 }
 
 // Event describes an I/O event
@@ -177,6 +177,32 @@ func (dl *DrawList) Clear() {
 	dl.bufCmd = dl.bufCmd[:0]
 	dl.bufIdx = dl.bufIdx[:0]
 	dl.bufVtx = dl.bufVtx[:0]
+	dl.Path = dl.Path[:0]
+}
+
+// PathReserve reserves spaces for n points for the DrawList Path slice
+func (dl *DrawList) PathReserve(n int) {
+
+	plen := len(dl.Path)
+	pcap := cap(dl.Path)
+	free := pcap - plen
+	if n <= free {
+		return
+	}
+	buf := make([]Vec2, plen, n-free)
+	copy(buf, dl.Path)
+	dl.Path = buf
+}
+
+// PathAppends appends a point to the DrawList Path
+func (dl *DrawList) PathAppend(p Vec2) {
+
+	dl.Path = append(dl.Path, p)
+}
+
+// PathClear clears the DrawList path without deallocation its memory
+func (dl *DrawList) PathClear() {
+
 	dl.Path = dl.Path[:0]
 }
 

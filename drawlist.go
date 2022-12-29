@@ -6,39 +6,6 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-const (
-	DrawListCircleAutoSegmentMin = 4
-	DrawListCircleAutoSegmentMax = 512
-
-	// Lookup table size for adaptive arc drawing, cover full circle.
-	DrawListArcFastTableSize = 48
-
-	// Sample index _PathArcToFastEx() for 360 angle.
-	DrawListArcFastSampleMax = DrawListArcFastTableSize
-)
-
-//type DrawListSharedData struct {
-//	CircleSegmentMaxError float32                           // Number of circle segments to use per pixel of radius for AddCircle()
-//	ArcFastVtx            [DrawListArcFastTableSize]gb.Vec2 // Sample points on the quarter of the circle
-//	ArcFastRadiusCutoff   float32                           // Cutoff radius after which arc drawing will fallback to slower PathArcTo()
-//	CircleSegmentCounts   [64]byte                          // Precomputed segment count for given radius before we calculated it dynamically
-//}
-//
-//func NewDrawListSharedData() *DrawListSharedData {
-//
-//	sd := new(DrawListSharedData)
-//
-//	for i := 0; i < len(sd.ArcFastVtx); i++ {
-//		a := (float32(i) * 2 * math.Pi) / float32(len(sd.ArcFastVtx))
-//		sd.ArcFastVtx[i] = gb.Vec2{Cos(a), Sin(a)}
-//
-//	}
-//	sd.ArcFastRadiusCutoff = float32(drawListCircleAutoSegmentCalc(DrawListArcFastSampleMax, sd.CircleSegmentMaxError))
-//
-//	return sd
-//
-//}
-
 // DrawList return this window DrawList
 func (w *Window) DrawList() *gb.DrawList {
 
@@ -77,11 +44,6 @@ func (w *Window) PathFillConvex(dl *gb.DrawList, col gb.RGBA) {
 }
 
 func (w *Window) PathStroke(dl *gb.DrawList, col gb.RGBA, flags DrawFlags, thickness float32) {
-
-	//for i, p := range dl.Path {
-	//	fmt.Printf("%d %+v\n", i, p)
-	//}
-	//fmt.Println()
 
 	w.AddPolyLine(dl, dl.Path, col, flags, thickness)
 	dl.PathClear()
@@ -150,20 +112,3 @@ func (w *Window) AddCircleFilled(dl *gb.DrawList, center gb.Vec2, radius float32
 func roundupToEven(v int) int {
 	return ((v + 1) / 2 * 2)
 }
-
-// #define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC(_RAD,_MAXERROR)
-//
-//	ImClamp(IM_ROUNDUP_TO_EVEN((int)ImCeil(IM_PI / ImAcos(1 - ImMin((_MAXERROR), (_RAD)) / (_RAD)))), IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MIN, IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MAX)
-func drawListCircleAutoSegmentCalc(rad, maxerror float32) int {
-
-	return Clamp(roundupToEven(int(math.Ceil(math.Pi/math.Cos(float64(1-Min(maxerror, rad)/rad))))), DrawListCircleAutoSegmentMin, DrawListCircleAutoSegmentMax)
-
-}
-
-//#define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC(_RAD,_MAXERROR)    ImClamp(IM_ROUNDUP_TO_EVEN((int)ImCeil(IM_PI / ImAcos(1 - ImMin((_MAXERROR), (_RAD)) / (_RAD)))), IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MIN, IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_MAX)
-
-//#define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC_R(_N,_MAXERROR)    ((_MAXERROR) / (1 - ImCos(IM_PI / ImMax((float)(_N), IM_PI))))
-//func drawListCircleAutoSegmentCalcR(n,
-
-// Raw equation from IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC rewritten for 'r' and 'error'.
-//#define IM_DRAWLIST_CIRCLE_AUTO_SEGMENT_CALC_ERROR(_N,_RAD)     ((1 - ImCos(IM_PI / ImMax((float)(_N), IM_PI))) / (_RAD))

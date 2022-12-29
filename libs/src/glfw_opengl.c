@@ -56,7 +56,7 @@ static bool _gb_check_program(GLuint handle, const char* desc);
 gb_window_t gb_create_window(const char* title, int width, int height, gb_config_t* pcfg) {
 
     // Initialize configuration
-    gb_config_t cfg;
+    gb_config_t cfg = {};
     if (pcfg != NULL) {
         cfg = *pcfg;
     }

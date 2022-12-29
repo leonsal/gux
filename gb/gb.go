@@ -127,10 +127,8 @@ func (dl *DrawList) NewDrawCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 		dl.bufVtx = append(dl.bufVtx, Vertex{})
 	}
 
-	// Reserve command
+	// Creates and appends new command to the DrawList command buffer
 	cmd := DrawCmd{
-		ClipRect:  Vec4{},
-		TexID:     1, // First texture allocated: white pixel
 		idxOffset: uint32(idxOffset),
 		vtxOffset: uint32(vtxOffset),
 		elemCount: uint32(idxCount),

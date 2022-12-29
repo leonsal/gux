@@ -207,13 +207,14 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
         return;
     }
 
-    // Adjusts indices buffer for all commands before uploading it.
-    // This is necessary because we are using glDrawIndexed() instead of glDrawElementsBaseVertex() which
-    // is available from OpenGL 3.3 and not in OpenGL ES3.
-    for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
-        gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
-	    for (int idx = 0; idx < pcmd->elem_count; idx++) {
-	        dl.buf_idx[pcmd->idx_offset + idx] += pcmd->vtx_offset;
+    // For OpenGL ES where glDrawElementsBaseVertex() is not available,
+    // adjusts indices buffer for all commands before uploading it.
+    if (s->cfg.opengl.es) {
+        for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
+            gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];
+            for (int idx = 0; idx < pcmd->elem_count; idx++) {
+                dl.buf_idx[pcmd->idx_offset + idx] += pcmd->vtx_offset;
+            }
         }
     }
 
@@ -255,7 +256,12 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
         // Set texture and draw 
         GL_CALL(glBindTexture(GL_TEXTURE_2D, (GLuint)(pcmd->texid)));
-        GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(gb_index_t))));
+        if (s->cfg.opengl.es) {
+            GL_CALL(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->idx_offset * sizeof(gb_index_t))));
+        } else {
+            GL_CALL(glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)pcmd->elem_count, GL_UNSIGNED_INT,
+                (void*)(intptr_t)(pcmd->idx_offset * sizeof(gb_index_t)), (GLint)pcmd->vtx_offset));
+        }
     }
 
     //_gb_print_draw_list(dl);

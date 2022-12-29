@@ -70,17 +70,14 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 
     // Determines the api version from configuration
     int clientApi;
-    const char* glVersion;
     int vmajor;
     int vminor;
     if (cfg.opengl.es) {
         clientApi = GLFW_OPENGL_ES_API;
-        glVersion ="#version 300 es";
         vmajor = 3;
         vminor = 1;
     } else {
         clientApi = GLFW_OPENGL_API;
-        glVersion ="#version 330";
         vmajor = 3;
         vminor = 3;
     }
@@ -319,32 +316,34 @@ static void _gb_set_state(gb_state_t* s) {
 
 static bool _gb_create_objects(gb_state_t* s) {
 
-//    const GLchar* vertex_shader_glsl_300_es =
-//        "precision highp float;\n"
-//        "layout (location = 0) in vec2 Position;\n"
-//        "layout (location = 1) in vec2 UV;\n"
-//        "layout (location = 2) in vec4 Color;\n"
-//        "uniform mat4 ProjMtx;\n"
-//        "out vec2 Frag_UV;\n"
-//        "out vec4 Frag_Color;\n"
-//        "void main()\n"
-//        "{\n"
-//        "    Frag_UV = UV;\n"
-//        "    Frag_Color = Color;\n"
-//        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-//        "}\n";
-//
-//    const GLchar* fragment_shader_glsl_300_es =
-//        "precision mediump float;\n"
-//        "uniform sampler2D Texture;\n"
-//        "in vec2 Frag_UV;\n"
-//        "in vec4 Frag_Color;\n"
-//        "layout (location = 0) out vec4 Out_Color;\n"
-//        "void main()\n"
-//        "{\n"
-//        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-//        "}\n";
-//
+    const GLchar* vertex_shader_glsl_300_es =
+        "#version 300 es\n"
+        "precision highp float;\n"
+        "layout (location = 0) in vec2 Position;\n"
+        "layout (location = 1) in vec2 UV;\n"
+        "layout (location = 2) in vec4 Color;\n"
+        "uniform mat4 ProjMtx;\n"
+        "out vec2 Frag_UV;\n"
+        "out vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "}\n";
+
+    const GLchar* fragment_shader_glsl_300_es =
+        "#version 300 es\n"
+        "precision mediump float;\n"
+        "uniform sampler2D Texture;\n"
+        "in vec2 Frag_UV;\n"
+        "in vec4 Frag_Color;\n"
+        "layout (location = 0) out vec4 Out_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "}\n";
+
     const GLchar* vertex_shader_glsl_330_core =
         "#version 330 core\n"
         "layout (location = 0) in vec2 Position;\n"
@@ -372,8 +371,16 @@ static bool _gb_create_objects(gb_state_t* s) {
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
         "}\n";
 
-    const GLchar* vertex_shader = vertex_shader_glsl_330_core;
-    const GLchar* fragment_shader = fragment_shader_glsl_330_core;
+    // Select shaders from the configuration
+    const GLchar* vertex_shader;
+    const GLchar* fragment_shader;
+    if (s->cfg.opengl.es) {
+        vertex_shader = vertex_shader_glsl_300_es;
+        fragment_shader = fragment_shader_glsl_300_es;
+    } else {
+        vertex_shader = vertex_shader_glsl_330_core;
+        fragment_shader = fragment_shader_glsl_330_core;
+    }
 
     // Create vertex shader
     GLuint vert_handle = glCreateShader(GL_VERTEX_SHADER);

@@ -14,6 +14,7 @@ func main() {
 
 	// Create window
 	cfg := gb.Config{}
+	cfg.OpenGL.ES = true
 	cfg.Vulkan.ValidationLayer = true
 	win, err := gux.NewWindow("title", 2000, 1200, &cfg)
 	if err != nil {

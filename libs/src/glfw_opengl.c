@@ -209,6 +209,7 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
 
     // For OpenGL ES where glDrawElementsBaseVertex() is not available,
     // adjusts indices buffer for all commands before uploading it.
+    // THIS MODIFIES THE USER DRAWLIST. SHOULD A TEMP BUFFER BE USED ???
     if (s->cfg.opengl.es) {
         for (int cmd_i = 0; cmd_i < dl.cmd_count; cmd_i++) {
             gb_draw_cmd_t* pcmd = &dl.buf_cmd[cmd_i];

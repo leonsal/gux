@@ -15,8 +15,8 @@ func main() {
 
 	// Create window
 	cfg := gb.Config{}
-	cfg.DebugPrintCmds = false
-	cfg.OpenGL.ES = false
+	cfg.DebugPrintCmds = true
+	cfg.OpenGL.ES = true
 	cfg.Vulkan.ValidationLayer = true
 	win, err := gux.NewWindow("title", 2000, 1200, &cfg)
 	if err != nil {
@@ -59,8 +59,8 @@ func main() {
 
 	for win.StartFrame() {
 
-		testArc(win)
-		//testBasic(win)
+		//testArc(win)
+		testBasic(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)

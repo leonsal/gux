@@ -103,7 +103,7 @@ func (w *Window) Render() {
 }
 
 // Adds specified draw list to this Window's draw list
-func (w *Window) AddList(src gb.DrawList) {
+func (w *Window) AddList(src *gb.DrawList) {
 
 	w.dl.AddList(src)
 }

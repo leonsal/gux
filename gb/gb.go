@@ -5,6 +5,7 @@ package gb
 import "C"
 import (
 	"errors"
+	"math"
 	"unsafe"
 )
 
@@ -147,25 +148,24 @@ func (dl *DrawList) AddCmd(clipRect Vec4, texId TextureID, indices []uint32, ver
 	cmd.TexID = texId
 }
 
-// AddList appends the specified DrawList to this one
-func (dl *DrawList) AddList(src DrawList) {
+// AddList appends the specified DrawList to this one.
+// The added DrawList is not modified.
+func (dl *DrawList) AddList(src *DrawList) {
 
 	// Append vertices
 	vtxOffset := len(dl.bufVtx)
 	dl.bufVtx = append(dl.bufVtx, src.bufVtx...)
 
-	// Append indices adjusting offset
+	// Append indices
 	idxOffset := len(dl.bufIdx)
-	for _, idx := range src.bufIdx {
-		dl.bufIdx = append(dl.bufIdx, idx+uint32(vtxOffset))
-	}
+	dl.bufIdx = append(dl.bufIdx, src.bufIdx...)
 
 	// Append commands adjusting offsets
 	for i := 0; i < len(src.bufCmd); i++ {
-		cmd := &src.bufCmd[i]
+		cmd := src.bufCmd[i]
 		cmd.idxOffset += uint32(idxOffset)
 		cmd.vtxOffset += uint32(vtxOffset)
-		dl.bufCmd = append(dl.bufCmd, *cmd)
+		dl.bufCmd = append(dl.bufCmd, cmd)
 	}
 }
 
@@ -202,6 +202,50 @@ func (dl *DrawList) PathAppend(p Vec2) {
 func (dl *DrawList) PathClear() {
 
 	dl.Path = dl.Path[:0]
+}
+
+// Clone returns a copy of the DrawList
+func (dl *DrawList) Clone() DrawList {
+
+	dst := DrawList{}
+	dst.bufCmd = make([]DrawCmd, len(dl.bufCmd))
+	dst.bufIdx = make([]uint32, len(dl.bufIdx))
+	dst.bufVtx = make([]Vertex, len(dl.bufVtx))
+	copy(dst.bufCmd, dl.bufCmd)
+	copy(dst.bufIdx, dl.bufIdx)
+	copy(dst.bufVtx, dl.bufVtx)
+	return dst
+}
+
+// Translate translates all vertices of the DrawList by the specified delta vector
+func (dl *DrawList) Translate(delta Vec2) *DrawList {
+
+	for i := 0; i < len(dl.bufVtx); i++ {
+		dl.bufVtx[i].Pos.Add(delta)
+	}
+	return dl
+}
+
+// Scale scales all vertices of the DrawList by the specified scale vector
+func (dl *DrawList) Scale(scale Vec2) *DrawList {
+
+	for i := 0; i < len(dl.bufVtx); i++ {
+		dl.bufVtx[i].Pos.X *= scale.X
+		dl.bufVtx[i].Pos.Y *= scale.Y
+	}
+	return dl
+}
+
+func (dl *DrawList) Rotate(theta float32) *DrawList {
+
+	sin := float32(math.Sin(float64(theta)))
+	cos := float32(math.Cos(float64(theta)))
+	for i := 0; i < len(dl.bufVtx); i++ {
+		v := dl.bufVtx[i].Pos
+		dl.bufVtx[i].Pos.X = v.X*cos - v.Y*sin
+		dl.bufVtx[i].Pos.Y = v.X*sin + v.Y*cos
+	}
+	return dl
 }
 
 type Window struct {

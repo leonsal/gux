@@ -81,8 +81,8 @@ func Test1(t *testing.T) {
 
 	// Create new DrawList from concatenation of DrawList1 and 2
 	drawList := DrawList{}
-	drawList.AddList(drawList1)
-	drawList.AddList(drawList2)
+	drawList.AddList(&drawList1)
+	drawList.AddList(&drawList2)
 
 	// Render loop
 	frames := 0

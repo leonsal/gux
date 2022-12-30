@@ -60,7 +60,7 @@ func main() {
 	for win.StartFrame() {
 
 		//testArc(win)
-		testBasic(win)
+		testTransform(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
@@ -151,7 +151,7 @@ func testArc(win *gux.Window) {
 	}
 }
 
-func testBasic(win *gux.Window) {
+func testTransform(win *gux.Window) {
 
 	dl := win.DrawList()
 	red := gb.MakeColor(255, 0, 0, 255)
@@ -159,77 +159,52 @@ func testBasic(win *gux.Window) {
 	blue := gb.MakeColor(0, 0, 255, 255)
 
 	// First group
-	_, bufIdx, bufVtx := win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 10}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 200}, Col: red}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 10}, Col: red}
+	g1 := gb.DrawList{}
+	_, bufIdx, bufVtx := win.NewDrawCmd(&g1, 3, 3)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, -100}, Col: red}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{-100, 100}, Col: red}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{100, 100}, Col: red}
 	bufIdx[0] = 0
 	bufIdx[1] = 1
 	bufIdx[2] = 2
 
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{210, 10}, Col: green}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{210, 200}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{400, 10}, Col: green}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{410, 10}, Col: blue}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{410, 200}, Col: blue}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{600, 10}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{610, 10}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{610, 200}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{800, 10}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
+	deltaX := float32(210)
+	for i := 1; i < 8; i++ {
+		g := g1.Clone()
+		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		sf := 1.0 - float32(i)/10
+		g.Scale(gb.Vec2{sf, sf})
+		g.Translate(gb.Vec2{deltaX * float32(i), 100})
+		dl.AddList(&g)
+	}
 
 	// Second group
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, 500}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{200, 500}, Col: red}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{100, 300}, Col: red}
+	g2 := gb.DrawList{}
+	_, bufIdx, bufVtx = win.NewDrawCmd(&g2, 3, 3)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, 0}, Col: green}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{0, 200}, Col: green}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 0}, Col: green}
 	bufIdx[0] = 0
 	bufIdx[1] = 1
 	bufIdx[2] = 2
 
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{210, 500}, Col: green}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{410, 500}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{310, 300}, Col: green}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{420, 500}, Col: blue}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{620, 500}, Col: blue}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{520, 300}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 3, 3)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{630, 500}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{830, 500}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{730, 300}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
+	deltaY := float32(300)
+	for i := 1; i < 8; i++ {
+		g := g2.Clone()
+		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		sf := 1.0 - float32(i)/10
+		g.Scale(gb.Vec2{sf, sf})
+		g.Translate(gb.Vec2{deltaX * float32(i), deltaY})
+		dl.AddList(&g)
+	}
 
 	// Third group
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{10, 700}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{10, 900}, Col: red}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{210, 900}, Col: red}
-	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{210, 700}, Col: red}
+	g3 := gb.DrawList{}
+	_, bufIdx, bufVtx = win.NewDrawCmd(&g3, 6, 4)
+	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{-100, -100}, Col: blue}
+	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{-100, 100}, Col: blue}
+	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{100, 100}, Col: blue}
+	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{100, -100}, Col: blue}
 	bufIdx[0] = 0
 	bufIdx[1] = 1
 	bufIdx[2] = 2
@@ -237,41 +212,16 @@ func testBasic(win *gux.Window) {
 	bufIdx[4] = 3
 	bufIdx[5] = 0
 
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{220, 700}, Col: green}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{220, 900}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{420, 900}, Col: green}
-	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{420, 700}, Col: green}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	bufIdx[3] = 2
-	bufIdx[4] = 3
-	bufIdx[5] = 0
+	deltaY += 300
+	for i := 1; i < 8; i++ {
+		g := g3.Clone()
+		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		sf := 1.0 - float32(i)/10
+		g.Scale(gb.Vec2{sf, sf})
+		g.Translate(gb.Vec2{deltaX * float32(i), deltaY})
+		dl.AddList(&g)
+	}
 
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{430, 700}, Col: blue}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{430, 900}, Col: blue}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{630, 900}, Col: blue}
-	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{630, 700}, Col: blue}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	bufIdx[3] = 2
-	bufIdx[4] = 3
-	bufIdx[5] = 0
-
-	_, bufIdx, bufVtx = win.NewDrawCmd(dl, 6, 4)
-	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{640, 700}, Col: red}
-	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{640, 900}, Col: green}
-	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{840, 900}, Col: blue}
-	bufVtx[3] = gb.Vertex{Pos: gb.Vec2{840, 700}, Col: red}
-	bufIdx[0] = 0
-	bufIdx[1] = 1
-	bufIdx[2] = 2
-	bufIdx[3] = 2
-	bufIdx[4] = 3
-	bufIdx[5] = 0
 }
 
 func testText(win *gux.Window, fa *gux.FontAtlas, texID gb.TextureID, width, height float32) {

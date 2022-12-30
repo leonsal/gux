@@ -320,6 +320,10 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl) {
         err = vkQueueSubmit(s->vk_queue, 1, &info, fd->vk_fence);
         GB_VK_CHECK(err);
     }
+
+    if (s->cfg.debug_print_cmds) {
+        _gb_print_draw_list(dl);
+    }
 }
 
 static void _gb_vulkan_render_draw_data(gb_state_t* s, gb_draw_list_t dl, VkCommandBuffer command_buffer) {

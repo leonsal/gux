@@ -236,6 +236,8 @@ func (dl *DrawList) Scale(scale Vec2) *DrawList {
 	return dl
 }
 
+// Rotate rotates all vertices of the DrawList around the origin in clockwise
+// direction by the amount of theta radians.
 func (dl *DrawList) Rotate(theta float32) *DrawList {
 
 	sin := float32(math.Sin(float64(theta)))
@@ -252,6 +254,8 @@ type Window struct {
 	c C.gb_window_t
 }
 
+// CreateWindow creates a native backend graphics window with the specified title, width, height and configuration.
+// Supplied configuration can be nil when the internal default configuration will be used.
 func CreateWindow(title string, width, height int, cfg *Config) (*Window, error) {
 
 	var pcfg *C.gb_config_t
@@ -318,9 +322,3 @@ func (w *Window) DeleteTexture(texid TextureID) {
 
 	C.gb_delete_texture(w.c, C.gb_texid_t(texid))
 }
-
-//func (w *Window) GetEvents(events []Event) int {
-//
-//	count := C.gb_get_events(w.c, (*C.gb_event_t)(unsafe.Pointer(&events[0])), C.int(len(events)))
-//	return int(count)
-//}

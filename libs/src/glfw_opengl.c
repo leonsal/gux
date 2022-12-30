@@ -222,7 +222,6 @@ static void _gb_render(gb_state_t* s, gb_draw_list_t dl)  {
     // Upload vertices and indices buffers
     const GLsizeiptr vtx_buffer_size = (GLsizeiptr)dl.vtx_count * (int)sizeof(gb_vertex_t);
     const GLsizeiptr idx_buffer_size = (GLsizeiptr)dl.idx_count * (int)sizeof(int);
-    //printf("buffer sizes:%ld/%ld\n",  vtx_buffer_size, idx_buffer_size);
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vtx_buffer_size, (const GLvoid*)dl.buf_vtx, GL_STREAM_DRAW));
     GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, (const GLvoid*)dl.buf_idx, GL_STREAM_DRAW));
 

@@ -1,12 +1,8 @@
 - TODO
-    - OpenGL ES:
-        - Copy DrawList index buffer before adjusting it as the
-        application may send the same list over and over.
     - Arc angle direction ?
-    - Sine/Cosine interpolation table and Benchmark
     - Initializes Default circle used when numSegments == 0
-    - DrawList Scale, DrawList Translate , DrawList Rotate
-    - AddRect
+    - Draw circles with numSegs=0 scaling and translating the default circle.
+    - AddRect with rounder corners.
 
 
 OpenGL Normalized device coordinates

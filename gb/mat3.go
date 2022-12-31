@@ -1,6 +1,9 @@
 package gb
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
 
 // Mat3 is 3x3 matrix organized internally as column matrix
 type Mat3 [9]float32
@@ -171,14 +174,65 @@ func (m *Mat3) Transpose() *Mat3 {
 	return m
 }
 
-// MakeTranslation sets this matrix to a translation matrix from the specified x and y values.
+// SetTranslation sets this matrix to a translation matrix for the specified x and y values.
 // Returns pointer to this updated matrix.
-func (m *Mat3) MakeTranslation(x, y float32) *Mat3 {
+func (m *Mat3) SetTranslation(x, y float32) *Mat3 {
 
 	m.Set(
 		1, 0, x,
 		0, 1, y,
 		0, 0, 1,
 	)
+	return m
+}
+
+// SetRotation set this matrix to a rotation matrix around the origin clockwise direction
+// by the amount of theta radians.
+func (m *Mat3) SetRotation(theta float32) *Mat3 {
+
+	cosf := float32(math.Cos(float64(theta)))
+	sinf := float32(math.Sin(float64(theta)))
+	m.Set(
+		cosf, -sinf, 0,
+		sinf, cosf, 0,
+		0, 0, 1,
+	)
+	return m
+}
+
+// SetScale set this matrix to a scale matrix for the specified x and y values
+func (m *Mat3) SetScale(x, y float32) *Mat3 {
+
+	m.Set(
+		x, 0, 0,
+		0, y, 0,
+		0, 0, 1,
+	)
+	return m
+}
+
+// Rotate applies a rotation of theta radians around the origin
+// in the clockwise direction to this matrix.
+func (m *Mat3) Rotate(theta float32) *Mat3 {
+
+	var sm Mat3
+	sm.SetRotation(theta)
+	m.Mult(&sm)
+	return m
+}
+
+func (m *Mat3) Translate(x, y float32) *Mat3 {
+
+	var tm Mat3
+	tm.SetTranslation(x, y)
+	m.Mult(&tm)
+	return m
+}
+
+func (m *Mat3) Scale(x, y float32) *Mat3 {
+
+	var sm Mat3
+	sm.SetScale(x, y)
+	m.Mult(&sm)
 	return m
 }

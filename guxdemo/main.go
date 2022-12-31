@@ -170,12 +170,10 @@ func testTransform(win *gux.Window) {
 
 	deltaX := float32(210)
 	for i := 1; i < 8; i++ {
-		g := g1.Clone()
-		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		var mat gb.Mat3
 		sf := 1.0 - float32(i)/10
-		g.Scale(gb.Vec2{sf, sf})
-		g.Translate(gb.Vec2{deltaX * float32(i), 100})
-		dl.AddList(&g)
+		mat.SetTranslation(deltaX*float32(i), 100).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
+		dl.AddList2(&g1, &mat)
 	}
 
 	// Second group
@@ -190,12 +188,10 @@ func testTransform(win *gux.Window) {
 
 	deltaY := float32(300)
 	for i := 1; i < 8; i++ {
-		g := g2.Clone()
-		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		var mat gb.Mat3
 		sf := 1.0 - float32(i)/10
-		g.Scale(gb.Vec2{sf, sf})
-		g.Translate(gb.Vec2{deltaX * float32(i), deltaY})
-		dl.AddList(&g)
+		mat.SetTranslation(deltaX*float32(i), deltaY).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
+		dl.AddList2(&g2, &mat)
 	}
 
 	// Third group
@@ -214,14 +210,11 @@ func testTransform(win *gux.Window) {
 
 	deltaY += 300
 	for i := 1; i < 8; i++ {
-		g := g3.Clone()
-		g.Rotate(float32(i-1) * float32(math.Pi/16))
+		var mat gb.Mat3
 		sf := 1.0 - float32(i)/10
-		g.Scale(gb.Vec2{sf, sf})
-		g.Translate(gb.Vec2{deltaX * float32(i), deltaY})
-		dl.AddList(&g)
+		mat.SetTranslation(deltaX*float32(i), deltaY).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
+		dl.AddList2(&g3, &mat)
 	}
-
 }
 
 func testText(win *gux.Window, fa *gux.FontAtlas, texID gb.TextureID, width, height float32) {

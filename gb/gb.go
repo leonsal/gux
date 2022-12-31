@@ -169,6 +169,30 @@ func (dl *DrawList) AddList(src *DrawList) {
 	}
 }
 
+func (dl *DrawList) AddList2(src *DrawList, mat *Mat3) {
+
+	// Append vertices
+	vtxOffset := len(dl.bufVtx)
+	dl.bufVtx = append(dl.bufVtx, src.bufVtx...)
+
+	// Apply transformation matrix to all vertices
+	for i := vtxOffset; i < vtxOffset+len(src.bufVtx); i++ {
+		(&dl.bufVtx[i].Pos).ApplyMat3(mat)
+	}
+
+	// Append indices
+	idxOffset := len(dl.bufIdx)
+	dl.bufIdx = append(dl.bufIdx, src.bufIdx...)
+
+	// Append commands adjusting offsets
+	for i := 0; i < len(src.bufCmd); i++ {
+		cmd := src.bufCmd[i]
+		cmd.idxOffset += uint32(idxOffset)
+		cmd.vtxOffset += uint32(vtxOffset)
+		dl.bufCmd = append(dl.bufCmd, cmd)
+	}
+}
+
 // Clear clears the DrawList commands, indices and vertices buffer without deallocating memory
 func (dl *DrawList) Clear() {
 
@@ -246,6 +270,14 @@ func (dl *DrawList) Rotate(theta float32) *DrawList {
 		v := dl.bufVtx[i].Pos
 		dl.bufVtx[i].Pos.X = v.X*cos - v.Y*sin
 		dl.bufVtx[i].Pos.Y = v.X*sin + v.Y*cos
+	}
+	return dl
+}
+
+func (dl *DrawList) Transform(mat *Mat3) *DrawList {
+
+	for i := 0; i < len(dl.bufVtx); i++ {
+		(&dl.bufVtx[i].Pos).ApplyMat3(mat)
 	}
 	return dl
 }

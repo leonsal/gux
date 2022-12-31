@@ -191,3 +191,14 @@ func (v *Vec2) ClampScalar(minVal, maxVal float32) *Vec2 {
 	}
 	return v
 }
+
+// ApplyMat3 multiplies the specified 3x3 matrix by this vector.
+// Returns the pointer to this updated vector.
+func (v *Vec2) ApplyMat3(m *Mat3) *Vec2 {
+
+	x := v.X
+	y := v.Y
+	v.X = m[0]*x + m[3]*y + m[6]
+	v.Y = m[1]*x + m[4]*y + m[7]
+	return v
+}

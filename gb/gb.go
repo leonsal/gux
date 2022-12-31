@@ -130,6 +130,7 @@ func (dl *DrawList) NewDrawCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 
 	// Creates and appends new command to the DrawList command buffer
 	cmd := DrawCmd{
+		ClipRect:  Vec4{0, 0, 10000, 10000},
 		idxOffset: uint32(idxOffset),
 		vtxOffset: uint32(vtxOffset),
 		elemCount: uint32(idxCount),

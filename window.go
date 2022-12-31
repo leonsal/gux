@@ -66,7 +66,7 @@ func NewWindow(title string, width, height int, cfg *gb.Config) (*Window, error)
 	w.FringeScale = 1.0
 
 	w.frameParams.ClearColor = gb.Vec4{0.5, 0.5, 0.5, 1.0}
-
+	w.frameInfo.WinSize = gb.Vec2{float32(width), float32(height)}
 	return w, nil
 }
 

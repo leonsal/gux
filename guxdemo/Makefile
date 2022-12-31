@@ -15,6 +15,7 @@ vkbuild: libs
 
 # Run showing allocations
 runalloc: libs
+	/home/leonel/bin/go/bin/go install .
 	GODEBUG=allocfreetrace=1 guxdemo
 
 # Build C libraries and remove executable to force new link

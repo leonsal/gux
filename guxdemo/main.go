@@ -57,10 +57,11 @@ func main() {
 	var statsStart runtime.MemStats
 	frameCount := 0
 
+	test := newTestTransform(win)
 	for win.StartFrame() {
 
 		//testArc(win)
-		testTransform(win)
+		test.draw(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)
@@ -85,6 +86,10 @@ func main() {
 	win.DestroyFontAtlas(fa)
 	win.DeleteTexture(texID)
 	win.Destroy()
+}
+
+type gbtest interface {
+	draw(*gux.Window)
 }
 
 func testArc(win *gux.Window) {
@@ -151,16 +156,22 @@ func testArc(win *gux.Window) {
 	}
 }
 
-func testTransform(win *gux.Window) {
+type testTransform struct {
+	g1 gb.DrawList
+	g2 gb.DrawList
+	g3 gb.DrawList
+}
 
-	dl := win.DrawList()
+func newTestTransform(win *gux.Window) *testTransform {
+
+	t := new(testTransform)
+
 	red := gb.MakeColor(255, 0, 0, 255)
 	green := gb.MakeColor(0, 255, 0, 255)
 	blue := gb.MakeColor(0, 0, 255, 255)
 
 	// First group
-	g1 := gb.DrawList{}
-	_, bufIdx, bufVtx := win.NewDrawCmd(&g1, 3, 3)
+	_, bufIdx, bufVtx := win.NewDrawCmd(&t.g1, 3, 3)
 	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, -100}, Col: red}
 	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{-100, 100}, Col: red}
 	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{100, 100}, Col: red}
@@ -168,17 +179,8 @@ func testTransform(win *gux.Window) {
 	bufIdx[1] = 1
 	bufIdx[2] = 2
 
-	deltaX := float32(210)
-	for i := 1; i < 8; i++ {
-		var mat gb.Mat3
-		sf := 1.0 - float32(i)/10
-		mat.SetTranslation(deltaX*float32(i), 100).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
-		dl.AddList2(&g1, &mat)
-	}
-
 	// Second group
-	g2 := gb.DrawList{}
-	_, bufIdx, bufVtx = win.NewDrawCmd(&g2, 3, 3)
+	_, bufIdx, bufVtx = win.NewDrawCmd(&t.g2, 3, 3)
 	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{0, 0}, Col: green}
 	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{0, 200}, Col: green}
 	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{200, 0}, Col: green}
@@ -186,17 +188,8 @@ func testTransform(win *gux.Window) {
 	bufIdx[1] = 1
 	bufIdx[2] = 2
 
-	deltaY := float32(300)
-	for i := 1; i < 8; i++ {
-		var mat gb.Mat3
-		sf := 1.0 - float32(i)/10
-		mat.SetTranslation(deltaX*float32(i), deltaY).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
-		dl.AddList2(&g2, &mat)
-	}
-
 	// Third group
-	g3 := gb.DrawList{}
-	_, bufIdx, bufVtx = win.NewDrawCmd(&g3, 6, 4)
+	_, bufIdx, bufVtx = win.NewDrawCmd(&t.g3, 6, 4)
 	bufVtx[0] = gb.Vertex{Pos: gb.Vec2{-100, -100}, Col: blue}
 	bufVtx[1] = gb.Vertex{Pos: gb.Vec2{-100, 100}, Col: blue}
 	bufVtx[2] = gb.Vertex{Pos: gb.Vec2{100, 100}, Col: blue}
@@ -208,12 +201,33 @@ func testTransform(win *gux.Window) {
 	bufIdx[4] = 3
 	bufIdx[5] = 0
 
-	deltaY += 300
+	return t
+}
+
+func (t *testTransform) draw(win *gux.Window) {
+
+	dl := win.DrawList()
+	var mat gb.Mat3
+
+	deltaX := float32(210)
 	for i := 1; i < 8; i++ {
-		var mat gb.Mat3
+		sf := 1.0 - float32(i)/10
+		mat.SetTranslation(deltaX*float32(i), 100).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
+		dl.AddList2(&t.g1, &mat)
+	}
+
+	deltaY := float32(300)
+	for i := 1; i < 8; i++ {
 		sf := 1.0 - float32(i)/10
 		mat.SetTranslation(deltaX*float32(i), deltaY).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
-		dl.AddList2(&g3, &mat)
+		dl.AddList2(&t.g2, &mat)
+	}
+
+	deltaY += 300
+	for i := 1; i < 8; i++ {
+		sf := 1.0 - float32(i)/10
+		mat.SetTranslation(deltaX*float32(i), deltaY).Rotate(float32(i-1)*float32(math.Pi/16)).Scale(sf, sf)
+		dl.AddList2(&t.g3, &mat)
 	}
 }
 

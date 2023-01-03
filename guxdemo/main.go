@@ -57,11 +57,11 @@ func main() {
 	var statsStart runtime.MemStats
 	frameCount := 0
 
-	test := newTestTransform(win)
+	//test := newTestTransform(win)
 	for win.StartFrame() {
 
-		//testArc(win)
-		test.draw(win)
+		testArc(win)
+		//test.draw(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
 		//testPolygon(win)

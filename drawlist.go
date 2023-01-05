@@ -65,7 +65,61 @@ func (w *Window) PathArcTo(dl *gb.DrawList, center gb.Vec2, radius, amin, amax f
 	}
 }
 
-func (w *Window) PathRect(dl *gb.DrawList, rectMin, rectMax gb.Vec2, rounding float32, flags DrawFlags) {
+//void ImDrawList::PathRect(const ImVec2& a, const ImVec2& b, float rounding, ImDrawFlags flags)
+//{
+//    flags = FixRectCornerFlags(flags);
+//    rounding = ImMin(rounding, ImFabs(b.x - a.x) * ( ((flags & ImDrawFlags_RoundCornersTop)  == ImDrawFlags_RoundCornersTop)  || ((flags & ImDrawFlags_RoundCornersBottom) == ImDrawFlags_RoundCornersBottom) ? 0.5f : 1.0f ) - 1.0f);
+//    rounding = ImMin(rounding, ImFabs(b.y - a.y) * ( ((flags & ImDrawFlags_RoundCornersLeft) == ImDrawFlags_RoundCornersLeft) || ((flags & ImDrawFlags_RoundCornersRight)  == ImDrawFlags_RoundCornersRight)  ? 0.5f : 1.0f ) - 1.0f);
+//
+//    if (rounding < 0.5f || (flags & ImDrawFlags_RoundCornersMask_) == ImDrawFlags_RoundCornersNone)
+//    {
+//        PathLineTo(a);
+//        PathLineTo(ImVec2(b.x, a.y));
+//        PathLineTo(b);
+//        PathLineTo(ImVec2(a.x, b.y));
+//    }
+//    else
+//    {
+//        const float rounding_tl = (flags & ImDrawFlags_RoundCornersTopLeft)     ? rounding : 0.0f;
+//        const float rounding_tr = (flags & ImDrawFlags_RoundCornersTopRight)    ? rounding : 0.0f;
+//        const float rounding_br = (flags & ImDrawFlags_RoundCornersBottomRight) ? rounding : 0.0f;
+//        const float rounding_bl = (flags & ImDrawFlags_RoundCornersBottomLeft)  ? rounding : 0.0f;
+//        PathArcToFast(ImVec2(a.x + rounding_tl, a.y + rounding_tl), rounding_tl, 6, 9);
+//        PathArcToFast(ImVec2(b.x - rounding_tr, a.y + rounding_tr), rounding_tr, 9, 12);
+//        PathArcToFast(ImVec2(b.x - rounding_br, b.y - rounding_br), rounding_br, 0, 3);
+//        PathArcToFast(ImVec2(a.x + rounding_bl, b.y - rounding_bl), rounding_bl, 3, 6);
+//    }
+//}
+
+func (w *Window) PathRect(dl *gb.DrawList, min, max gb.Vec2, rounding float32, flags DrawFlags) {
+
+	if rounding < 0.5 || (flags&DrawFlags_RoundCornersMask_ == 0) {
+		w.PathLineTo(dl, min)
+		w.PathLineTo(dl, gb.Vec2{max.X, min.Y})
+		w.PathLineTo(dl, max)
+		w.PathLineTo(dl, gb.Vec2{min.X, max.Y})
+		return
+	}
+	rtl := float32(0)
+	if flags&DrawFlags_RoundCornersTopLeft != 0 {
+		rtl = rounding
+	}
+	rtr := float32(0)
+	if flags&DrawFlags_RoundCornersTopRight != 0 {
+		rtr = rounding
+	}
+	rbr := float32(0)
+	if flags&DrawFlags_RoundCornersBottomRight != 0 {
+		rbr = rounding
+	}
+	rbl := float32(0)
+	if flags&DrawFlags_RoundCornersBottomLeft != 0 {
+		rbl = rounding
+	}
+	w.PathArcTo(dl, gb.Vec2{min.X + rtl, min.Y + rtl}, rtl, -2*math.Pi/2, -2*math.Pi/4, 32)
+	w.PathArcTo(dl, gb.Vec2{max.X - rtr, min.Y + rtr}, rtr, -2*math.Pi/4, 0, 16)
+	w.PathArcTo(dl, gb.Vec2{max.X - rbr, max.Y - rbr}, rbr, 0, 2*math.Pi/4, 16)
+	w.PathArcTo(dl, gb.Vec2{min.X + rbl, max.Y - rbl}, rbl, 2*math.Pi/4, math.Pi, 16)
 
 }
 

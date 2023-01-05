@@ -9,6 +9,21 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
+var colorList []gb.RGBA
+
+func init() {
+	colorList = append(colorList,
+		gb.MakeColor(255, 0, 0, 255),
+		gb.MakeColor(0, 255, 0, 255),
+		gb.MakeColor(0, 0, 255, 255),
+		gb.MakeColor(0, 0, 0, 255),
+		gb.MakeColor(255, 255, 0, 255),
+		gb.MakeColor(0, 255, 255, 255),
+		gb.MakeColor(255, 255, 255, 255),
+		gb.MakeColor(100, 100, 100, 255),
+	)
+}
+
 func main() {
 
 	runtime.LockOSThread()
@@ -61,7 +76,8 @@ func main() {
 	//test := newTestTransform(win)
 	for win.StartFrame() {
 
-		testArc(win)
+		testRect(win)
+		//testArc(win)
 		//test.draw(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
@@ -91,6 +107,49 @@ func main() {
 
 type gbtest interface {
 	draw(*gux.Window)
+}
+
+func testRect(win *gux.Window) {
+
+	dl := win.DrawList()
+	startX := float32(50)
+	startY := float32(50)
+	const width = 300
+	const height = 150
+	const deltaX = width + 10
+	const deltaY = height + 50
+	const rounding = 40.0
+	const thickness = 10
+	flagList := []gux.DrawFlags{
+		gux.DrawFlags_RoundCornersTopLeft,
+		gux.DrawFlags_RoundCornersTopRight,
+		gux.DrawFlags_RoundCornersBottomRight,
+		gux.DrawFlags_RoundCornersBottomLeft,
+		gux.DrawFlags_RoundCornersTop,
+		gux.DrawFlags_RoundCornersBottom,
+		gux.DrawFlags_RoundCornersLeft,
+		gux.DrawFlags_RoundCornersRight,
+		gux.DrawFlags_RoundCornersAll,
+	}
+
+	for idx, flag := range flagList {
+		line := float32(idx / 5)
+		col := float32(idx % 5)
+		min := gb.Vec2{startX + col*deltaX, startY + line*deltaY}
+		max := gb.Vec2{width + col*deltaX, startY + height + line*deltaY}
+		win.PathRect(dl, min, max, rounding, flag)
+		win.PathStroke(dl, nextColor(idx), gux.DrawFlags_Closed, thickness)
+	}
+
+	startY += 2 * deltaY
+	for idx, flag := range flagList {
+		line := float32(idx / 5)
+		col := float32(idx % 5)
+		min := gb.Vec2{startX + col*deltaX, startY + line*deltaY}
+		max := gb.Vec2{width + col*deltaX, startY + height + line*deltaY}
+		win.PathRect(dl, min, max, rounding, flag)
+		win.PathFillConvex(dl, nextColor(idx))
+	}
 }
 
 func testArc(win *gux.Window) {
@@ -294,6 +353,12 @@ func testPolygon(w *gux.Window) {
 	copy(points, rect)
 	translatePoints(points, gb.Vec2{300, 300})
 	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 255, 255))
+}
+
+func nextColor(i int) gb.RGBA {
+
+	ci := i % len(colorList)
+	return colorList[ci]
 }
 
 // scale the supplied array of points

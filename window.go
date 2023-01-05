@@ -21,6 +21,7 @@ const (
 	DrawFlags_RoundCornersLeft   = DrawFlags_RoundCornersBottomLeft | DrawFlags_RoundCornersTopLeft
 	DrawFlags_RoundCornersRight  = DrawFlags_RoundCornersBottomRight | DrawFlags_RoundCornersTopRight
 	DrawFlags_RoundCornersAll    = DrawFlags_RoundCornersTopLeft | DrawFlags_RoundCornersTopRight | DrawFlags_RoundCornersBottomLeft | DrawFlags_RoundCornersBottomRight
+	DrawFlags_RoundCornersMask_  = DrawFlags_RoundCornersAll | DrawFlags_RoundCornersNone
 )
 
 type DrawListFlags int

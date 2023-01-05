@@ -5,6 +5,7 @@ package gb
 import "C"
 import (
 	"errors"
+	"fmt"
 	"math"
 	"unsafe"
 )
@@ -224,7 +225,8 @@ func (dl *DrawList) PathReserve(n int) {
 	if n <= free {
 		return
 	}
-	buf := make([]Vec2, plen, n-free)
+	fmt.Println("n:", n, "plen:", plen, "cap:", pcap, "newcap:", pcap+n-free)
+	buf := make([]Vec2, plen, pcap+n-free)
 	copy(buf, dl.Path)
 	dl.Path = buf
 }

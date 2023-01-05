@@ -76,8 +76,8 @@ func main() {
 	//test := newTestTransform(win)
 	for win.StartFrame() {
 
-		testRect(win)
-		//testArc(win)
+		//testRect(win)
+		testArc(win)
 		//test.draw(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)
@@ -153,22 +153,6 @@ func testRect(win *gux.Window) {
 func testArc(win *gux.Window) {
 
 	dl := win.DrawList()
-	colors := []gb.RGBA{
-		gb.MakeColor(255, 0, 0, 255),
-		gb.MakeColor(0, 255, 0, 255),
-		gb.MakeColor(0, 0, 255, 255),
-		gb.MakeColor(0, 0, 0, 255),
-		gb.MakeColor(255, 255, 0, 255),
-		gb.MakeColor(0, 255, 255, 255),
-		gb.MakeColor(255, 255, 255, 255),
-		gb.MakeColor(100, 100, 100, 255),
-	}
-
-	nextColor := func(i int) gb.RGBA {
-		ci := i % len(colors)
-		return colors[ci]
-	}
-
 	radius := float32(100)
 	center := gb.Vec2{radius + 10, radius + 10}
 	segs := 3

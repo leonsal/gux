@@ -26,6 +26,7 @@
 typedef struct {
     gb_config_t     cfg;                // User configuration
     GLFWwindow*     w;                  // GLFW window pointer
+    GLFWcursor**    cursors;            // GLFW cursors
     gb_vec4_t       clear_color;        // Current color to clear color buffer before rendering
     GLuint          handle_shader;      // Handle of compiled shader program
     GLint           uni_tex;            // Location of texture id uniform in the shader
@@ -113,6 +114,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->cfg = cfg;
     s->w = win;
     glfwSetWindowUserPointer(win, s);
+    _gb_create_cursors(s);
 
     // Initialize OpenGL
     bool res = _gb_init(s, NULL);
@@ -130,6 +132,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t bw) {
 
     gb_state_t* s = (gb_state_t*)(bw);
+    _gb_destroy_cursors(s);
     glfwDestroyWindow(s->w);
     _gb_free(s->frame.events);
     s->frame.events = NULL;
@@ -166,6 +169,13 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     gb_vec2_t disp_size = {width, height};
     _gb_render(s, dl);
     glfwSwapBuffers(s->w);
+}
+
+// Sets window cursor
+void gb_set_cursor(gb_window_t win, int cursor) {
+
+    gb_state_t* s = (gb_state_t*)(win);
+    _gb_set_cursor(s, cursor);
 }
 
 // Creates and returns an OpenGL texture idenfifier

@@ -56,6 +56,7 @@ func main() {
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
 	frameCount := 0
+	win.SetCursor(gb.CursorIBeam)
 
 	//test := newTestTransform(win)
 	for win.StartFrame() {

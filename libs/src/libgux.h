@@ -100,6 +100,18 @@ typedef struct gb_config {
     gb_config_vulkan_t  vulkan;     // Vulkan configuration
 } gb_config_t;
 
+// Cursor types
+enum {
+    CURSOR_DEFAULT,
+    CURSOR_ARROW,
+    CURSOR_IBEAM,
+    CURSOR_CROSSHAIR,
+    CURSOR_HAND,
+    CURSOR_HRESIZE,
+    CURSOR_VRESIZE,
+    _CURSOR_COUNT,
+};
+
 // Event types
 enum {
     EVENT_KEY,                      // Key input event
@@ -115,6 +127,8 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t win);
 gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params);
 void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl);
+void gb_set_cursor(gb_window_t win, int cursor);
 gb_texid_t gb_create_texture(gb_window_t win, int width, int height, const gb_rgba_t* data);
 void gb_delete_texture(gb_window_t win, gb_texid_t texid);
+
 

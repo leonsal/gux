@@ -115,6 +115,11 @@ func (w *Window) Destroy() {
 	w.gbw.Destroy()
 }
 
+func (w *Window) SetCursor(cursor gb.Cursor) {
+
+	w.gbw.SetCursor(cursor)
+}
+
 func (w *Window) CreateTexture(width, height int, data *gb.RGBA) gb.TextureID {
 
 	return w.gbw.CreateTexture(width, height, data)

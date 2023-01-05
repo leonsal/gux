@@ -3,6 +3,9 @@
 // It DOES NOT contain any graphics specific api calls.
 //
 
+static void _gb_create_cursors(gb_state_t* s);
+static void _gb_set_cursor(gb_state_t* s, int cursor);
+static void _gb_destroy_cursors(gb_state_t* s);
 static void _gb_update_frame_info(gb_state_t* s, double timeout);
 static void _gb_print_draw_list(gb_draw_list_t dl);
 static void _gb_glfw_error_callback(int error, const char* description);
@@ -16,6 +19,60 @@ static void _gb_mouse_button_callback(GLFWwindow* win, int button, int action, i
 static void _gb_scroll_callback(GLFWwindow* win, double xoffset, double yoffset);
 static void* _gb_alloc(size_t count);
 static void _gb_free(void* p);
+
+
+static void _gb_create_cursors(gb_state_t* s) {
+
+    s->cursors = (GLFWcursor**)_gb_alloc(sizeof(GLFWcursor*) * _CURSOR_COUNT);
+}
+
+static void _gb_set_cursor(gb_state_t* s, int cursor) {
+
+    if (cursor == 0) {
+        glfwSetCursor(s->w, NULL);
+        return;
+    }
+    if (s->cursors[cursor] != NULL) {
+        glfwSetCursor(s->w, s->cursors[cursor]);
+        return;
+    }
+    switch (cursor) {
+        case CURSOR_ARROW:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+            break;
+        case CURSOR_IBEAM:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+            break;
+        case CURSOR_CROSSHAIR:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+            break;
+        case CURSOR_HAND:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+            break;
+        case CURSOR_HRESIZE:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+            break;
+        case CURSOR_VRESIZE:
+            s->cursors[cursor] = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+            break;
+        default:
+            fprintf(stderr, "Invalid cursor:%d\n", cursor);
+            abort();
+    }
+    glfwSetCursor(s->w, s->cursors[cursor]);
+}
+
+static void _gb_destroy_cursors(gb_state_t* s) {
+
+    for (int cursor = CURSOR_ARROW; cursor < _CURSOR_COUNT; cursor++) {
+        GLFWcursor* c = s->cursors[cursor];
+        if (c == NULL) {
+            continue;
+        }
+        glfwDestroyCursor(c);
+        s->cursors[cursor] = NULL;
+    }
+}
 
 
 // Updates frame information at the start of the frame

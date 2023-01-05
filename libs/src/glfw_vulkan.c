@@ -55,6 +55,7 @@ struct vulkan_frame_buffers {
 typedef struct {
     gb_config_t                     cfg;
     GLFWwindow*                     w;
+    GLFWcursor**                    cursors;            // GLFW cursors
     gb_vec4_t                       clear_color;
     uint32_t                        min_image_count;
     uint32_t                        queue_family;
@@ -172,6 +173,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     if (cfg != NULL) {
         s->cfg = *cfg;
     }
+    _gb_create_cursors(s);
 
     // Get required Vulkan extensions from GLFW (WSI) and initializes Vulkan
     uint32_t extensions_count = 0;
@@ -194,6 +196,7 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t win) {
 
     gb_state_t* s = (gb_state_t*)(win);
+    _gb_destroy_cursors(s);
     _gb_destroy_window(s);
     _gb_destroy_vulkan(s);
     _gb_free(s);
@@ -234,6 +237,13 @@ void gb_window_render_frame(gb_window_t win, gb_draw_list_t dl) {
     s->vk_clear_value.color.float32[3] = s->clear_color.w;
     _gb_render(s, dl);
     _gb_frame_present(s);
+}
+
+// Sets window cursor
+void gb_set_cursor(gb_window_t win, int cursor) {
+
+    gb_state_t* s = (gb_state_t*)(win);
+    _gb_set_cursor(s, cursor);
 }
 
 // Creates and returns texture

@@ -105,6 +105,18 @@ type Config struct {
 	Vulkan         ConfigVulkan
 }
 
+type Cursor int
+
+const (
+	CursorDefault   Cursor = C.CURSOR_DEFAULT
+	CursorArrow     Cursor = C.CURSOR_ARROW
+	CursorIBeam     Cursor = C.CURSOR_IBEAM
+	CursorCrossHair Cursor = C.CURSOR_CROSSHAIR
+	CursorHand      Cursor = C.CURSOR_HAND
+	CursorHResize   Cursor = C.CURSOR_HRESIZE
+	CursorVResize   Cursor = C.CURSOR_VRESIZE
+)
+
 // MakeColor makes and returns an RGBA packed color from the specified components
 func MakeColor(r, g, b, a byte) RGBA {
 
@@ -342,6 +354,12 @@ func (w *Window) RenderFrame(dl *DrawList) {
 		cdl.vtx_count = C.uint(len(dl.bufVtx))
 	}
 	C.gb_window_render_frame(w.c, cdl)
+}
+
+// SetCursor sets the window cursor type
+func (w *Window) SetCursor(cursor Cursor) {
+
+	C.gb_set_cursor(w.c, C.int(cursor))
 }
 
 // CreateTexture creates texture with the specified image data and returns the texture id.

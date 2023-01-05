@@ -112,8 +112,8 @@ type gbtest interface {
 func testRect(win *gux.Window) {
 
 	dl := win.DrawList()
-	startX := float32(50)
 	startY := float32(50)
+	const startX = 50
 	const width = 300
 	const height = 150
 	const deltaX = width + 10

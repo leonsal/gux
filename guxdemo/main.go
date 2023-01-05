@@ -137,8 +137,7 @@ func testRect(win *gux.Window) {
 		col := float32(idx % 5)
 		min := gb.Vec2{startX + col*deltaX, startY + line*deltaY}
 		max := gb.Vec2{width + col*deltaX, startY + height + line*deltaY}
-		win.PathRect(dl, min, max, rounding, flag)
-		win.PathStroke(dl, nextColor(idx), gux.DrawFlags_Closed, thickness)
+		win.AddRect(dl, min, max, nextColor(idx), rounding, flag, thickness)
 	}
 
 	startY += 2 * deltaY
@@ -147,8 +146,7 @@ func testRect(win *gux.Window) {
 		col := float32(idx % 5)
 		min := gb.Vec2{startX + col*deltaX, startY + line*deltaY}
 		max := gb.Vec2{width + col*deltaX, startY + height + line*deltaY}
-		win.PathRect(dl, min, max, rounding, flag)
-		win.PathFillConvex(dl, nextColor(idx))
+		win.AddRectFilled(dl, min, max, nextColor(idx), rounding, flag)
 	}
 }
 

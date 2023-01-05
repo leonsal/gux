@@ -96,6 +96,7 @@ func (w *Window) PathRect(dl *gb.DrawList, min, max gb.Vec2, rounding float32, f
 	w.PathArcTo(dl, gb.Vec2{min.X + rbl, max.Y - rbl}, rbl, 2*math.Pi/4, math.Pi, 16)
 }
 
+// AddLine adds a stroked line to the DrawList from 'p1' to 'p2' with the specified color and thickness.
 func (w *Window) AddLine(dl *gb.DrawList, p1, p2 gb.Vec2, col gb.RGBA, thickness float32) {
 
 	if (col & gb.RGBAMaskA) == 0 {
@@ -106,8 +107,28 @@ func (w *Window) AddLine(dl *gb.DrawList, p1, p2 gb.Vec2, col gb.RGBA, thickness
 	w.PathStroke(dl, col, 0, thickness)
 }
 
-func (w *Window) AddRect(dl *gb.DrawList, pmin, max gb.Vec2, rounding float32, flags DrawFlags, thickness float32) {
+// AddRect adds a stroked rectangle to the DrawList from top left 'min' to bottom right 'max'
+// with the specified color, rounding, flags and thickness.
+func (w *Window) AddRect(dl *gb.DrawList, min, max gb.Vec2, col gb.RGBA, rounding float32, flags DrawFlags, thickness float32) {
 
+	if (col & gb.RGBAMaskA) == 0 {
+		return
+	}
+	min.Add(gb.Vec2{0.5, 0.5})
+	max.Sub(gb.Vec2{0.49, 0.49})
+	w.PathRect(dl, min, max, rounding, flags)
+	w.PathStroke(dl, col, DrawFlags_Closed, thickness)
+}
+
+// AddRectFilled adds a filled rectangle to the DrawList from top left 'min' to bottom right 'max'
+// with the specifid color, rounding and flags.
+func (w *Window) AddRectFilled(dl *gb.DrawList, min, max gb.Vec2, col gb.RGBA, rounding float32, flags DrawFlags) {
+
+	if (col & gb.RGBAMaskA) == 0 {
+		return
+	}
+	w.PathRect(dl, min, max, rounding, flags)
+	w.PathFillConvex(dl, col)
 }
 
 func (w *Window) AddCircle(dl *gb.DrawList, center gb.Vec2, radius float32, col gb.RGBA, numSegments int, thickness float32) {

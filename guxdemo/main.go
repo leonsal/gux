@@ -76,8 +76,8 @@ func main() {
 	//test := newTestTransform(win)
 	for win.StartFrame() {
 
-		//testRect(win)
-		testArc(win)
+		testRect(win)
+		//testArc(win)
 		//test.draw(win)
 		//testText(win, fa, texID, width, height)
 		//testLines(win)

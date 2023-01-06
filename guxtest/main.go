@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sort"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -51,16 +52,15 @@ func main() {
 	runtime.LockOSThread()
 	flag.Parse()
 	args := flag.Args()
-	if len(args) == 0 {
-		fmt.Println("Test name not supplied")
-		os.Exit(1)
-	}
-
-	tname := args[0]
-	tinfo, ok := mapTests[tname]
-	if !ok {
-		fmt.Printf("Invalid test name: %s\n", tname)
-		os.Exit(1)
+	tinfo := testInfo{}
+	if len(args) > 0 {
+		tname := args[0]
+		var ok bool
+		tinfo, ok = mapTests[tname]
+		if !ok {
+			fmt.Printf("Invalid test name: %s\n", tname)
+			os.Exit(1)
+		}
 	}
 
 	// Create window
@@ -73,7 +73,28 @@ func main() {
 		panic(err)
 	}
 
-	runTest(win, tinfo, 0)
+	if len(tinfo.name) > 0 {
+		runTest(win, tinfo, 0)
+	} else {
+		tests := []testInfo{}
+		for _, v := range mapTests {
+			tests = append(tests, v)
+		}
+		sort.Slice(tests, func(i, j int) bool {
+			return tests[i].order < tests[j].order
+		})
+		index := 0
+		for {
+			abort := runTest(win, tests[index], 100)
+			if abort {
+				break
+			}
+			index++
+			if index >= len(tests) {
+				index = 0
+			}
+		}
+	}
 
 	//	// Render loop
 	//	var cgoCallsStart int64
@@ -106,7 +127,7 @@ func main() {
 	win.Destroy()
 }
 
-func runTest(win *gux.Window, tinfo testInfo, maxFrames int) {
+func runTest(win *gux.Window, tinfo testInfo, maxFrames int) bool {
 
 	// Render loop
 	var cgoCallsStart int64
@@ -116,7 +137,13 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames int) {
 	// Creates test
 	test := tinfo.create(win)
 
-	for win.StartFrame() {
+	abort := false
+	for {
+		if !win.StartFrame() {
+			abort = true
+			break
+		}
+
 		test.draw(win)
 		win.Render()
 		// All the allocations should be done in the first frame
@@ -138,6 +165,7 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames int) {
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
 	test.destroy(win)
+	return abort
 }
 
 // registerTest is used by tests to register themselves

@@ -13,11 +13,6 @@ import (
 
 var colorList []gb.RGBA
 
-// Command line flags
-var (
-	oTrace = flag.String("trace", "", "Activate go tool execution tracer writing data to the specified file")
-)
-
 func init() {
 	colorList = append(colorList,
 		gb.MakeColor(255, 0, 0, 255),
@@ -50,6 +45,8 @@ type ITest interface {
 func main() {
 
 	runtime.LockOSThread()
+
+	// Parse command line
 	flag.Parse()
 	args := flag.Args()
 	tinfo := testInfo{}
@@ -73,6 +70,7 @@ func main() {
 		panic(err)
 	}
 
+	// Run specified test or run all tests
 	if len(tinfo.name) > 0 {
 		runTest(win, tinfo, 0)
 	} else {
@@ -85,7 +83,7 @@ func main() {
 		})
 		index := 0
 		for {
-			abort := runTest(win, tests[index], 100)
+			abort := runTest(win, tests[index], 200)
 			if abort {
 				break
 			}
@@ -96,40 +94,12 @@ func main() {
 		}
 	}
 
-	//	// Render loop
-	//	var cgoCallsStart int64
-	//	var statsStart runtime.MemStats
-	//	frameCount := 0
-	//
-	//	// Creates test
-	//	test := tinfo.create(win)
-	//
-	//	for win.StartFrame() {
-	//		test.draw(win)
-	//		win.Render()
-	//		// All the allocations should be done in the first frame
-	//		frameCount++
-	//		if frameCount == 1 {
-	//			cgoCallsStart = runtime.NumCgoCall()
-	//			runtime.ReadMemStats(&statsStart)
-	//		}
-	//	}
-	//
-	//	// Calculates and shows allocations and cgo calls per frame
-	//	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
-	//	cgoPerFrame := float64(cgoCalls) / float64(frameCount)
-	//	var stats runtime.MemStats
-	//	runtime.ReadMemStats(&stats)
-	//	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
-	//	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
-	//
-	//	test.destroy(win)
 	win.Destroy()
 }
 
 func runTest(win *gux.Window, tinfo testInfo, maxFrames int) bool {
 
-	// Render loop
+	fmt.Printf("Running test: %s \n", tinfo.name)
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
 	frameCount := 0
@@ -137,13 +107,13 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames int) bool {
 	// Creates test
 	test := tinfo.create(win)
 
+	// Render Loop
 	abort := false
 	for {
 		if !win.StartFrame() {
 			abort = true
 			break
 		}
-
 		test.draw(win)
 		win.Render()
 		// All the allocations should be done in the first frame

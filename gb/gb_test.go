@@ -106,6 +106,7 @@ func Test1(t *testing.T) {
 	}
 	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
 	fmt.Println("cgo calls/frame", cgoCalls/int64(frames))
+	win.DeleteTexture(texId)
 	win.Destroy()
 
 }

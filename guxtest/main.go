@@ -73,6 +73,41 @@ func main() {
 		panic(err)
 	}
 
+	runTest(win, tinfo, 0)
+
+	//	// Render loop
+	//	var cgoCallsStart int64
+	//	var statsStart runtime.MemStats
+	//	frameCount := 0
+	//
+	//	// Creates test
+	//	test := tinfo.create(win)
+	//
+	//	for win.StartFrame() {
+	//		test.draw(win)
+	//		win.Render()
+	//		// All the allocations should be done in the first frame
+	//		frameCount++
+	//		if frameCount == 1 {
+	//			cgoCallsStart = runtime.NumCgoCall()
+	//			runtime.ReadMemStats(&statsStart)
+	//		}
+	//	}
+	//
+	//	// Calculates and shows allocations and cgo calls per frame
+	//	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
+	//	cgoPerFrame := float64(cgoCalls) / float64(frameCount)
+	//	var stats runtime.MemStats
+	//	runtime.ReadMemStats(&stats)
+	//	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
+	//	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
+	//
+	//	test.destroy(win)
+	win.Destroy()
+}
+
+func runTest(win *gux.Window, tinfo testInfo, maxFrames int) {
+
 	// Render loop
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
@@ -90,6 +125,9 @@ func main() {
 			cgoCallsStart = runtime.NumCgoCall()
 			runtime.ReadMemStats(&statsStart)
 		}
+		if maxFrames > 0 && frameCount > maxFrames {
+			break
+		}
 	}
 
 	// Calculates and shows allocations and cgo calls per frame
@@ -99,9 +137,7 @@ func main() {
 	runtime.ReadMemStats(&stats)
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
 	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
-
 	test.destroy(win)
-	win.Destroy()
 }
 
 // registerTest is used by tests to register themselves

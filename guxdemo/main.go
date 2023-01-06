@@ -150,7 +150,7 @@ func testRect(win *gux.Window) {
 	}
 }
 
-func testAr(win *gux.Window) {
+func testArc(win *gux.Window) {
 
 	dl := win.DrawList()
 	radius := float32(100)

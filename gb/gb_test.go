@@ -9,7 +9,11 @@ import (
 func Test1(t *testing.T) {
 
 	runtime.LockOSThread()
-	win, err := CreateWindow("title", 1000, 1000, nil)
+	cfg := Config{}
+	cfg.DebugPrintCmds = false
+	cfg.OpenGL.ES = false
+	cfg.Vulkan.ValidationLayer = true
+	win, err := CreateWindow("title", 1000, 1000, &cfg)
 	if err != nil {
 		panic(err)
 	}

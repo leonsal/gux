@@ -1,7 +1,7 @@
 package gb
 
 // #include <stdlib.h>
-// #include "libgux.h"
+// #include "gux/libgux.h"
 import "C"
 import (
 	"errors"

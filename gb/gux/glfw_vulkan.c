@@ -1187,7 +1187,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
     VkDeviceMemory  uploadBufferMemory;
     VkBuffer        uploadBuffer;
 
-    size_t upload_size = width * height * 4 * sizeof(char);
+    vkQueueWaitIdle(s->vk_queue);
 
     // Use any command queue
     VkCommandPool command_pool = s->vk_frames[s->frame_index].vk_command_pool;
@@ -1202,6 +1202,7 @@ static gb_texid_t _gb_create_texture(gb_state_t* s, int width, int height, const
 
     // Allocate texture info
     struct vulkan_texinfo* tex = _gb_alloc(sizeof(struct vulkan_texinfo));
+    size_t upload_size = width * height * 4 * sizeof(char);
 
     // Create the Image:
     {

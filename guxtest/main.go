@@ -148,12 +148,14 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 	test.destroy(win)
 
 	// Calculates and shows allocations and cgo calls per frame
-	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
-	cgoPerFrame := cgoCalls / int64(frameCount)
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-	allocsPerFrame := (stats.Alloc - statsStart.Alloc) / uint64(frameCount)
-	log.Printf("Frames:%d  Allocs/frame:%d  CGO calls/frame:%d\n\n", frameCount, allocsPerFrame, cgoPerFrame)
+	if frameCount > 0 {
+		cgoCalls := runtime.NumCgoCall() - cgoCallsStart
+		cgoPerFrame := cgoCalls / int64(frameCount)
+		var stats runtime.MemStats
+		runtime.ReadMemStats(&stats)
+		allocsPerFrame := (stats.Alloc - statsStart.Alloc) / uint64(frameCount)
+		log.Printf("Frames:%d  Allocs/frame:%d  CGO calls/frame:%d\n\n", frameCount, allocsPerFrame, cgoPerFrame)
+	}
 	return abort
 }
 

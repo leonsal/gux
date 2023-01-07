@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"runtime/trace"
 	"sort"
 
@@ -40,10 +41,15 @@ type ITest interface {
 }
 
 var (
-	colorList = []gb.RGBA{}
-	oTrace    = flag.String("trace", "", "Activate go tool execution tracer writing data to the specified file")
-	mapTests  = map[string]testInfo{} // Maps test name to related info
-	traceFile *os.File                // Open trace file (if trace was requested)
+	colorList   = []gb.RGBA{}
+	oCpuProfile = flag.String("cpuprofile", "", "Write CPU profile to the specified file")
+	oMemProfile = flag.String("memprofile", "", "Write memory profile to the specified file")
+	oTrace      = flag.String("trace", "", "Write execution trace to the specified file")
+	oFrameCount = flag.Uint("frames", 500, "Number of frames to execute the test")
+	mapTests    = map[string]testInfo{}
+	traceFile   *os.File
+	cpuprofFile *os.File
+	memprofFile *os.File
 )
 
 func main() {
@@ -74,23 +80,26 @@ func main() {
 		panic(err)
 	}
 
-	// Optional trace
-	traceStart()
+	// Starts optional trace/profiling
+	traceProfStart()
 
 	// Run specified test or run all tests
 	if len(tinfo.name) > 0 {
-		runTest(win, tinfo, 0)
+		runTest(win, tinfo, *oFrameCount)
 	} else {
+		// Build slice of testInfo structs from map
 		tests := []testInfo{}
 		for _, v := range mapTests {
 			tests = append(tests, v)
 		}
+		// Sort slice by increasing order field
 		sort.Slice(tests, func(i, j int) bool {
 			return tests[i].order < tests[j].order
 		})
+		// Run tests continously unless aborted by closing the window
 		index := 0
 		for {
-			abort := runTest(win, tests[index], 200)
+			abort := runTest(win, tests[index], *oFrameCount)
 			if abort {
 				break
 			}
@@ -101,18 +110,20 @@ func main() {
 		}
 	}
 
-	// Optional trace
-	traceStop()
+	// Stops optional trace/profiling
+	traceProfStop()
 
 	win.Destroy()
 }
 
-func runTest(win *gux.Window, tinfo testInfo, maxFrames int) bool {
+// runTest creates the specified test and runs it for the specified number of frames.
+// If 'maxFrames' is zero, runs continously till the window is closed.
+func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 
-	fmt.Printf("Running test: %s \n", tinfo.name)
+	fmt.Printf("Running test: %s (%d frames) \n", tinfo.name, maxFrames)
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
-	frameCount := 0
+	frameCount := uint(0)
 
 	// Creates test
 	test := tinfo.create(win)
@@ -160,33 +171,65 @@ func nextColor(i int) gb.RGBA {
 	return colorList[ci]
 }
 
-// traceStart starts trace if requested by command line option
-func traceStart() {
+// traceProfStart starts one of: execution trace, cpu profile or memory profile as8 requested by command line option
+func traceProfStart() {
 
-	if len(*oTrace) == 0 {
-		return
+	if len(*oTrace) > 0 {
+		var err error
+		traceFile, err = os.Create(*oTrace)
+		if err != nil {
+			panic(fmt.Errorf("Error creating execution trace file:%s\n", err))
+		}
+		err = trace.Start(traceFile)
+		if err != nil {
+			panic(fmt.Errorf("Error starting execution trace:%s\n", err))
+		}
 	}
 
-	var err error
-	traceFile, err = os.Create(*oTrace)
-	if err != nil {
-		panic(fmt.Errorf("Error creating execution trace file:%s\n", err))
-		return
+	if len(*oCpuProfile) > 0 {
+		var err error
+		cpuprofFile, err = os.Create(*oCpuProfile)
+		if err != nil {
+			panic(fmt.Errorf("Error creating cpu profile file:%s\n", err))
+		}
+		err = pprof.StartCPUProfile(cpuprofFile)
+		if err != nil {
+			panic(fmt.Errorf("Error starting cpu profile:%s\n", err))
+		}
 	}
-	err = trace.Start(traceFile)
-	if err != nil {
-		panic(fmt.Errorf("Error starting execution trace:%s\n", err))
+
+	if len(*oMemProfile) > 0 {
+		var err error
+		memprofFile, err = os.Create(*oMemProfile)
+		if err != nil {
+			panic(fmt.Errorf("Error creating memory profile file:%s\n", err))
+		}
+		err = pprof.WriteHeapProfile(memprofFile)
+		runtime.GC()
+		if err != nil {
+			panic(fmt.Errorf("Error writing memory profile:%s\n", err))
+		}
 	}
-	fmt.Printf("Started writing execution trace to: %s\n", *oTrace)
+
 }
 
-// traceStop stops trace if requested by command line option
-func traceStop() {
+// traceProfStop stops one of: execution trace, cpu profile or memory profile as8 requested by command line option
+func traceProfStop() {
 
-	if len(*oTrace) == 0 {
-		return
+	if len(*oMemProfile) > 0 {
+		memprofFile.Close()
+		fmt.Printf("Memory profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oMemProfile)
 	}
-	trace.Stop()
-	traceFile.Close()
-	fmt.Printf("Trace finished. To show the trace execute command:\n>go tool trace %s\n", *oTrace)
+
+	if len(*oCpuProfile) > 0 {
+		pprof.StopCPUProfile()
+		cpuprofFile.Close()
+		fmt.Printf("CPU profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oCpuProfile)
+	}
+
+	if len(*oTrace) > 0 {
+		trace.Stop()
+		traceFile.Close()
+		fmt.Printf("Execution trace saved. To show the trace execute command:\n>go tool trace %s\n", *oTrace)
+	}
 }

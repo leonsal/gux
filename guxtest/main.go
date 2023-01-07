@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"math"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -118,13 +119,13 @@ func main() {
 // If 'maxFrames' is zero, runs continously till the window is closed.
 func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 
+	// Creates test
+	test := tinfo.create(win)
+
 	log.Printf("Running test: %s (%d frames) \n", tinfo.name, maxFrames)
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
 	frameCount := uint(0)
-
-	// Creates test
-	test := tinfo.create(win)
 
 	// Render Loop
 	abort := false
@@ -150,7 +151,7 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 	// Calculates and shows allocations and cgo calls per frame
 	if frameCount > 0 {
 		cgoCalls := runtime.NumCgoCall() - cgoCallsStart
-		cgoPerFrame := cgoCalls / int64(frameCount)
+		cgoPerFrame := int(math.Round(float64(cgoCalls) / float64(frameCount)))
 		var stats runtime.MemStats
 		runtime.ReadMemStats(&stats)
 		allocsPerFrame := (stats.Alloc - statsStart.Alloc) / uint64(frameCount)

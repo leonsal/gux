@@ -12,13 +12,7 @@ import (
 	"github.com/leonsal/gux/gb"
 )
 
-var colorList []gb.RGBA
-
-// Command line flags
-var (
-	oTrace = flag.String("trace", "", "Activate go tool execution tracer writing data to the specified file")
-)
-
+// Initializes colors lists
 func init() {
 	colorList = append(colorList,
 		gb.MakeColor(255, 0, 0, 255),
@@ -39,16 +33,18 @@ type testInfo struct {
 	create func(*gux.Window) ITest // Test constructor
 }
 
-var (
-	mapTests  = map[string]testInfo{} // Maps test name to related info
-	traceFile *os.File                // Open trace file (if trace was requested)
-)
-
 // ITest is the interface for all tests objects
 type ITest interface {
 	draw(*gux.Window)
 	destroy(*gux.Window)
 }
+
+var (
+	colorList = []gb.RGBA{}
+	oTrace    = flag.String("trace", "", "Activate go tool execution tracer writing data to the specified file")
+	mapTests  = map[string]testInfo{} // Maps test name to related info
+	traceFile *os.File                // Open trace file (if trace was requested)
+)
 
 func main() {
 

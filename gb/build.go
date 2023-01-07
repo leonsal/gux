@@ -2,6 +2,7 @@ package gb
 
 /*
 // Linux Build Tags
+#cgo linux CFLAGS: -I glfw/include
 #cgo linux,!vulkan CFLAGS: -I gl3w/include
 #cgo linux,!wayland CFLAGS: -D_GLFW_X11
 #cgo linux,wayland CFLAGS: -D_GLFW_WAYLAND

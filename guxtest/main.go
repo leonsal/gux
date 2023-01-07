@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/trace"
 	"sort"
 
 	"github.com/leonsal/gux"
@@ -12,6 +13,11 @@ import (
 )
 
 var colorList []gb.RGBA
+
+// Command line flags
+var (
+	oTrace = flag.String("trace", "", "Activate go tool execution tracer writing data to the specified file")
+)
 
 func init() {
 	colorList = append(colorList,
@@ -34,9 +40,11 @@ type testInfo struct {
 }
 
 var (
-	mapTests = map[string]testInfo{}
+	mapTests  = map[string]testInfo{} // Maps test name to related info
+	traceFile *os.File                // Open trace file (if trace was requested)
 )
 
+// ITest is the interface for all tests objects
 type ITest interface {
 	draw(*gux.Window)
 	destroy(*gux.Window)
@@ -70,6 +78,9 @@ func main() {
 		panic(err)
 	}
 
+	// Optional trace
+	traceStart()
+
 	// Run specified test or run all tests
 	if len(tinfo.name) > 0 {
 		runTest(win, tinfo, 0)
@@ -93,6 +104,9 @@ func main() {
 			}
 		}
 	}
+
+	// Optional trace
+	traceStop()
 
 	win.Destroy()
 }
@@ -148,4 +162,35 @@ func nextColor(i int) gb.RGBA {
 
 	ci := i % len(colorList)
 	return colorList[ci]
+}
+
+// traceStart starts trace if requested by command line option
+func traceStart() {
+
+	if len(*oTrace) == 0 {
+		return
+	}
+
+	var err error
+	traceFile, err = os.Create(*oTrace)
+	if err != nil {
+		panic(fmt.Errorf("Error creating execution trace file:%s\n", err))
+		return
+	}
+	err = trace.Start(traceFile)
+	if err != nil {
+		panic(fmt.Errorf("Error starting execution trace:%s\n", err))
+	}
+	fmt.Printf("Started writing execution trace to: %s\n", *oTrace)
+}
+
+// traceStop stops trace if requested by command line option
+func traceStop() {
+
+	if len(*oTrace) == 0 {
+		return
+	}
+	trace.Stop()
+	traceFile.Close()
+	fmt.Printf("Trace finished. To show the trace execute command:\n>go tool trace %s\n", *oTrace)
 }

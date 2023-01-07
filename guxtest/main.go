@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -55,6 +55,7 @@ var (
 func main() {
 
 	runtime.LockOSThread()
+	log.SetFlags(log.Lmicroseconds)
 
 	// Parse command line
 	flag.Parse()
@@ -65,8 +66,7 @@ func main() {
 		var ok bool
 		tinfo, ok = mapTests[tname]
 		if !ok {
-			fmt.Printf("Invalid test name: %s\n", tname)
-			os.Exit(1)
+			log.Fatalf("Invalid test name: %s\n", tname)
 		}
 	}
 
@@ -77,7 +77,7 @@ func main() {
 	cfg.Vulkan.ValidationLayer = true
 	win, err := gux.NewWindow("title", 2000, 1200, &cfg)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Starts optional trace/profiling
@@ -104,9 +104,7 @@ func main() {
 				break
 			}
 			index++
-			if index >= len(tests) {
-				index = 0
-			}
+			index %= len(tests)
 		}
 	}
 
@@ -120,7 +118,7 @@ func main() {
 // If 'maxFrames' is zero, runs continously till the window is closed.
 func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 
-	fmt.Printf("Running test: %s (%d frames) \n", tinfo.name, maxFrames)
+	log.Printf("Running test: %s (%d frames) \n", tinfo.name, maxFrames)
 	var cgoCallsStart int64
 	var statsStart runtime.MemStats
 	frameCount := uint(0)
@@ -147,6 +145,7 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 			break
 		}
 	}
+	test.destroy(win)
 
 	// Calculates and shows allocations and cgo calls per frame
 	cgoCalls := runtime.NumCgoCall() - cgoCallsStart
@@ -154,8 +153,7 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
 	allocsPerFrame := float64(stats.Alloc-statsStart.Alloc) / float64(frameCount)
-	fmt.Println("Frames:", frameCount, "Allocs per frame:", allocsPerFrame, "CGO calls per frame:", cgoPerFrame)
-	test.destroy(win)
+	log.Printf("Frames:%d  Allocs/frame:%f  CGO calls/frame:%f\n\n", frameCount, allocsPerFrame, cgoPerFrame)
 	return abort
 }
 
@@ -171,18 +169,18 @@ func nextColor(i int) gb.RGBA {
 	return colorList[ci]
 }
 
-// traceProfStart starts one of: execution trace, cpu profile or memory profile as8 requested by command line option
+// traceProfStart starts optional execution tracing and profiles
 func traceProfStart() {
 
 	if len(*oTrace) > 0 {
 		var err error
 		traceFile, err = os.Create(*oTrace)
 		if err != nil {
-			panic(fmt.Errorf("Error creating execution trace file:%s\n", err))
+			log.Fatalf("Error creating execution trace file:%s\n", err)
 		}
 		err = trace.Start(traceFile)
 		if err != nil {
-			panic(fmt.Errorf("Error starting execution trace:%s\n", err))
+			log.Fatalf("Error starting execution trace:%s\n", err)
 		}
 	}
 
@@ -190,11 +188,11 @@ func traceProfStart() {
 		var err error
 		cpuprofFile, err = os.Create(*oCpuProfile)
 		if err != nil {
-			panic(fmt.Errorf("Error creating cpu profile file:%s\n", err))
+			log.Fatalf("Error creating cpu profile file:%s\n", err)
 		}
 		err = pprof.StartCPUProfile(cpuprofFile)
 		if err != nil {
-			panic(fmt.Errorf("Error starting cpu profile:%s\n", err))
+			log.Fatalf("Error starting cpu profile:%s\n", err)
 		}
 	}
 
@@ -202,34 +200,34 @@ func traceProfStart() {
 		var err error
 		memprofFile, err = os.Create(*oMemProfile)
 		if err != nil {
-			panic(fmt.Errorf("Error creating memory profile file:%s\n", err))
+			log.Fatalf("Error creating memory profile file:%s\n", err)
 		}
 		err = pprof.WriteHeapProfile(memprofFile)
 		runtime.GC()
 		if err != nil {
-			panic(fmt.Errorf("Error writing memory profile:%s\n", err))
+			log.Fatalf("Error writing memory profile:%s\n", err)
 		}
 	}
 
 }
 
-// traceProfStop stops one of: execution trace, cpu profile or memory profile as8 requested by command line option
+// traceProfStop stops optional active execution tracing and profiles
 func traceProfStop() {
 
 	if len(*oMemProfile) > 0 {
 		memprofFile.Close()
-		fmt.Printf("Memory profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oMemProfile)
+		log.Printf("Memory profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oMemProfile)
 	}
 
 	if len(*oCpuProfile) > 0 {
 		pprof.StopCPUProfile()
 		cpuprofFile.Close()
-		fmt.Printf("CPU profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oCpuProfile)
+		log.Printf("CPU profile saved. To show the profile execute command:\n>go tool pprof -web %s\n", *oCpuProfile)
 	}
 
 	if len(*oTrace) > 0 {
 		trace.Stop()
 		traceFile.Close()
-		fmt.Printf("Execution trace saved. To show the trace execute command:\n>go tool trace %s\n", *oTrace)
+		log.Printf("Execution trace saved. To show the trace execute command:\n>go tool trace %s\n", *oTrace)
 	}
 }

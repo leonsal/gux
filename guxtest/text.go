@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -36,7 +37,7 @@ func newTestText(win *gux.Window) ITest {
 
 	// Create font atlas
 	t.fa = win.NewFontAtlas(t.f, 0x00, 0xFF)
-	fmt.Println("ATLAS: LineHeight:", t.fa.LineHeight, "Ascent:", t.fa.Ascent, "Descent:", t.fa.Descent)
+	log.Println("Created atlas: LineHeight:", t.fa.LineHeight, "Ascent:", t.fa.Ascent, "Descent:", t.fa.Descent)
 	if false {
 		err = t.fa.SavePNG("atlas.png")
 		if err != nil {
@@ -46,7 +47,7 @@ func newTestText(win *gux.Window) ITest {
 
 	// Creates text image
 	t.texID, t.width, t.height = win.CreateTextImage(t.f, "text image")
-	fmt.Println("TextImage:", t.texID, t.width, t.height)
+	log.Println("Create TextImage:", t.texID, t.width, t.height)
 	return t
 }
 
@@ -63,5 +64,5 @@ func (t *testText) destroy(win *gux.Window) {
 
 	win.DestroyFontAtlas(t.fa)
 	win.DeleteTexture(t.texID)
-	fmt.Println("destroy")
+	log.Println("Destroy font atlas and texture")
 }

@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"io"
 	"io/ioutil"
 	"strings"
 
@@ -25,8 +26,19 @@ type Font struct {
 	changed     bool           // Whether attributes have changed and the font face needs to be recreated
 }
 
-// NewFont creates and returns a new font object using the specified TrueType font file.
-func NewFont(ttfFile string) (*Font, error) {
+// NewFont creates and returns a new font object from the specified TrueType font file reader.
+func NewFont(ttfFile io.Reader) (*Font, error) {
+
+	// Reads font bytes
+	fontBytes, err := ioutil.ReadAll(ttfFile)
+	if err != nil {
+		return nil, err
+	}
+	return NewFontFromData(fontBytes)
+}
+
+// NewFontFromFile creates and returns a new font object from the specified TrueType font filepath.
+func NewFontFromFile(ttfFile string) (*Font, error) {
 
 	// Reads font bytes
 	fontBytes, err := ioutil.ReadFile(ttfFile)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"log"
 	"math"
@@ -52,6 +53,9 @@ var (
 	cpuprofFile *os.File
 	memprofFile *os.File
 )
+
+//go:embed assets/*
+var embedfs embed.FS
 
 func main() {
 

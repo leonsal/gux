@@ -25,9 +25,16 @@ func newTestText(win *gux.Window) ITest {
 
 	t := new(testText)
 
-	// Create font
+	// Load fonts from embedded filesystem
 	var err error
-	t.f, err = gux.NewFont("assets/Roboto-Medium.ttf")
+	textFont, err := embedfs.Open("assets/Roboto-Medium.ttf")
+	defer textFont.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	// Create font
+	t.f, err = gux.NewFont(textFont)
 	if err != nil {
 		panic(err)
 	}

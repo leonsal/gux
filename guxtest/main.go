@@ -80,7 +80,7 @@ func main() {
 	cfg.DebugPrintCmds = false
 	cfg.OpenGL.ES = false
 	cfg.Vulkan.ValidationLayer = true
-	win, err := gux.NewWindow("title", 2000, 1200, &cfg)
+	win, err := gux.NewWindow("GUX Test", 2000, 1200, &cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

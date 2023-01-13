@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/leonsal/gux"
@@ -41,13 +42,19 @@ func newTestText2(win *gux.Window) ITest {
 	// Create font atlas
 	t.fa = win.NewFontAtlas(t.f, 0x00, 0xFF)
 	log.Println("Created atlas: LineHeight:", t.fa.LineHeight, "Ascent:", t.fa.Ascent, "Descent:", t.fa.Descent)
+	if true {
+		err = t.fa.SavePNG("atlas.png")
+		if err != nil {
+			fmt.Println("SAVE ERROR:", err)
+		}
+	}
 	return t
 }
 
 func (t *testText2) draw(win *gux.Window) {
 
 	dl := win.DrawList()
-	text := `igigigigig
+	text := `igijigijlgiglg|g
 Small text aligned to the top
 `
 	win.AddText(dl, t.fa, gb.Vec2{0, 0}, gux.TextVAlignTop, text)

@@ -2,6 +2,7 @@ package gux
 
 import (
 	"bufio"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -83,7 +84,7 @@ func (w *Window) NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		var cinfo CharInfo
 		cinfo.X = lastX
 		cinfo.Y = lastY
-		cinfo.Width = lineWidth - lastX - 1
+		cinfo.Width = lineWidth - lastX
 		cinfo.Height = a.LineHeight
 		lastX = lineWidth
 		a.Chars[code] = cinfo
@@ -125,6 +126,7 @@ func (w *Window) NewFontAtlas(font *Font, first, last rune) *FontAtlas {
 		char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
 		char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
 		a.Chars[code] = char
+		fmt.Printf("code: %v cinfo: %+v\n", code, char)
 	}
 
 	// Generates atlas image

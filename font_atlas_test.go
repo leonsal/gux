@@ -36,9 +36,20 @@ func TestMain(t *testing.T) {
 	if err != nil {
 		log.Fatalf("NewFace: %v", err)
 	}
-	fmt.Printf("%v\n", face)
 
-	//fa := NewFont
-	//fa := NewFontAtlas(face, rune runeSets ...[]rune) *FontAtlas {
+	runes := []rune{}
+	for r := rune(105); r < 114; r++ {
+		runes = append(runes, r)
+	}
+
+	fa := NewFontAtlas(face, runes)
+	for code, gi := range fa.Glyphs {
+		fmt.Printf("code:%v info:%+v\n", code, gi)
+	}
+
+	err = fa.SavePNG("atlas.png")
+	if err != nil {
+		log.Fatalf("SavePNG: %v", err)
+	}
 
 }

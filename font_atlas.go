@@ -1,8 +1,12 @@
 package gux
 
 import (
+	"bufio"
+	"fmt"
 	"image"
 	"image/draw"
+	"image/png"
+	"os"
 	"sort"
 	"unicode"
 
@@ -66,15 +70,20 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	}
 
 	// Image bounds
-	//boundsMinX := i2f(fixedBounds.Min.X)
-	//boundsMaxX := i2f(fixedBounds.Max.X)
+	boundsMinX := i2f(fixedBounds.Min.X)
+	boundsMaxX := i2f(fixedBounds.Max.X)
 	boundsMinY := i2f(fixedBounds.Min.Y)
 	boundsMaxY := i2f(fixedBounds.Max.Y)
+	imageWidth := boundsMaxX - boundsMinX
+	imageHeight := boundsMaxY - boundsMinY
+
+	fmt.Println("image:", boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, imageWidth, imageHeight)
 
 	glyphs := make(map[rune]GlyphInfo)
 	for r, fg := range fixedMapping {
+		fmt.Printf("rune:%d rect:%f/%f/%f/%f\n", r, i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
 		glyphs[r] = GlyphInfo{
-			Dot: gb.Vec2{i2f(fg.dot.X), float32(boundsMaxY) - (i2f(fg.dot.Y) - boundsMinY)},
+			Dot: gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)},
 			//			Frame: pixel.R(
 			//				i2f(fg.frame.Min.X),
 			//				bounds.Max.Y-(i2f(fg.frame.Min.Y)-bounds.Min.Y),
@@ -86,13 +95,35 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	}
 
 	return &FontAtlas{
-		face: face,
-		//pic:        pixel.PictureDataFromImage(atlasImg),
-		//mapping:    mapping,
+		face:       face,
+		Glyphs:     glyphs,
+		Image:      atlasImg,
 		Ascent:     i2f(face.Metrics().Ascent),
 		Descent:    i2f(face.Metrics().Descent),
 		LineHeight: i2f(face.Metrics().Height),
 	}
+}
+
+// SavePNG saves the current atlas image as a PNG image file
+func (a *FontAtlas) SavePNG(filename string) error {
+
+	// Save that RGBA image to disk.
+	outFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	b := bufio.NewWriter(outFile)
+	err = png.Encode(b, a.Image)
+	if err != nil {
+		return err
+	}
+	err = b.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type fixedGlyph struct {

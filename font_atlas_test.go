@@ -29,7 +29,7 @@ func TestMain(t *testing.T) {
 	}
 
 	face, err := opentype.NewFace(fparsed, &opentype.FaceOptions{
-		Size:    32,
+		Size:    128,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	})
@@ -38,11 +38,12 @@ func TestMain(t *testing.T) {
 	}
 
 	runes := []rune{}
-	for r := rune(105); r < 114; r++ {
+	for r := rune(105); r < 108; r++ {
 		runes = append(runes, r)
 	}
 
 	fa := NewFontAtlas(face, runes)
+	fmt.Println("Ascent:", fa.Ascent, "Descent", fa.Descent, "Lineheight:", fa.LineHeight)
 	for code, gi := range fa.Glyphs {
 		fmt.Printf("code:%v info:%+v\n", code, gi)
 	}

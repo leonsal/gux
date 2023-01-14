@@ -8,7 +8,6 @@ import (
 	"image/png"
 	"os"
 	"sort"
-	"unicode"
 
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
@@ -18,7 +17,7 @@ import (
 type GlyphInfo struct {
 	Dot     gb.Vec2
 	Advance float32
-	UV      [4]gb.Vec2 // UV coordinates for char quad vertices
+	UV      [4]gb.Vec2 // UV coordinates for glyph quad vertices
 }
 
 //// Glyph describes one glyph in an Atlas.
@@ -42,7 +41,8 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 
 	// Builds array of unique runes from all the specified rune sets
 	seen := make(map[rune]bool)
-	runes := []rune{unicode.ReplacementChar}
+	//runes := []rune{unicode.ReplacementChar}
+	runes := []rune{}
 	for _, set := range runeSets {
 		for _, r := range set {
 			if !seen[r] {
@@ -81,17 +81,32 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 
 	glyphs := make(map[rune]GlyphInfo)
 	for r, fg := range fixedMapping {
-		fmt.Printf("rune:%d rect:%f/%f/%f/%f\n", r, i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
-		glyphs[r] = GlyphInfo{
-			Dot: gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)},
-			//			Frame: pixel.R(
-			//				i2f(fg.frame.Min.X),
-			//				bounds.Max.Y-(i2f(fg.frame.Min.Y)-bounds.Min.Y),
-			//				i2f(fg.frame.Max.X),
-			//				bounds.Max.Y-(i2f(fg.frame.Max.Y)-bounds.Min.Y),
-			//			).Norm(),
-			Advance: i2f(fg.advance),
-		}
+		fmt.Printf("rune:%d minX:%f minY:%f maxX:%f maxY:%f\n", r, i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
+		//gwidth := i2f(fg.frame.Max.X) - i2f(fg.frame.Min.X)
+		//gheight := i2f(fg.frame.Max.Y) - i2f(fg.frame.Min.Y)
+
+		gi := GlyphInfo{}
+		gi.Dot = gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)}
+		gi.Advance = i2f(fg.advance)
+		gi.UV[0] = gb.Vec2{i2f(fg.frame.Min.X) / imageWidth, (imageHeight - (boundsMaxY - i2f(fg.frame.Min.Y))) / imageHeight}
+		gi.UV[1] = gb.Vec2{gi.UV[0].X, imageHeight - (boundsMaxY - i2f(fg.frame.Max.Y))}
+		//gi.UV[2] = gb.Vec2{(i2f(fg.frame.Min.X) + gwidth)/imageWidth, i2f(fg.frame.Max.Y}
+		//	gi.UV[3] = gb.Vec2{}
+		glyphs[r] = gi
+		//glyphs[r] = GlyphInfo{
+		//	Dot: gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)},
+		//	//char.UV[0] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y) / imgHeight)}
+		//	//char.UV[1] = gb.Vec2{float32(char.X) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
+		//	//char.UV[2] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y+char.Height) / imgHeight)}
+		//	//char.UV[3] = gb.Vec2{float32(char.X+char.Width) / imgWidth, (float32(char.Y) / imgHeight)}
+		//	//			Frame: pixel.R(
+		//	//				i2f(fg.frame.Min.X),
+		//	//				bounds.Max.Y-(i2f(fg.frame.Min.Y)-bounds.Min.Y),
+		//	//				i2f(fg.frame.Max.X),
+		//	//				bounds.Max.Y-(i2f(fg.frame.Max.Y)-bounds.Min.Y),
+		//	//			).Norm(),
+		//	Advance: i2f(fg.advance),
+		//}
 	}
 
 	return &FontAtlas{

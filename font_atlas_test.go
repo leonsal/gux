@@ -38,7 +38,7 @@ func TestMain(t *testing.T) {
 	}
 
 	runes := []rune{}
-	for r := rune(105); r < 108; r++ {
+	for r := rune(65); r < 108; r++ {
 		runes = append(runes, r)
 	}
 

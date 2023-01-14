@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"sort"
+	"unicode"
 
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
@@ -41,8 +42,7 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 
 	// Builds array of unique runes from all the specified rune sets
 	seen := make(map[rune]bool)
-	//runes := []rune{unicode.ReplacementChar}
-	runes := []rune{}
+	runes := []rune{unicode.ReplacementChar}
 	for _, set := range runeSets {
 		for _, r := range set {
 			if !seen[r] {
@@ -81,17 +81,20 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 
 	glyphs := make(map[rune]GlyphInfo)
 	for r, fg := range fixedMapping {
-		fmt.Printf("rune:%d minX:%f minY:%f maxX:%f maxY:%f\n", r, i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
-		//gwidth := i2f(fg.frame.Max.X) - i2f(fg.frame.Min.X)
-		//gheight := i2f(fg.frame.Max.Y) - i2f(fg.frame.Min.Y)
-
+		//fmt.Printf("rune:%d minX:%f minY:%f maxX:%f maxY:%f\n", r, i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
 		gi := GlyphInfo{}
 		gi.Dot = gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)}
 		gi.Advance = i2f(fg.advance)
-		gi.UV[0] = gb.Vec2{i2f(fg.frame.Min.X) / imageWidth, (imageHeight - (boundsMaxY - i2f(fg.frame.Min.Y))) / imageHeight}
-		gi.UV[1] = gb.Vec2{gi.UV[0].X, imageHeight - (boundsMaxY - i2f(fg.frame.Max.Y))}
-		//gi.UV[2] = gb.Vec2{(i2f(fg.frame.Min.X) + gwidth)/imageWidth, i2f(fg.frame.Max.Y}
-		//	gi.UV[3] = gb.Vec2{}
+		// Transform to UV coordinates
+		minX := i2f(fg.frame.Min.X)
+		minY := -boundsMinY + i2f(fg.frame.Min.Y)
+		maxX := i2f(fg.frame.Max.X)
+		maxY := -boundsMinY + i2f(fg.frame.Max.Y)
+		//fmt.Printf("code:%v minX:%f minY:%f maxX:%f maxY:%f\n", r, minX, minY, maxX, maxY)
+		gi.UV[0] = gb.Vec2{minX / imageWidth, minY / imageHeight}
+		gi.UV[1] = gb.Vec2{minX / imageWidth, maxY / imageHeight}
+		gi.UV[2] = gb.Vec2{maxX / imageWidth, maxY / imageHeight}
+		gi.UV[3] = gb.Vec2{maxX / imageWidth, minY / imageHeight}
 		glyphs[r] = gi
 		//glyphs[r] = GlyphInfo{
 		//	Dot: gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)},

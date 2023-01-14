@@ -1,10 +1,6 @@
 package gux
 
-// import (
-// 	"unsafe"
-//
-// 	"github.com/leonsal/gux/gb"
-// )
+// import "github.com/leonsal/gux/gb"
 //
 // type TextVAlign int
 //
@@ -41,7 +37,7 @@ package gux
 // 		}
 //
 // 		// Ignore codes with no glyphs
-// 		charInfo, ok := fa.Chars[code]
+// 		charInfo, ok := fa.Glyphs[code]
 // 		if !ok {
 // 			continue
 // 		}
@@ -74,7 +70,7 @@ package gux
 // 		posX += float32(charInfo.Width - 1)
 // 	}
 // }
-//
+
 // func (w *Window) CreateTextImage(f *Font, text string) (gb.TextureID, float32, float32) {
 //
 // 	// Create image and draw text on it

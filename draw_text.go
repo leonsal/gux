@@ -1,12 +1,16 @@
 package gux
 
-import "github.com/leonsal/gux/gb"
+import (
+	"unicode"
+
+	"github.com/leonsal/gux/gb"
+)
 
 type TextVAlign int
 
 const (
-	TextVAlignTop    TextVAlign = 0
-	TextVAlignBase   TextVAlign = 1
+	TextVAlignBase   TextVAlign = 0
+	TextVAlignTop    TextVAlign = 1
 	TextVAlignBottom TextVAlign = 2
 )
 
@@ -14,6 +18,20 @@ const (
 func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.RGBA, align TextVAlign, text string) {
 
 	// Each glyph is rendered as Quad
+	//
+	//  .............................................. ascent
+	//
+	//       0               3
+	//       +---------------+
+	//       |               |
+	//       |               |
+	//       | dot           |
+	//  .....|.|.............|........................ baseline
+	//       |               |
+	//       |               |
+	//       +---------------+
+	//       1               2
+	//  .............................................. descent
 
 	posX := pos.X
 	var posY float32
@@ -21,9 +39,9 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 	case TextVAlignTop:
 		posY = pos.Y
 	case TextVAlignBase:
-		posY = pos.Y - float32(fa.Ascent)
+		posY = pos.Y - fa.Ascent
 	case TextVAlignBottom:
-		posY = pos.Y - float32(fa.LineHeight)
+		posY = pos.Y - fa.LineHeight
 	}
 
 	// For each rune in the text
@@ -37,10 +55,10 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 			continue
 		}
 
-		// Ignore codes with no glyphs
+		// If glyph not found, use replacement char
 		ginfo, ok := fa.Glyphs[code]
 		if !ok {
-			continue
+			ginfo = fa.Glyphs[unicode.ReplacementChar]
 		}
 		//if prevC >= 0 {
 		//	pos.X += float32(fa.Face.Kern(prevC, code).Floor())
@@ -75,6 +93,44 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		//prevC = code
 	}
 }
+
+// // DrawRune returns parameters necessary for drawing a rune glyph.
+// //
+// // Rect is a rectangle where the glyph should be positioned. Frame is the glyph frame inside the
+// // Atlas's Picture. NewDot is the new position of the dot.
+// func (a *Atlas) DrawRune(prevR, r rune, dot pixel.Vec) (rect, frame, bounds pixel.Rect, newDot pixel.Vec) {
+// 	if !a.Contains(r) {
+// 		r = unicode.ReplacementChar
+// 	}
+// 	if !a.Contains(unicode.ReplacementChar) {
+// 		return pixel.Rect{}, pixel.Rect{}, pixel.Rect{}, dot
+// 	}
+// 	if !a.Contains(prevR) {
+// 		prevR = unicode.ReplacementChar
+// 	}
+//
+// 	if prevR >= 0 {
+// 		dot.X += a.Kern(prevR, r)
+// 	}
+//
+// 	glyph := a.Glyph(r)
+//
+// 	rect = glyph.Frame.Moved(dot.Sub(glyph.Dot))
+// 	bounds = rect
+//
+// 	if bounds.W()*bounds.H() != 0 {
+// 		bounds = pixel.R(
+// 			bounds.Min.X,
+// 			dot.Y-a.Descent(),
+// 			bounds.Max.X,
+// 			dot.Y+a.Ascent(),
+// 		)
+// 	}
+//
+// 	dot.X += glyph.Advance
+//
+// 	return rect, glyph.Frame, bounds, dot
+// }
 
 // func (w *Window) CreateTextImage(f *Font, text string) (gb.TextureID, float32, float32) {
 //

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"unicode"
 	"unsafe"
 
 	"github.com/leonsal/gux/gb"
@@ -70,8 +71,8 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 
 	// Builds array of unique runes from all the specified rune sets
 	seen := make(map[rune]bool)
-	//runes := []rune{unicode.ReplacementChar}
-	runes := []rune{}
+	runes := []rune{unicode.ReplacementChar}
+	//runes := []rune{}
 	for _, set := range runeSets {
 		for _, r := range set {
 			if !seen[r] {
@@ -113,6 +114,7 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	for r, fg := range fixedMapping {
 		gi := GlyphInfo{}
 		gi.Dot = gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)}
+		//gi.Dot = gb.Vec2{i2f(fg.dot.X), i2f(fg.dot.Y)}
 		gi.Advance = i2f(fg.advance)
 		// Transform glyphs image coordinates to UV coordinates
 		minX := i2f(fg.frame.Min.X)
@@ -121,6 +123,8 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 		maxY := -boundsMinY + i2f(fg.frame.Max.Y)
 		gi.Width = maxX - minX
 		//fmt.Printf("code:%v minX:%f minY:%f maxX:%f maxY:%f width:%f\n", r, minX, minY, maxX, maxY, maxX-minX)
+		fmt.Printf("code:%v minX:%f minY:%f maxX:%f maxY:%f\n", r,
+			i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))
 		gi.UV[0] = gb.Vec2{minX / imageWidth, minY / imageHeight}
 		gi.UV[1] = gb.Vec2{minX / imageWidth, maxY / imageHeight}
 		gi.UV[2] = gb.Vec2{maxX / imageWidth, maxY / imageHeight}
@@ -191,6 +195,21 @@ func (a *FontAtlas) Destroy(win *Window) error {
 		a.TexID = 0
 	}
 	return nil
+}
+
+func (a *FontAtlas) PrintInfo() {
+
+	fmt.Println("Ascent:", a.Ascent, "Descent", a.Descent, "Lineheight:", a.LineHeight)
+	runes := make([]rune, 0, len(a.Glyphs))
+	for r := range a.Glyphs {
+		runes = append(runes, r)
+	}
+	sort.Slice(runes, func(i, j int) bool {
+		return runes[i] < runes[j]
+	})
+	for _, r := range runes {
+		fmt.Printf("code:%v glyph:[%c] info:%+v\n", r, r, a.Glyphs[r])
+	}
 }
 
 type fixedGlyph struct {

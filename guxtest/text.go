@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/leonsal/gux"
@@ -45,14 +44,11 @@ func newTestText(win *gux.Window) ITest {
 
 	// Creates font atlas
 	runes := []rune{}
-	for r := rune(105); r <= 107; r++ {
+	for r := rune(105); r <= 112; r++ {
 		runes = append(runes, r)
 	}
 	t.fa = gux.NewFontAtlas(face, runes)
-	fmt.Println("Ascent:", t.fa.Ascent, "Descent", t.fa.Descent, "Lineheight:", t.fa.LineHeight)
-	for code, gi := range t.fa.Glyphs {
-		fmt.Printf("code:%v info:%+v\n", code, gi)
-	}
+	t.fa.PrintInfo()
 
 	// Optionally save font atlas png for debugging
 	if true {
@@ -70,7 +66,7 @@ func newTestText(win *gux.Window) ITest {
 func (t *testText) draw(win *gux.Window) {
 
 	dl := win.DrawList()
-	win.AddText(dl, t.fa, gb.Vec2{100, 100}, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignTop, "ijk")
+	win.AddText(dl, t.fa, gb.Vec2{100, 200}, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, "ijk123")
 	// win.AddText(dl, t.fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
 	// win.AddText(dl, t.fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
 	// win.AddImage(dl, t.texID, t.width, t.height, gb.Vec2{50, 400})

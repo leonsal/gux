@@ -24,8 +24,15 @@ func newTestText(win *gux.Window) ITest {
 
 	t := new(testText)
 
-	// Creates font face from file
-	face, err := gux.NewFontFaceFromFile("/assets/Roboto-Medium.ttf", &opentype.FaceOptions{
+	// Opens font file from embedded filesystem
+	var err error
+	fontFile, err := embedfs.Open("assets/Roboto-Medium.ttf")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates font face from file reader
+	face, err := gux.NewFontFaceFromReader(fontFile, &opentype.FaceOptions{
 		Size:    128,
 		DPI:     72,
 		Hinting: font.HintingNone,
@@ -33,23 +40,26 @@ func newTestText(win *gux.Window) ITest {
 	if err != nil {
 		log.Fatalf("NewFace: %v", err)
 	}
+	defer fontFile.Close()
 
+	// Creates font atlas
 	runes := []rune{}
 	for r := rune(105); r < 108; r++ {
 		runes = append(runes, r)
 	}
-
 	t.fa = gux.NewFontAtlas(face, runes)
 	fmt.Println("Ascent:", t.fa.Ascent, "Descent", t.fa.Descent, "Lineheight:", t.fa.LineHeight)
 	for code, gi := range t.fa.Glyphs {
 		fmt.Printf("code:%v info:%+v\n", code, gi)
 	}
 
-	err = t.fa.SavePNG("atlas.png")
-	if err != nil {
-		log.Fatalf("SavePNG: %v", err)
+	// Optionally save font atlas png for debugging
+	if false {
+		err = t.fa.SavePNG("atlas.png")
+		if err != nil {
+			log.Fatalf("SavePNG: %v", err)
+		}
 	}
-
 	return t
 }
 

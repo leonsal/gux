@@ -6,11 +6,15 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
+	"io"
+	"io/ioutil"
 	"os"
 	"sort"
+	"unsafe"
 
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -23,12 +27,43 @@ type GlyphInfo struct {
 
 // FontAtlas represents an image containing characters and the information about their location in the image
 type FontAtlas struct {
-	face       font.Face          // The font face used to generate the atlas
+	Face       font.Face          // The font face used to generate the atlas
 	Glyphs     map[rune]GlyphInfo // Maps rune code to correspondent Glyph info
 	Image      *image.RGBA        // Font atlas generated image
 	Ascent     float32            // Distance from the top of a line to its baseline
 	Descent    float32            // Distance from the bottom of a line to its baseline
 	LineHeight float32            // Total line height
+	TexID      gb.TextureID       // Texture ID (valid only after texture was created)
+}
+
+// NewFontFaceFromFile creates and returns a Font face with the specified options from
+// parsing the specified TrueType or OpenType font file.
+func NewFontFaceFromFile(filepath string, opts *opentype.FaceOptions) (font.Face, error) {
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return NewFontFaceFromReader(f, opts)
+}
+
+func NewFontFaceFromReader(r io.Reader, opts *opentype.FaceOptions) (font.Face, error) {
+
+	fdata, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return NewFontFace(fdata, opts)
+}
+
+func NewFontFace(fontData []byte, opts *opentype.FaceOptions) (font.Face, error) {
+
+	fparsed, err := opentype.Parse(fontData)
+	if err != nil {
+		return nil, nil
+	}
+	return opentype.NewFace(fparsed, opts)
 }
 
 func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
@@ -72,6 +107,7 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	imageHeight := boundsMaxY - boundsMinY
 
 	fmt.Println("image:", boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, imageWidth, imageHeight)
+	fmt.Printf("image rect:%+v\n", atlasImg.Rect)
 
 	glyphs := make(map[rune]GlyphInfo)
 	for r, fg := range fixedMapping {
@@ -107,7 +143,7 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	}
 
 	return &FontAtlas{
-		face:       face,
+		Face:       face,
 		Glyphs:     glyphs,
 		Image:      atlasImg,
 		Ascent:     i2f(face.Metrics().Ascent),
@@ -134,6 +170,25 @@ func (a *FontAtlas) SavePNG(filename string) error {
 	err = b.Flush()
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (a *FontAtlas) CreateTexture(win *Window) error {
+
+	rect := a.Image.Rect
+	width := rect.Max.X - rect.Min.X
+	height := rect.Max.Y - rect.Min.Y
+	fmt.Println("CreateTexture", width, height)
+	win.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
+	return nil
+}
+
+func (a *FontAtlas) Destroy(win *Window) error {
+
+	if a.TexID != 0 {
+		win.DeleteTexture(a.TexID)
+		a.TexID = 0
 	}
 	return nil
 }

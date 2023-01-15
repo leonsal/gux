@@ -2,9 +2,7 @@ package gux
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"testing"
 
 	"golang.org/x/image/font"
@@ -13,22 +11,7 @@ import (
 
 func TestMain(t *testing.T) {
 
-	f, err := os.Open("guxtest/assets/Roboto-Medium.ttf")
-	if err != nil {
-		log.Fatalf("Open: %v", err)
-	}
-	defer f.Close()
-	fbytes, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatalf("ReadAll: %v", err)
-	}
-
-	fparsed, err := opentype.Parse(fbytes)
-	if err != nil {
-		log.Fatalf("Parse: %v", err)
-	}
-
-	face, err := opentype.NewFace(fparsed, &opentype.FaceOptions{
+	face, err := NewFontFaceFromFile("guxtest/assets/Roboto-Medium.ttf", &opentype.FaceOptions{
 		Size:    128,
 		DPI:     72,
 		Hinting: font.HintingNone,

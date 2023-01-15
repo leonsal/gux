@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/leonsal/gux"
+	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 )
@@ -44,7 +45,7 @@ func newTestText(win *gux.Window) ITest {
 
 	// Creates font atlas
 	runes := []rune{}
-	for r := rune(105); r < 108; r++ {
+	for r := rune(105); r < 110; r++ {
 		runes = append(runes, r)
 	}
 	t.fa = gux.NewFontAtlas(face, runes)
@@ -54,19 +55,22 @@ func newTestText(win *gux.Window) ITest {
 	}
 
 	// Optionally save font atlas png for debugging
-	if false {
+	if true {
 		err = t.fa.SavePNG("atlas.png")
 		if err != nil {
 			log.Fatalf("SavePNG: %v", err)
 		}
 	}
+
+	// Creates font atlas texture
+	t.fa.CreateTexture(win)
 	return t
 }
 
 func (t *testText) draw(win *gux.Window) {
 
-	// dl := win.DrawList()
-	// win.AddText(dl, t.fa, gb.Vec2{50, 200}, gux.TextVAlignTop, "top ")
+	dl := win.DrawList()
+	win.AddText(dl, t.fa, gb.Vec2{100, 100}, gux.TextVAlignTop, "ij")
 	// win.AddText(dl, t.fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
 	// win.AddText(dl, t.fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
 	// win.AddImage(dl, t.texID, t.width, t.height, gb.Vec2{50, 400})

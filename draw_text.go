@@ -11,11 +11,9 @@ const (
 )
 
 // AddText adds commands to draw text to the specified DrawList.
-func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align TextVAlign, text string) {
+func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.RGBA, align TextVAlign, text string) {
 
 	// Each glyph is rendered as Quad
-
-	white := gb.MakeColor(255, 255, 255, 255)
 
 	posX := pos.X
 	var posY float32
@@ -29,6 +27,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align Text
 	}
 
 	// For each rune in the text
+	//prevC := rune(-1)
 	for _, code := range text {
 
 		// Process new line
@@ -43,25 +42,28 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align Text
 		if !ok {
 			continue
 		}
+		//if prevC >= 0 {
+		//	pos.X += float32(fa.Face.Kern(prevC, code).Floor())
+		//}
 
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
 		cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
 		cmd.TexID = fa.TexID
 		bufVtx[0].Pos = gb.Vec2{posX, posY}
 		bufVtx[0].UV = ginfo.UV[0]
-		bufVtx[0].Col = white
+		bufVtx[0].Col = color
 
 		bufVtx[1].Pos = gb.Vec2{posX, posY + fa.LineHeight}
 		bufVtx[1].UV = ginfo.UV[1]
-		bufVtx[1].Col = white
+		bufVtx[1].Col = color
 
-		bufVtx[2].Pos = gb.Vec2{posX + ginfo.Advance, posY + fa.LineHeight}
+		bufVtx[2].Pos = gb.Vec2{posX + ginfo.Width, posY + fa.LineHeight}
 		bufVtx[2].UV = ginfo.UV[2]
-		bufVtx[2].Col = white
+		bufVtx[2].Col = color
 
-		bufVtx[3].Pos = gb.Vec2{posX + ginfo.Advance, posY}
+		bufVtx[3].Pos = gb.Vec2{posX + ginfo.Width, posY}
 		bufVtx[3].UV = ginfo.UV[3]
-		bufVtx[3].Col = white
+		bufVtx[3].Col = color
 
 		bufIdx[0] = 0
 		bufIdx[1] = 1
@@ -70,6 +72,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, align Text
 		bufIdx[4] = 3
 		bufIdx[5] = 0
 		posX += ginfo.Advance
+		//prevC = code
 	}
 }
 

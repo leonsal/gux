@@ -34,7 +34,7 @@ func newTestText(win *gux.Window) ITest {
 
 	// Creates font face from file reader
 	face, err := gux.NewFontFaceFromReader(fontFile, &opentype.FaceOptions{
-		Size:    128,
+		Size:    132,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	})
@@ -45,7 +45,7 @@ func newTestText(win *gux.Window) ITest {
 
 	// Creates font atlas
 	runes := []rune{}
-	for r := rune(105); r < 110; r++ {
+	for r := rune(105); r <= 107; r++ {
 		runes = append(runes, r)
 	}
 	t.fa = gux.NewFontAtlas(face, runes)
@@ -70,7 +70,7 @@ func newTestText(win *gux.Window) ITest {
 func (t *testText) draw(win *gux.Window) {
 
 	dl := win.DrawList()
-	win.AddText(dl, t.fa, gb.Vec2{100, 100}, gux.TextVAlignTop, "ij")
+	win.AddText(dl, t.fa, gb.Vec2{100, 100}, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignTop, "ijk")
 	// win.AddText(dl, t.fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
 	// win.AddText(dl, t.fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
 	// win.AddImage(dl, t.texID, t.width, t.height, gb.Vec2{50, 400})

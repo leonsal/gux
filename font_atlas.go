@@ -180,7 +180,7 @@ func (a *FontAtlas) CreateTexture(win *Window) error {
 	width := rect.Max.X - rect.Min.X
 	height := rect.Max.Y - rect.Min.Y
 	fmt.Println("CreateTexture", width, height)
-	win.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
+	a.TexID = win.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
 	return nil
 }
 

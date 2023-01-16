@@ -26,6 +26,11 @@ type Vec4 struct {
 	W float32
 }
 
+type Rect struct {
+	Min Vec2
+	Max Vec2
+}
+
 // RGBA is a packed color
 type RGBA uint32
 

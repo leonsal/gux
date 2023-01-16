@@ -20,9 +20,8 @@ import (
 )
 
 type GlyphInfo struct {
-	Dot     gb.Vec2 // ??
-	Advance float32 // ??
-	Width   float32
+	Advance float32    // Amount to add to glyph origin to draw next Glyph
+	Bounds  gb.Rect    // Glyph bounds relative to its origin point
 	UV      [4]gb.Vec2 // UV coordinates for glyph quad vertices
 }
 
@@ -113,15 +112,18 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	glyphs := make(map[rune]GlyphInfo)
 	for r, fg := range fixedMapping {
 		gi := GlyphInfo{}
-		gi.Dot = gb.Vec2{i2f(fg.dot.X), boundsMaxY - (i2f(fg.dot.Y) - boundsMinY)}
-		//gi.Dot = gb.Vec2{i2f(fg.dot.X), i2f(fg.dot.Y)}
-		gi.Advance = i2f(fg.advance)
+
+		// Get Glyph bounds and advance converting from fixed to float
+		bounds, advance, _ := face.GlyphBounds(r)
+		gi.Advance = i2f(advance)
+		gi.Bounds.Min = gb.Vec2{i2f(bounds.Min.X), i2f(bounds.Min.Y)}
+		gi.Bounds.Max = gb.Vec2{i2f(bounds.Max.X), i2f(bounds.Max.Y)}
+
 		// Transform glyphs image coordinates to UV coordinates
 		minX := i2f(fg.frame.Min.X)
 		minY := -boundsMinY + i2f(fg.frame.Min.Y)
 		maxX := i2f(fg.frame.Max.X)
 		maxY := -boundsMinY + i2f(fg.frame.Max.Y)
-		gi.Width = maxX - minX
 		//fmt.Printf("code:%v minX:%f minY:%f maxX:%f maxY:%f width:%f\n", r, minX, minY, maxX, maxY, maxX-minX)
 		fmt.Printf("code:%v minX:%f minY:%f maxX:%f maxY:%f\n", r,
 			i2f(fg.frame.Min.X), i2f(fg.frame.Min.Y), i2f(fg.frame.Max.X), i2f(fg.frame.Max.Y))

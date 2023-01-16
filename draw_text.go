@@ -61,12 +61,13 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		if !ok {
 			ginfo = fa.Glyphs[unicode.ReplacementChar]
 		}
-		bounds, advance, _ := fa.Face.GlyphBounds(code)
-		bminX := i2f(bounds.Min.X)
-		bminY := i2f(bounds.Min.Y)
-		bmaxX := i2f(bounds.Max.X)
-		bmaxY := i2f(bounds.Max.Y)
-		fmt.Printf("code:%v %f/%f %f/%f %f\n", code, bminX, bminY, bmaxX, bmaxY, i2f(advance))
+		fbounds, fadvance, _ := fa.Face.GlyphBounds(code)
+		bminX := i2f(fbounds.Min.X)
+		bminY := i2f(fbounds.Min.Y)
+		bmaxX := i2f(fbounds.Max.X)
+		bmaxY := i2f(fbounds.Max.Y)
+		advance := i2f(fadvance)
+		fmt.Printf("code:%v %f/%f %f/%f %f\n", code, bminX, bminY, bmaxX, bmaxY, advance)
 		//if prevC >= 0 {
 		//	pos.X += float32(fa.Face.Kern(prevC, code).Floor())
 		//}
@@ -74,19 +75,19 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
 		cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
 		cmd.TexID = fa.TexID
-		bufVtx[0].Pos = gb.Vec2{posX, posY}
+		bufVtx[0].Pos = gb.Vec2{posX + bminX, posY + bminY}
 		bufVtx[0].UV = ginfo.UV[0]
 		bufVtx[0].Col = color
 
-		bufVtx[1].Pos = gb.Vec2{posX, posY + fa.LineHeight}
+		bufVtx[1].Pos = gb.Vec2{posX + bminX, posY + bmaxY}
 		bufVtx[1].UV = ginfo.UV[1]
 		bufVtx[1].Col = color
 
-		bufVtx[2].Pos = gb.Vec2{posX + ginfo.Width, posY + fa.LineHeight}
+		bufVtx[2].Pos = gb.Vec2{posX + bminX + (bmaxX - bminX), posY + bmaxY}
 		bufVtx[2].UV = ginfo.UV[2]
 		bufVtx[2].Col = color
 
-		bufVtx[3].Pos = gb.Vec2{posX + ginfo.Width, posY}
+		bufVtx[3].Pos = gb.Vec2{posX + bminX + (bmaxX - bminX), posY + bminY}
 		bufVtx[3].UV = ginfo.UV[3]
 		bufVtx[3].Col = color
 
@@ -96,7 +97,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		bufIdx[3] = 2
 		bufIdx[4] = 3
 		bufIdx[5] = 0
-		posX += ginfo.Advance
+		posX += advance
 		//prevC = code
 	}
 }

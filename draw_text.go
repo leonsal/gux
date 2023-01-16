@@ -1,6 +1,7 @@
 package gux
 
 import (
+	"fmt"
 	"unicode"
 
 	"github.com/leonsal/gux/gb"
@@ -36,12 +37,12 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 	posX := pos.X
 	var posY float32
 	switch align {
-	case TextVAlignTop:
-		posY = pos.Y
 	case TextVAlignBase:
+		posY = pos.Y
+	case TextVAlignTop:
 		posY = pos.Y - fa.Ascent
 	case TextVAlignBottom:
-		posY = pos.Y - fa.LineHeight
+		posY = pos.Y + fa.Descent
 	}
 
 	// For each rune in the text
@@ -60,6 +61,12 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		if !ok {
 			ginfo = fa.Glyphs[unicode.ReplacementChar]
 		}
+		bounds, advance, _ := fa.Face.GlyphBounds(code)
+		bminX := i2f(bounds.Min.X)
+		bminY := i2f(bounds.Min.Y)
+		bmaxX := i2f(bounds.Max.X)
+		bmaxY := i2f(bounds.Max.Y)
+		fmt.Printf("code:%v %f/%f %f/%f %f\n", code, bminX, bminY, bmaxX, bmaxY, i2f(advance))
 		//if prevC >= 0 {
 		//	pos.X += float32(fa.Face.Kern(prevC, code).Floor())
 		//}

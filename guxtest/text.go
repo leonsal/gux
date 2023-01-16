@@ -66,7 +66,9 @@ func newTestText(win *gux.Window) ITest {
 func (t *testText) draw(win *gux.Window) {
 
 	dl := win.DrawList()
-	win.AddText(dl, t.fa, gb.Vec2{100, 200}, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, "ijk123")
+	pos := gb.Vec2{100, 200}
+	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y}, {2000, pos.Y}}, gb.MakeColor(0, 0, 0, 255), 0, 2)
+	win.AddText(dl, t.fa, pos, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, "ij")
 	// win.AddText(dl, t.fa, gb.Vec2{250, 200}, gux.TextVAlignBase, " base")
 	// win.AddText(dl, t.fa, gb.Vec2{550, 200}, gux.TextVAlignBottom, " bottom")
 	// win.AddImage(dl, t.texID, t.width, t.height, gb.Vec2{50, 400})

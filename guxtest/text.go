@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -16,9 +17,7 @@ func init() {
 }
 
 type testText struct {
-	fonts  []*gux.FontAtlas
-	width  float32
-	height float32
+	fonts []*gux.FontAtlas
 }
 
 func newTestText(win *gux.Window) ITest {
@@ -30,10 +29,11 @@ func newTestText(win *gux.Window) ITest {
 		DPI:     96,
 		Hinting: font.HintingNone,
 	}
-	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64}
+	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 144}
 	for _, size := range sizes {
 		opts.Size = float64(size)
-		fa := t.createFontAtlas(win, "assets/Roboto-Medium.ttf", &opts)
+		//fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts)
+		fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-LI.ttf", &opts)
 		t.fonts = append(t.fonts, fa)
 	}
 	return t
@@ -43,7 +43,7 @@ func (t *testText) createFontAtlas(win *gux.Window, filePath string, opts *opent
 
 	// Opens font file from embedded filesystem
 	var err error
-	fontFile, err := embedfs.Open(filePath)
+	fontFile, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,13 +82,14 @@ func (t *testText) draw(win *gux.Window) {
 	pos := gb.Vec2{10, 0}
 	pos.Y += t.fonts[0].LineHeight
 
-	text1 := `We are merely picking up pebbles on the beach 
-while the great ocean of truth
-lays completely undiscovered before us.`
+	//	text1 := `We are merely picking up pebbles on the beach
+	//while the great ocean of truth
+	//lays completely undiscovered before us.`
+	text1 := `The quick brown fox jumps over the lazy dog.`
 
 	for _, fa := range t.fonts {
 		win.AddText(dl, fa, pos, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
-		pos.Y += fa.LineHeight * 4
+		pos.Y += fa.LineHeight * 2
 	}
 
 	//win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y}, {2000, pos.Y}}, gb.MakeColor(0, 0, 0, 100), 0, 2)

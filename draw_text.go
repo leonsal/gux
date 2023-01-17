@@ -1,7 +1,6 @@
 package gux
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/leonsal/gux/gb"
@@ -20,19 +19,23 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 
 	// Each glyph is rendered as Quad
 	//
-	//  .............................................. ascent
+	//  ........................................... ascent
+	//                       0          3
+	//                       +----------+
+	//       0           3   |          |
+	//       +-----------+   |          |
+	//       |           |   |          |
+	//       |           |   |          |
+	//       |           |   |          |
+	//  ...O.|...........|.O.+----------+.......... baseline
+	//       |           |   1          2
+	//       |           |
+	//       +-----------+
+	//       1           2
 	//
-	//       0               3
-	//       +---------------+
-	//       |               |
-	//       |               |
-	//       | dot           |
-	//  .....|.|.............|........................ baseline
-	//       |               |
-	//       |               |
-	//       +---------------+
-	//       1               2
-	//  .............................................. descent
+	//     |---------------|  O=Glyph origin
+	//       Advance
+	//  .................... ...................... descent
 
 	posX := pos.X
 	var posY float32
@@ -46,7 +49,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 	}
 
 	// For each rune in the text
-	//prevC := rune(-1)
+	prevC := rune(-1)
 	for _, code := range text {
 
 		// Process new line
@@ -57,38 +60,32 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		}
 
 		// If glyph not found, use replacement char
-		ginfo, ok := fa.Glyphs[code]
+		gi, ok := fa.Glyphs[code]
 		if !ok {
-			ginfo = fa.Glyphs[unicode.ReplacementChar]
+			gi = fa.Glyphs[unicode.ReplacementChar]
 		}
-		fbounds, fadvance, _ := fa.Face.GlyphBounds(code)
-		bminX := i2f(fbounds.Min.X)
-		bminY := i2f(fbounds.Min.Y)
-		bmaxX := i2f(fbounds.Max.X)
-		bmaxY := i2f(fbounds.Max.Y)
-		advance := i2f(fadvance)
-		fmt.Printf("code:%v %f/%f %f/%f %f\n", code, bminX, bminY, bmaxX, bmaxY, advance)
-		//if prevC >= 0 {
-		//	pos.X += float32(fa.Face.Kern(prevC, code).Floor())
-		//}
+		//fmt.Printf("code:%v %f/%f %f/%f %f \n", code, gi.Bounds.Min.X, gi.Bounds.Min.Y, gi.Bounds.Max.X, gi.Bounds.Max.Y, gi.Advance)
+		if prevC >= 0 {
+			pos.X += fa.Kern(prevC, code)
+		}
 
 		//fmt.Printf("char: %v Info:%+v\n", c, charInfo)
 		cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
 		cmd.TexID = fa.TexID
-		bufVtx[0].Pos = gb.Vec2{posX + bminX, posY + bminY}
-		bufVtx[0].UV = ginfo.UV[0]
+		bufVtx[0].Pos = gb.Vec2{posX + gi.Bounds.Min.X, posY + gi.Bounds.Min.Y}
+		bufVtx[0].UV = gi.UV[0]
 		bufVtx[0].Col = color
 
-		bufVtx[1].Pos = gb.Vec2{posX + bminX, posY + bmaxY}
-		bufVtx[1].UV = ginfo.UV[1]
+		bufVtx[1].Pos = gb.Vec2{posX + gi.Bounds.Min.X, posY + gi.Bounds.Max.Y}
+		bufVtx[1].UV = gi.UV[1]
 		bufVtx[1].Col = color
 
-		bufVtx[2].Pos = gb.Vec2{posX + bminX + (bmaxX - bminX), posY + bmaxY}
-		bufVtx[2].UV = ginfo.UV[2]
+		bufVtx[2].Pos = gb.Vec2{posX + gi.Bounds.Max.X, posY + gi.Bounds.Max.Y}
+		bufVtx[2].UV = gi.UV[2]
 		bufVtx[2].Col = color
 
-		bufVtx[3].Pos = gb.Vec2{posX + bminX + (bmaxX - bminX), posY + bminY}
-		bufVtx[3].UV = ginfo.UV[3]
+		bufVtx[3].Pos = gb.Vec2{posX + gi.Bounds.Max.X, posY + gi.Bounds.Min.Y}
+		bufVtx[3].UV = gi.UV[3]
 		bufVtx[3].Col = color
 
 		bufIdx[0] = 0
@@ -97,8 +94,8 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos gb.Vec2, color gb.R
 		bufIdx[3] = 2
 		bufIdx[4] = 3
 		bufIdx[5] = 0
-		posX += advance
-		//prevC = code
+		posX += gi.Advance
+		prevC = code
 	}
 }
 

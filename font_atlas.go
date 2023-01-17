@@ -21,7 +21,7 @@ import (
 
 type GlyphInfo struct {
 	Advance float32    // Amount to add to glyph origin to draw next Glyph
-	Bounds  gb.Rect    // Glyph bounds relative to its origin point
+	Bounds  gb.Rect    // Glyph bounds relative to its origin point at the baseline
 	UV      [4]gb.Vec2 // UV coordinates for glyph quad vertices
 }
 
@@ -156,6 +156,13 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 		Descent:    i2f(face.Metrics().Descent),
 		LineHeight: i2f(face.Metrics().Height),
 	}
+}
+
+// Kern returns the horizontal adjustment for the kerning pair (r0, r1) for the FontAtlas face.
+// A positive kern means to move the glyphs further apart.
+func (a *FontAtlas) Kern(r0, r1 rune) float32 {
+
+	return i2f(a.Face.Kern(r0, r1))
 }
 
 // SavePNG saves the current atlas image as a PNG image file

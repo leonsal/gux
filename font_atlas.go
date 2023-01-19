@@ -241,6 +241,25 @@ func (a *FontAtlas) PrintInfo() {
 	}
 }
 
+// MeasureString returns how far dot would advance by drawing s with f.
+func (a *FontAtlas) MeasureString(s string) float32 {
+
+	var advance float32
+	prevC := rune(-1)
+	for _, c := range s {
+		if prevC >= 0 {
+			advance += a.Kern(prevC, c)
+		}
+		gi, ok := a.glyphs[c]
+		if !ok {
+			continue
+		}
+		advance += gi.Advance
+		prevC = c
+	}
+	return advance
+}
+
 type fixedGlyph struct {
 	dot     fixed.Point26_6
 	frame   fixed.Rectangle26_6

@@ -7,6 +7,7 @@ import (
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gomedium"
 	"golang.org/x/image/font/opentype"
 )
 
@@ -40,7 +41,8 @@ func newTestText(win *gux.Window) ITest {
 	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 72, 144}
 	for _, size := range sizes {
 		opts.Size = float64(size)
-		fa, err := gux.NewFontAtlasFromFile(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts, runes)
+		//fa, err := gux.NewFontAtlasFromFile(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts, runes)
+		fa, err := gux.NewFontAtlas(win, gomedium.TTF, &opts, runes)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -61,10 +63,6 @@ func (t *testText) draw(win *gux.Window) {
 	dl := win.DrawList()
 	pos := gb.Vec2{10, 0}
 	pos.Y += t.fonts[0].Height()
-
-	//	text1 := `We are merely picking up pebbles on the beach
-	//while the great ocean of truth
-	//lays completely undiscovered before us.`
 	text1 := `The quick brown fox jumps over the lazy dog.`
 
 	for _, fa := range t.fonts {

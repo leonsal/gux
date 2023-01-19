@@ -45,7 +45,7 @@ func newTestText(win *gux.Window) ITest {
 			log.Fatal(err)
 		}
 		t.fonts = append(t.fonts, fa)
-		if true {
+		if false {
 			err := fa.SavePNG(fmt.Sprintf("atlas_%d.png", size))
 			if err != nil {
 				log.Fatal(err)

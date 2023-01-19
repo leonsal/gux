@@ -88,7 +88,8 @@ func (t *testText) draw(win *gux.Window) {
 	text1 := `The quick brown fox jumps over the lazy dog.`
 
 	for _, fa := range t.fonts {
-		win.AddText(dl, fa, pos, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
+		origin := pos
+		win.AddText(dl, fa, &origin, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
 		pos.Y += fa.LineHeight * 2
 	}
 

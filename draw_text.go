@@ -44,15 +44,15 @@ func (w *Window) AddGlyph(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb
 	case TextVAlignBase:
 		posY = pos.Y
 	case TextVAlignTop:
-		posY = pos.Y - fa.Ascent
+		posY = pos.Y - fa.ascent
 	case TextVAlignBottom:
-		posY = pos.Y + fa.Descent
+		posY = pos.Y + fa.descent
 	}
 
 	// If glyph not found, use replacement char
-	gi, ok := fa.Glyphs[code]
+	gi, ok := fa.glyphs[code]
 	if !ok {
-		gi = fa.Glyphs[unicode.ReplacementChar]
+		gi = fa.glyphs[unicode.ReplacementChar]
 	}
 
 	// Adds  horizontal adjustment for the kerning pair (r0, r1) for the FontAtlas face.
@@ -62,7 +62,7 @@ func (w *Window) AddGlyph(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb
 
 	// Creates new DrawCmd to draw a Quad for the glyph bounds.
 	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
-	cmd.TexID = fa.TexID
+	cmd.TexID = fa.texID
 	bufVtx[0].Pos = gb.Vec2{pos.X + gi.Bounds.Min.X, posY + gi.Bounds.Min.Y}
 	bufVtx[0].UV = gi.UV[0]
 	bufVtx[0].Col = color
@@ -97,7 +97,7 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb.
 
 		// Process new line
 		if code == 0x0A {
-			pos.Y += float32(fa.LineHeight)
+			pos.Y += fa.Height()
 			continue
 		}
 		w.AddGlyph(dl, fa, pos, color, align, prev, code)

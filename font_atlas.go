@@ -2,6 +2,7 @@ package gux
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -27,13 +28,13 @@ type GlyphInfo struct {
 
 // FontAtlas represents an image containing characters and the information about their location in the image
 type FontAtlas struct {
-	Face       font.Face          // The font face used to generate the atlas
-	Glyphs     map[rune]GlyphInfo // Maps rune code to correspondent Glyph info
-	Image      *image.RGBA        // Font atlas generated image
-	Ascent     float32            // Distance from the top of a line to its baseline
-	Descent    float32            // Distance from the bottom of a line to its baseline
-	LineHeight float32            // Total line height
-	TexID      gb.TextureID       // Texture ID (valid only after texture was created)
+	face    font.Face          // The font face used to generate the atlas
+	glyphs  map[rune]GlyphInfo // Maps rune code to correspondent Glyph info
+	image   *image.RGBA        // Font atlas generated image
+	ascent  float32            // Distance from the top of a line to its baseline
+	descent float32            // Distance from the bottom of a line to its baseline
+	height  float32            // Total line height
+	texID   gb.TextureID       // Texture ID (valid only after texture was created)
 }
 
 func NewFontAtlasFromFile(w *Window, filepath string, opts *opentype.FaceOptions, runeSets ...[]rune) (*FontAtlas, error) {
@@ -100,17 +101,15 @@ func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSe
 	// Creates Font Atlas texture
 	width := img.Rect.Max.X - img.Rect.Min.X
 	height := img.Rect.Max.Y - img.Rect.Min.Y
-	fmt.Println("CreateTexture", width, height)
 	texID := w.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
 
 	// Image bounds
-	boundsMinX := i2f(fixedBounds.Min.X)
-	boundsMaxX := i2f(fixedBounds.Max.X)
-	boundsMinY := i2f(fixedBounds.Min.Y)
-	boundsMaxY := i2f(fixedBounds.Max.Y)
-	imgWidth := boundsMaxX - boundsMinX
-	imgHeight := boundsMaxY - boundsMinY
-	fmt.Println("image:", imgWidth, imgHeight)
+	imgMinX := i2f(fixedBounds.Min.X)
+	imgMaxX := i2f(fixedBounds.Max.X)
+	imgMinY := i2f(fixedBounds.Min.Y)
+	imgMaxY := i2f(fixedBounds.Max.Y)
+	imgWidth := imgMaxX - imgMinX
+	imgHeight := imgMaxY - imgMinY
 
 	// Builds draw information for each Glyph in the atlas
 	glyphs := make(map[rune]GlyphInfo)
@@ -125,9 +124,9 @@ func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSe
 
 		// Transform glyphs image coordinates to UV coordinates
 		minX := i2f(fg.frame.Min.X)
-		minY := -boundsMinY + i2f(fg.frame.Min.Y)
+		minY := -imgMinY + i2f(fg.frame.Min.Y)
 		maxX := i2f(fg.frame.Max.X)
-		maxY := -boundsMinY + i2f(fg.frame.Max.Y)
+		maxY := -imgMinY + i2f(fg.frame.Max.Y)
 		gi.UV[0] = gb.Vec2{minX / imgWidth, minY / imgHeight}
 		gi.UV[1] = gb.Vec2{minX / imgWidth, maxY / imgHeight}
 		gi.UV[2] = gb.Vec2{maxX / imgWidth, maxY / imgHeight}
@@ -136,24 +135,68 @@ func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSe
 	}
 
 	return &FontAtlas{
-		Face:       face,
-		Glyphs:     glyphs,
-		Ascent:     i2f(face.Metrics().Ascent),
-		Descent:    i2f(face.Metrics().Descent),
-		LineHeight: i2f(face.Metrics().Height),
-		TexID:      texID,
+		face:    face,
+		glyphs:  glyphs,
+		image:   img,
+		ascent:  i2f(face.Metrics().Ascent),
+		descent: i2f(face.Metrics().Descent),
+		height:  i2f(face.Metrics().Height),
+		texID:   texID,
 	}, nil
+}
+
+// Face returns the font face of the FontAtlas
+func (a *FontAtlas) Face() font.Face {
+
+	return a.face
+}
+
+// Glyph returns the GlyphInfo for the specified rune from the FontAtlas
+func (a *FontAtlas) Glyph(r rune) (GlyphInfo, bool) {
+
+	gi, ok := a.glyphs[r]
+	return gi, ok
+}
+
+// Ascent returns the Ascent of the font face used in the FontAtlas
+func (a *FontAtlas) Ascent() float32 {
+
+	return a.ascent
+}
+
+// Descent returns the Descent of the font face used in the FontAtlas
+func (a *FontAtlas) Descent() float32 {
+
+	return a.descent
+}
+
+// Height returns the recommended amount of vertical space between two lines of text.
+func (a *FontAtlas) Height() float32 {
+
+	return a.height
 }
 
 // Kern returns the horizontal adjustment for the kerning pair (r0, r1) for the FontAtlas face.
 // A positive kern means to move the glyphs further apart.
 func (a *FontAtlas) Kern(r0, r1 rune) float32 {
 
-	return i2f(a.Face.Kern(r0, r1))
+	return i2f(a.face.Kern(r0, r1))
+}
+
+// ReleaseImage releases the memory allocated to the image created to build the font atlas texture.
+// After the FontAtlas is created, the image is necessary only if the user wants to save the
+// image in a PNG file for inspection using SavePNG().
+func (a *FontAtlas) ReleaseImage() {
+
+	a.image = nil
 }
 
 // SavePNG saves the current atlas image as a PNG image file
 func (a *FontAtlas) SavePNG(filename string) error {
+
+	if a.image == nil {
+		return errors.New("FontAtlas image was released")
+	}
 
 	// Save that RGBA image to disk.
 	outFile, err := os.Create(filename)
@@ -163,7 +206,7 @@ func (a *FontAtlas) SavePNG(filename string) error {
 	defer outFile.Close()
 
 	b := bufio.NewWriter(outFile)
-	err = png.Encode(b, a.Image)
+	err = png.Encode(b, a.image)
 	if err != nil {
 		return err
 	}
@@ -176,25 +219,25 @@ func (a *FontAtlas) SavePNG(filename string) error {
 
 func (a *FontAtlas) Destroy(win *Window) error {
 
-	if a.TexID != 0 {
-		win.DeleteTexture(a.TexID)
-		a.TexID = 0
+	if a.texID != 0 {
+		win.DeleteTexture(a.texID)
+		a.texID = 0
 	}
 	return nil
 }
 
 func (a *FontAtlas) PrintInfo() {
 
-	fmt.Println("Ascent:", a.Ascent, "Descent", a.Descent, "Lineheight:", a.LineHeight)
-	runes := make([]rune, 0, len(a.Glyphs))
-	for r := range a.Glyphs {
+	fmt.Println("Ascent:", a.ascent, "Descent", a.descent, "Lineheight:", a.height)
+	runes := make([]rune, 0, len(a.glyphs))
+	for r := range a.glyphs {
 		runes = append(runes, r)
 	}
 	sort.Slice(runes, func(i, j int) bool {
 		return runes[i] < runes[j]
 	})
 	for _, r := range runes {
-		fmt.Printf("code:%v glyph:[%c] info:%+v\n", r, r, a.Glyphs[r])
+		fmt.Printf("code:%v glyph:[%c] info:%+v\n", r, r, a.glyphs[r])
 	}
 }
 

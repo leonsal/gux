@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/leonsal/gux"
@@ -44,6 +45,13 @@ func newTestText(win *gux.Window) ITest {
 			log.Fatal(err)
 		}
 		t.fonts = append(t.fonts, fa)
+		if true {
+			err := fa.SavePNG(fmt.Sprintf("atlas_%d.png", size))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		fa.ReleaseImage()
 	}
 	return t
 }
@@ -52,7 +60,7 @@ func (t *testText) draw(win *gux.Window) {
 
 	dl := win.DrawList()
 	pos := gb.Vec2{10, 0}
-	pos.Y += t.fonts[0].LineHeight
+	pos.Y += t.fonts[0].Height()
 
 	//	text1 := `We are merely picking up pebbles on the beach
 	//while the great ocean of truth
@@ -62,7 +70,7 @@ func (t *testText) draw(win *gux.Window) {
 	for _, fa := range t.fonts {
 		origin := pos
 		win.AddText(dl, fa, &origin, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
-		pos.Y += fa.LineHeight * 2
+		pos.Y += fa.Height() * 2
 	}
 
 	//win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y}, {2000, pos.Y}}, gb.MakeColor(0, 0, 0, 100), 0, 2)

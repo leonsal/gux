@@ -36,37 +36,36 @@ type FontAtlas struct {
 	TexID      gb.TextureID       // Texture ID (valid only after texture was created)
 }
 
-// NewFontFaceFromFile creates and returns a Font face with the specified options from
-// parsing the specified TrueType or OpenType font file.
-func NewFontFaceFromFile(filepath string, opts *opentype.FaceOptions) (font.Face, error) {
+func NewFontAtlasFromFile(w *Window, filepath string, opts *opentype.FaceOptions, runeSets ...[]rune) (*FontAtlas, error) {
 
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return NewFontFaceFromReader(f, opts)
+	return NewFontAtlasFromReader(w, f, opts, runeSets...)
 }
 
-func NewFontFaceFromReader(r io.Reader, opts *opentype.FaceOptions) (font.Face, error) {
+func NewFontAtlasFromReader(w *Window, r io.Reader, opts *opentype.FaceOptions, runeSets ...[]rune) (*FontAtlas, error) {
 
 	fdata, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-	return NewFontFace(fdata, opts)
+	return NewFontAtlas(w, fdata, opts, runeSets...)
 }
 
-func NewFontFace(fontData []byte, opts *opentype.FaceOptions) (font.Face, error) {
+func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSets ...[]rune) (*FontAtlas, error) {
 
+	// Parses font data and creates the font face
 	fparsed, err := opentype.Parse(fontData)
 	if err != nil {
 		return nil, nil
 	}
-	return opentype.NewFace(fparsed, opts)
-}
-
-func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
+	face, err := opentype.NewFace(fparsed, opts)
+	if err != nil {
+		return nil, nil
+	}
 
 	// Builds array of unique runes from all the specified rune sets
 	seen := make(map[rune]bool)
@@ -84,7 +83,7 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	fixedMapping, fixedBounds := makeSquareMapping(face, runes, fixed.I(2))
 
 	// Creates font atlas image
-	atlasImg := image.NewRGBA(image.Rect(
+	img := image.NewRGBA(image.Rect(
 		fixedBounds.Min.X.Floor(),
 		fixedBounds.Min.Y.Floor(),
 		fixedBounds.Max.X.Ceil(),
@@ -94,17 +93,24 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 	// Draw all glyphs to the font atlas image
 	for r, fg := range fixedMapping {
 		if dr, mask, maskp, _, ok := face.Glyph(fg.dot, r); ok {
-			draw.Draw(atlasImg, dr, mask, maskp, draw.Src)
+			draw.Draw(img, dr, mask, maskp, draw.Src)
 		}
 	}
+
+	// Creates Font Atlas texture
+	width := img.Rect.Max.X - img.Rect.Min.X
+	height := img.Rect.Max.Y - img.Rect.Min.Y
+	fmt.Println("CreateTexture", width, height)
+	texID := w.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&img.Pix[0])))
 
 	// Image bounds
 	boundsMinX := i2f(fixedBounds.Min.X)
 	boundsMaxX := i2f(fixedBounds.Max.X)
 	boundsMinY := i2f(fixedBounds.Min.Y)
 	boundsMaxY := i2f(fixedBounds.Max.Y)
-	imageWidth := boundsMaxX - boundsMinX
-	imageHeight := boundsMaxY - boundsMinY
+	imgWidth := boundsMaxX - boundsMinX
+	imgHeight := boundsMaxY - boundsMinY
+	fmt.Println("image:", imgWidth, imgHeight)
 
 	// Builds draw information for each Glyph in the atlas
 	glyphs := make(map[rune]GlyphInfo)
@@ -122,21 +128,21 @@ func NewFontAtlas(face font.Face, runeSets ...[]rune) *FontAtlas {
 		minY := -boundsMinY + i2f(fg.frame.Min.Y)
 		maxX := i2f(fg.frame.Max.X)
 		maxY := -boundsMinY + i2f(fg.frame.Max.Y)
-		gi.UV[0] = gb.Vec2{minX / imageWidth, minY / imageHeight}
-		gi.UV[1] = gb.Vec2{minX / imageWidth, maxY / imageHeight}
-		gi.UV[2] = gb.Vec2{maxX / imageWidth, maxY / imageHeight}
-		gi.UV[3] = gb.Vec2{maxX / imageWidth, minY / imageHeight}
+		gi.UV[0] = gb.Vec2{minX / imgWidth, minY / imgHeight}
+		gi.UV[1] = gb.Vec2{minX / imgWidth, maxY / imgHeight}
+		gi.UV[2] = gb.Vec2{maxX / imgWidth, maxY / imgHeight}
+		gi.UV[3] = gb.Vec2{maxX / imgWidth, minY / imgHeight}
 		glyphs[r] = gi
 	}
 
 	return &FontAtlas{
 		Face:       face,
 		Glyphs:     glyphs,
-		Image:      atlasImg,
 		Ascent:     i2f(face.Metrics().Ascent),
 		Descent:    i2f(face.Metrics().Descent),
 		LineHeight: i2f(face.Metrics().Height),
-	}
+		TexID:      texID,
+	}, nil
 }
 
 // Kern returns the horizontal adjustment for the kerning pair (r0, r1) for the FontAtlas face.
@@ -165,16 +171,6 @@ func (a *FontAtlas) SavePNG(filename string) error {
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (a *FontAtlas) CreateTexture(win *Window) error {
-
-	rect := a.Image.Rect
-	width := rect.Max.X - rect.Min.X
-	height := rect.Max.Y - rect.Min.Y
-	fmt.Println("CreateTexture", width, height)
-	a.TexID = win.CreateTexture(width, height, (*gb.RGBA)(unsafe.Pointer(&a.Image.Pix[0])))
 	return nil
 }
 

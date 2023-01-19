@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
@@ -24,56 +22,30 @@ func newTestText(win *gux.Window) ITest {
 
 	t := new(testText)
 
+	// Initial font face options
 	opts := opentype.FaceOptions{
 		Size:    0,
 		DPI:     96,
 		Hinting: font.HintingNone,
 	}
-	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 144}
-	for _, size := range sizes {
-		opts.Size = float64(size)
-		fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts)
-		//fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-LI.ttf", &opts)
-		t.fonts = append(t.fonts, fa)
-	}
-	return t
-}
-
-func (t *testText) createFontAtlas(win *gux.Window, filePath string, opts *opentype.FaceOptions) *gux.FontAtlas {
-
-	// Opens font file from embedded filesystem
-	var err error
-	fontFile, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Creates font face from file reader
-	face, err := gux.NewFontFaceFromReader(fontFile, opts)
-	if err != nil {
-		log.Fatalf("NewFace: %v", err)
-	}
-	defer fontFile.Close()
 
 	// Creates font atlas
 	runes := []rune{}
 	for r := rune(32); r <= 126; r++ {
 		runes = append(runes, r)
 	}
-	fa := gux.NewFontAtlas(face, runes)
 
-	// Optionally save font atlas png for debugging
-	if true {
-		name := fmt.Sprintf("atlas_%d.png", int(opts.Size))
-		err = fa.SavePNG(name)
+	// Creates array of Font Atlases with the specified font sizes
+	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 144}
+	for _, size := range sizes {
+		opts.Size = float64(size)
+		fa, err := gux.NewFontAtlasFromFile(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts, runes)
 		if err != nil {
-			log.Fatalf("SavePNG: %v", err)
+			log.Fatal(err)
 		}
+		t.fonts = append(t.fonts, fa)
 	}
-
-	// Creates font atlas texture
-	fa.CreateTexture(win)
-	return fa
+	return t
 }
 
 func (t *testText) draw(win *gux.Window) {

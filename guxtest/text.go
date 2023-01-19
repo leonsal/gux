@@ -32,8 +32,8 @@ func newTestText(win *gux.Window) ITest {
 	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 144}
 	for _, size := range sizes {
 		opts.Size = float64(size)
-		//fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts)
-		fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-LI.ttf", &opts)
+		fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts)
+		//fa := t.createFontAtlas(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-LI.ttf", &opts)
 		t.fonts = append(t.fonts, fa)
 	}
 	return t

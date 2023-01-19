@@ -37,7 +37,7 @@ func newTestText(win *gux.Window) ITest {
 	}
 
 	// Creates array of Font Atlases with the specified font sizes
-	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 144}
+	sizes := []int{12, 18, 22, 28, 32, 40, 48, 64, 72, 144}
 	for _, size := range sizes {
 		opts.Size = float64(size)
 		fa, err := gux.NewFontAtlasFromFile(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts, runes)

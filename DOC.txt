@@ -1,8 +1,8 @@
 - TODO
+	- Text align test
     - Arc angle direction ?
     - Initializes Default circle used when numSegments == 0
     - Draw circles with numSegs=0 scaling and translating the default circle.
-    - AddRect with rounder corners.
 
 
 OpenGL Normalized device coordinates

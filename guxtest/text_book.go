@@ -8,7 +8,7 @@ import (
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomedium"
+	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 )
 
@@ -22,28 +22,29 @@ type testTextBook struct {
 	lines     []string
 	firstLine int
 	frames    int
+	posY      float32
 }
 
 func newTestTextBook(win *gux.Window) ITest {
 
 	t := new(testTextBook)
 
-	// Initial font face options
-	opts := opentype.FaceOptions{
-		Size:    28,
-		DPI:     72,
-		Hinting: font.HintingNone,
-	}
-
 	// Creates font atlas
 	runes := []rune{}
 	for r := rune(32); r <= 126; r++ {
 		runes = append(runes, r)
 	}
-	fa, err := gux.NewFontAtlas(win, gomedium.TTF, &opts, runes)
+	opts := opentype.FaceOptions{
+		Size:    32,
+		DPI:     72,
+		Hinting: font.HintingNone,
+	}
+	fa, err := gux.NewFontAtlas(win, goregular.TTF, &opts, runes)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Optionally save PNG
 	if false {
 		err := fa.SavePNG(fmt.Sprintf("atlas_%d.png", int(opts.Size)))
 		if err != nil {
@@ -53,8 +54,8 @@ func newTestTextBook(win *gux.Window) ITest {
 	fa.ReleaseImage()
 	t.fa = fa
 
-	// Reads book file
-	file, err := embedfs.Open("assets/book.txt")
+	// Reads all lines of the book file
+	file, err := embedfs.Open("assets/book2.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,6 +69,9 @@ func newTestTextBook(win *gux.Window) ITest {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Initial font dot position
+	t.posY = t.fa.Ascent()
 	return t
 }
 
@@ -75,22 +79,31 @@ func (t *testTextBook) draw(win *gux.Window) {
 
 	dl := win.DrawList()
 	color := gb.MakeColor(0, 0, 0, 255)
-	origin := gb.Vec2{40, t.fa.Ascent()}
+	origin := gb.Vec2{40, t.posY}
 
+	// Calculates number of lines remaining
 	nlines := 80
 	remain := len(t.lines) - t.firstLine
 	if remain < nlines {
 		nlines = remain
 	}
+
+	// Draw lines
 	for l := t.firstLine; l < t.firstLine+nlines; l++ {
 		pos := origin
 		win.AddText(dl, t.fa, &pos, color, gux.TextVAlignBase, t.lines[l])
 		origin.Y += t.fa.Height()
 	}
-	t.frames++
-	if t.frames >= 50 {
-		t.frames = 0
+
+	// Moves origin position up
+	t.posY -= 2
+	if t.posY <= -t.fa.Descent() {
+		t.posY = t.fa.Ascent()
 		t.firstLine++
+		if t.firstLine >= len(t.lines) {
+			t.firstLine = 0
+		}
+		fmt.Println("firstLine:", t.firstLine, "idxCount:", dl.IdxCount())
 	}
 }
 

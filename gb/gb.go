@@ -300,6 +300,11 @@ func (dl *DrawList) Transform(mat *Mat3) *DrawList {
 	return dl
 }
 
+func (dl *DrawList) IdxCount() int {
+
+	return len(dl.bufIdx)
+}
+
 type Window struct {
 	c C.gb_window_t
 }

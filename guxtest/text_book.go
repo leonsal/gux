@@ -34,7 +34,7 @@ func newTestTextBook(win *gux.Window) ITest {
 		runes = append(runes, r)
 	}
 	opts := opentype.FaceOptions{
-		Size:    16,
+		Size:    42,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
@@ -81,7 +81,7 @@ func (t *testTextBook) draw(win *gux.Window) {
 	origin := gb.Vec2{40, t.posY}
 
 	// Calculates number of lines remaining
-	maxLines := int(win.Size().Y/t.fa.Height()) + 1
+	maxLines := int(win.Size().Y/t.fa.Height()) + 2
 	nlines := maxLines
 	remain := len(t.lines) - t.firstLine
 	if remain < nlines {
@@ -95,8 +95,8 @@ func (t *testTextBook) draw(win *gux.Window) {
 		origin.Y += t.fa.Height()
 	}
 
-	// Moves origin position up
-	t.posY -= 2
+	// Scroll origin position up some pixels
+	t.posY -= 1
 	if t.posY <= -t.fa.Descent() {
 		t.posY = t.fa.Ascent()
 		t.firstLine++

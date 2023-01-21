@@ -17,6 +17,7 @@ import (
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/sfnt"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -59,11 +60,11 @@ func NewFontAtlasFromReader(w *Window, r io.Reader, opts *opentype.FaceOptions, 
 func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSets ...[]rune) (*FontAtlas, error) {
 
 	// Parses font data and creates the font face
-	fparsed, err := opentype.Parse(fontData)
+	fnt, err := opentype.Parse(fontData)
 	if err != nil {
 		return nil, nil
 	}
-	face, err := opentype.NewFace(fparsed, opts)
+	face, err := opentype.NewFace(fnt, opts)
 	if err != nil {
 		return nil, nil
 	}
@@ -71,16 +72,21 @@ func NewFontAtlas(w *Window, fontData []byte, opts *opentype.FaceOptions, runeSe
 	// Builds array of unique runes from all the specified rune sets
 	seen := make(map[rune]bool)
 	runes := []rune{unicode.ReplacementChar}
-	//runes := []rune{}
 	for _, set := range runeSets {
 		for _, r := range set {
+			// Checks if there is a Glyph for this rune
+			var b sfnt.Buffer
+			x, err := fnt.GlyphIndex(&b, r)
+			if x == 0 || err != nil {
+				continue
+			}
+			// Appends unique rune
 			if !seen[r] {
 				runes = append(runes, r)
 				seen[r] = true
 			}
 		}
 	}
-
 	fixedMapping, fixedBounds := makeSquareMapping(face, runes, fixed.I(2))
 
 	// Creates font atlas image
@@ -316,6 +322,7 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6) (ma
 	dot := fixed.P(0, 0)
 
 	for _, r := range runes {
+
 		b, advance, ok := face.GlyphBounds(r)
 		if !ok {
 			continue

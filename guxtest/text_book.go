@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"unicode"
 
 	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 )
 
@@ -28,23 +28,28 @@ func newTestTextBook(win *gux.Window) ITest {
 
 	t := new(testTextBook)
 
-	// Creates font atlas
-	runes := []rune{}
-	for r := rune(32); r <= 126; r++ {
-		runes = append(runes, r)
+	// Load fonts from embedded filesystem
+	var err error
+	freader, err := embedfs.Open("assets/Ubuntu-R.ttf")
+	if err != nil {
+		panic(err)
 	}
+	defer freader.Close()
+
+	// Creates FontAtlas
 	opts := opentype.FaceOptions{
 		Size:    42,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
-	fa, err := gux.NewFontAtlas(win, goregular.TTF, &opts, runes)
+	fa, err := gux.NewFontAtlasFromReader(win, freader,
+		&opts, gux.AsciiSet(), gux.RangeTableSet(unicode.Latin), gux.RangeTableSet(unicode.Common))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Optionally save PNG
-	if false {
+	if true {
 		err := fa.SavePNG(fmt.Sprintf("atlas_%d.png", int(opts.Size)))
 		if err != nil {
 			log.Fatal(err)

@@ -260,6 +260,33 @@ func (a *FontAtlas) MeasureString(s string) float32 {
 	return advance
 }
 
+// AsciiSet returns slice of ASCII runes
+func AsciiSet() []rune {
+
+	runes := make([]rune, unicode.MaxASCII-32)
+	for i := range runes {
+		runes[i] = rune(32 + i)
+	}
+	return runes
+}
+
+// RangeTableSet returns a slice of runes from the specified unicode.RangeTable
+func RangeTableSet(table *unicode.RangeTable) []rune {
+
+	var runes []rune
+	for _, rng := range table.R16 {
+		for r := rng.Lo; r <= rng.Hi; r += rng.Stride {
+			runes = append(runes, rune(r))
+		}
+	}
+	for _, rng := range table.R32 {
+		for r := rng.Lo; r <= rng.Hi; r += rng.Stride {
+			runes = append(runes, rune(r))
+		}
+	}
+	return runes
+}
+
 type fixedGlyph struct {
 	dot     fixed.Point26_6
 	frame   fixed.Rectangle26_6

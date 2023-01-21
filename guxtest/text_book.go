@@ -21,7 +21,6 @@ type testTextBook struct {
 	fa        *gux.FontAtlas
 	lines     []string
 	firstLine int
-	frames    int
 	posY      float32
 }
 
@@ -35,7 +34,7 @@ func newTestTextBook(win *gux.Window) ITest {
 		runes = append(runes, r)
 	}
 	opts := opentype.FaceOptions{
-		Size:    32,
+		Size:    16,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
@@ -82,7 +81,8 @@ func (t *testTextBook) draw(win *gux.Window) {
 	origin := gb.Vec2{40, t.posY}
 
 	// Calculates number of lines remaining
-	nlines := 80
+	maxLines := int(win.Size().Y/t.fa.Height()) + 1
+	nlines := maxLines
 	remain := len(t.lines) - t.firstLine
 	if remain < nlines {
 		nlines = remain
@@ -103,7 +103,7 @@ func (t *testTextBook) draw(win *gux.Window) {
 		if t.firstLine >= len(t.lines) {
 			t.firstLine = 0
 		}
-		fmt.Println("firstLine:", t.firstLine, "idxCount:", dl.IdxCount())
+		fmt.Println("firstLine:", t.firstLine, "maxLines:", maxLines, "idxCount:", dl.IdxCount())
 	}
 }
 

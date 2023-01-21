@@ -72,6 +72,12 @@ func NewWindow(title string, width, height int, cfg *gb.Config) (*Window, error)
 	return w, nil
 }
 
+// Size returns the window content area size
+func (w *Window) Size() gb.Vec2 {
+
+	return w.frameInfo.WinSize
+}
+
 func (w *Window) SetClearColor(color gb.Vec4) {
 
 	w.frameParams.ClearColor = color

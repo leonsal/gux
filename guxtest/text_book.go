@@ -31,12 +31,12 @@ func newTestTextBook(win *gux.Window) ITest {
 
 	// Creates FontAtlas
 	opts := opentype.FaceOptions{
-		Size:    42,
+		Size:    36,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
-	fa, err := gux.NewFontAtlas(win, goregular.TTF,
-		&opts, gux.AsciiSet(), gux.RangeTableSet(unicode.Latin), gux.RangeTableSet(unicode.Common))
+	fa, err := gux.NewFontAtlas(win, goregular.TTF, &opts,
+		gux.AsciiSet(), gux.RangeTableSet(unicode.Latin), gux.RangeTableSet(unicode.Common))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func newTestTextBook(win *gux.Window) ITest {
 	t.fa = fa
 
 	// Reads all lines of the book file
-	file, err := embedfs.Open("assets/book2.txt")
+	file, err := embedfs.Open("assets/book.txt")
 	if err != nil {
 		log.Fatal(err)
 	}

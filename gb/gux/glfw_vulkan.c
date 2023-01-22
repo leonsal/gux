@@ -758,12 +758,13 @@ static void _gb_setup_vulkan_window(gb_state_t* s, int width, int height) {
     s->vk_surface_format = _gb_select_surface_format(s, requestSurfaceImageFormat,(size_t)GB_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
     // Select Present Mode
-#ifdef GB_UNLIMITED_FRAME_RATE
-    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-#else
-    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-#endif
-    s->vk_present_mode = _gb_select_present_mode(s, &present_modes[0], GB_ARRAYSIZE(present_modes));
+	if (s->cfg.unlimited_rate) {
+    	VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+    	s->vk_present_mode = _gb_select_present_mode(s, &present_modes[0], GB_ARRAYSIZE(present_modes));
+	} else {
+    	VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
+    	s->vk_present_mode = _gb_select_present_mode(s, &present_modes[0], GB_ARRAYSIZE(present_modes));
+	}
 
     // Create SwapChain, RenderPass, Framebuffer, etc.
     GB_ASSERT(s->min_image_count >= 2);

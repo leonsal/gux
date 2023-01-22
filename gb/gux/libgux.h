@@ -95,7 +95,8 @@ typedef struct gb_config_vulkan {
 } gb_config_vulkan_t;
 
 typedef struct gb_config {
-    bool      debug_print_cmds;     // Print draw commands for debugging
+    bool		debug_print_cmds;   // Print draw commands for debugging
+	bool		unlimited_rate;		// Unlimited frame rate if true
     gb_config_opengl_t  opengl;     // OpenGL configuration
     gb_config_vulkan_t  vulkan;     // Vulkan configuration
 } gb_config_t;

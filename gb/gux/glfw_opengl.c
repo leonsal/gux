@@ -103,8 +103,12 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     }
 
     glfwMakeContextCurrent(win);
-    glfwSwapInterval(1); // Enable vsync
-                         
+	if (cfg.unlimited_rate) {
+    	glfwSwapInterval(0);
+	} else {
+    	glfwSwapInterval(1);
+	}
+         
     // Creates and initializes backend state
     gb_state_t* s = _gb_alloc(sizeof(gb_state_t));
     if (s == NULL) {

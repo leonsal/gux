@@ -106,6 +106,7 @@ type ConfigVulkan struct {
 
 type Config struct {
 	DebugPrintCmds bool
+	UnlimitedRate  bool
 	OpenGL         ConfigOpenGL
 	Vulkan         ConfigVulkan
 }
@@ -325,6 +326,7 @@ func CreateWindow(title string, width, height int, cfg *Config) (*Window, error)
 	if cfg != nil {
 		ccfg := C.gb_config_t{}
 		ccfg.debug_print_cmds = C.bool(cfg.DebugPrintCmds)
+		ccfg.unlimited_rate = C.bool(cfg.UnlimitedRate)
 		ccfg.opengl.es = C.bool(cfg.OpenGL.ES)
 		ccfg.vulkan.validation_layer = C.bool(cfg.Vulkan.ValidationLayer)
 		pcfg = &ccfg

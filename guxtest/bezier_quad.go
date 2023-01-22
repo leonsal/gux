@@ -7,7 +7,7 @@ import (
 
 func init() {
 
-	registerTest("bezier_quad", 8, newTestBezier)
+	registerTest("bezier_quad", 6, newTestBezier)
 }
 
 type testBezier struct {

@@ -13,7 +13,7 @@ import (
 
 func init() {
 
-	registerTest("text_size", 7, newTestText)
+	registerTest("text_size", 9, newTestText)
 }
 
 type testText struct {

@@ -135,14 +135,22 @@ func (dl *DrawList) NewDrawCmd(idxCount, vtxCount int) (*DrawCmd, []uint32, []Ve
 
 	// Reserve space for indices
 	idxOffset := len(dl.bufIdx)
-	for i := 0; i < idxCount; i++ {
-		dl.bufIdx = append(dl.bufIdx, 0)
+	if cap(dl.bufIdx)-idxOffset < idxCount {
+		for i := 0; i < idxCount; i++ {
+			dl.bufIdx = append(dl.bufIdx, 0)
+		}
+	} else {
+		dl.bufIdx = dl.bufIdx[:idxOffset+idxCount]
 	}
 
 	// Reserve space for vertices
 	vtxOffset := len(dl.bufVtx)
-	for i := 0; i < vtxCount; i++ {
-		dl.bufVtx = append(dl.bufVtx, Vertex{})
+	if cap(dl.bufVtx)-vtxOffset < vtxCount {
+		for i := 0; i < vtxCount; i++ {
+			dl.bufVtx = append(dl.bufVtx, Vertex{})
+		}
+	} else {
+		dl.bufVtx = dl.bufVtx[:vtxOffset+vtxCount]
 	}
 
 	// Creates and appends new command to the DrawList command buffer

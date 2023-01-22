@@ -7,7 +7,7 @@ import (
 
 func init() {
 
-	registerTest("bezier", 8, newTestBezier)
+	registerTest("bezier_quad", 8, newTestBezier)
 }
 
 type testBezier struct {
@@ -38,7 +38,7 @@ func (t *testBezier) draw(w *gux.Window) {
 	w.AddCircleFilled(dl, t.p1, 10, colorPoint, 12)
 	w.AddCircleFilled(dl, t.p2, 10, colorPoint, 12)
 	w.AddCircleFilled(dl, t.p3, 10, colorPoint, 12)
-	w.AddBezierQuadratic(dl, t.p1, t.p2, t.p3, gb.MakeColor(0, 0, 0, 255), 4, 32)
+	w.AddBezierQuadratic(dl, t.p1, t.p2, t.p3, gb.MakeColor(0, 0, 0, 255), 4, 0)
 	t.p2.X += t.deltaX
 	if t.p2.X >= t.p3.X && t.deltaX > 0 {
 		t.deltaX = -t.deltaX

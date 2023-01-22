@@ -20,7 +20,7 @@ func (w *Window) PathBezierQuadraticCurveTo(dl *gb.DrawList, p2, p3 gb.Vec2, num
 		pathBezierQuadraticCurveToCasteljau(&dl.Path, p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, w.CurveTessellationTol, 0)
 	} else {
 		tstep := 1.0 / float32(numSegments)
-		for istep := 1; istep < numSegments; istep++ {
+		for istep := 1; istep <= numSegments; istep++ {
 			dl.PathAppend(bezierQuadraticCalc(p1, p2, p3, tstep*float32(istep)))
 		}
 	}

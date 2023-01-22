@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"flag"
 	"log"
@@ -50,6 +51,8 @@ var (
 	oFrameCount = flag.Uint("frames", 500, "Number of frames to execute the test")
 	mapTests    = map[string]testInfo{}
 	traceFile   *os.File
+	traceCtx    context.Context
+	traceTask   *trace.Task
 	cpuprofFile *os.File
 	memprofFile *os.File
 )
@@ -78,7 +81,7 @@ func main() {
 	// Create window
 	cfg := gb.Config{}
 	cfg.DebugPrintCmds = false
-	cfg.UnlimitedRate = false
+	cfg.UnlimitedRate = true
 	cfg.OpenGL.ES = false
 	cfg.Vulkan.ValidationLayer = true
 	win, err := gux.NewWindow("GUX Test", 2000, 1200, &cfg)
@@ -139,8 +142,17 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 			abort = true
 			break
 		}
-		test.draw(win)
-		win.Render()
+		if traceTask != nil {
+			trace.WithRegion(traceCtx, "test.draw", func() {
+				test.draw(win)
+			})
+			trace.WithRegion(traceCtx, "render", func() {
+				win.Render()
+			})
+		} else {
+			test.draw(win)
+			win.Render()
+		}
 		// All the allocations should be done in the first frame
 		frameCount++
 		if frameCount == 1 {
@@ -190,6 +202,7 @@ func traceProfStart() {
 		if err != nil {
 			log.Fatalf("Error starting execution trace:%s\n", err)
 		}
+		traceCtx, traceTask = trace.NewTask(context.Background(), "GuxTest")
 	}
 
 	if len(*oCpuProfile) > 0 {

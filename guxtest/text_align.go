@@ -53,23 +53,22 @@ func (t *testTextAlign) draw(win *gux.Window) {
 
 	dl := win.DrawList()
 	pos := gb.Vec2{10, 200}
-	color := gb.MakeColor(0, 0, 0, 255)
-	lineColor := gb.MakeColor(0, 0, 0, 50)
-	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y}, {2000, pos.Y}}, lineColor, 0, 2)
-	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y - t.fa.Ascent()}, {2000, pos.Y - t.fa.Ascent()}}, lineColor, 0, 2)
-	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y + t.fa.Descent()}, {2000, pos.Y + t.fa.Descent()}}, lineColor, 0, 2)
+	textColor := gb.MakeColor(0, 0, 0, 255)
+	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y}, {2000, pos.Y}}, gb.MakeColor(255, 0, 0, 255), 0, 2)
+	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y - t.fa.Ascent()}, {2000, pos.Y - t.fa.Ascent()}}, gb.MakeColor(0, 0, 0, 50), 0, 2)
+	win.AddPolyLineTextured(dl, []gb.Vec2{{0, pos.Y + t.fa.Descent()}, {2000, pos.Y + t.fa.Descent()}}, gb.MakeColor(0, 0, 0, 50), 0, 2)
 
 	dot := pos
 	textBaseline := "TextVAlignBase"
-	win.AddText(dl, t.fa, &dot, color, gux.TextVAlignBase, textBaseline)
+	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignBase, textBaseline)
 
 	dot = gb.Vec2{dot.X, pos.Y}
 	textTop := "TextVAlignTop"
-	win.AddText(dl, t.fa, &dot, color, gux.TextVAlignTop, textTop)
+	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignTop, textTop)
 
 	dot = gb.Vec2{dot.X, pos.Y}
 	textBottom := "TextVAlignBottom"
-	win.AddText(dl, t.fa, &dot, color, gux.TextVAlignBottom, textBottom)
+	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignBottom, textBottom)
 }
 
 func (t *testTextAlign) destroy(win *gux.Window) {

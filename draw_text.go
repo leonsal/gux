@@ -44,9 +44,9 @@ func (w *Window) AddGlyph(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb
 	case TextVAlignBase:
 		posY = pos.Y
 	case TextVAlignTop:
-		posY = pos.Y - fa.ascent
+		posY = pos.Y + fa.ascent
 	case TextVAlignBottom:
-		posY = pos.Y + fa.descent
+		posY = pos.Y - fa.descent
 	}
 
 	// If glyph not found, use replacement char

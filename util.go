@@ -51,3 +51,10 @@ func Sin[T Float](a T) T {
 
 	return T(math.Sin(float64(a)))
 }
+
+func Assert(cond bool, msg string) {
+
+	if !cond {
+		panic("Gux Assertion Failed:" + msg)
+	}
+}

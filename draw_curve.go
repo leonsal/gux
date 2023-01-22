@@ -14,23 +14,17 @@ func (w *Window) AddBezierQuadratic(dl *gb.DrawList, p1, p2, p3 gb.Vec2, col gb.
 
 func (w *Window) PathBezierQuadraticCurveTo(dl *gb.DrawList, p2, p3 gb.Vec2, numSegments int) {
 
+	p1 := dl.PathBack()
+	if numSegments == 0 {
+		Assert(w.CurveTessellationTol > 0, "")
+		pathBezierQuadraticCurveToCasteljau(&dl.Path, p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, w.CurveTessellationTol, 0)
+	} else {
+		tstep := 1.0 / float32(numSegments)
+		for istep := 1; istep < numSegments; istep++ {
+			dl.PathAppend(bezierQuadraticCalc(p1, p2, p3, tstep*float32(istep)))
+		}
+	}
 }
-
-//void ImDrawList::PathBezierQuadraticCurveTo(const ImVec2& p2, const ImVec2& p3, int num_segments)
-//{
-//    ImVec2 p1 = _Path.back();
-//    if (num_segments == 0)
-//    {
-//        IM_ASSERT(_Data->CurveTessellationTol > 0.0f);
-//        PathBezierQuadraticCurveToCasteljau(&_Path, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, _Data->CurveTessellationTol, 0);// Auto-tessellated
-//    }
-//    else
-//    {
-//        float t_step = 1.0f / (float)num_segments;
-//        for (int i_step = 1; i_step <= num_segments; i_step++)
-//            _Path.push_back(ImBezierQuadraticCalc(p1, p2, p3, t_step * i_step));
-//    }
-//}
 
 func bezierQuadraticCalc(p1, p2, p3 gb.Vec2, t float32) gb.Vec2 {
 

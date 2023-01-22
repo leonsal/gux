@@ -249,6 +249,17 @@ func (dl *DrawList) PathAppend(p Vec2) {
 	dl.Path = append(dl.Path, p)
 }
 
+// PackBack returns the last element of the DrawList Path.
+// Panics if the path is empty
+func (dl *DrawList) PathBack() Vec2 {
+
+	count := len(dl.Path)
+	if count == 0 {
+		panic("DrawList Path is empty")
+	}
+	return dl.Path[count-1]
+}
+
 // PathClear clears the DrawList path without deallocation its memory
 func (dl *DrawList) PathClear() {
 

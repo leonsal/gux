@@ -177,8 +177,6 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 
     // Render commands and swap buffers
-    gb_vec2_t disp_pos = {0,0};
-    gb_vec2_t disp_size = {width, height};
     _gb_render(s, dl);
     glfwSwapBuffers(s->w);
 }

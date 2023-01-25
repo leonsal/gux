@@ -95,14 +95,11 @@ func (w *Window) StartFrame() bool {
 	w.dl.Clear()
 	w.bufVec2 = w.bufVec2[:0]
 	w.frameInfo = w.gbw.StartFrame(&w.frameParams)
-	//if len(w.frameInfo.Events) > 0 {
-	//	fmt.Println("Events:", len(w.frameInfo.Events))
-	//}
 	return !w.frameInfo.WinClose
 }
 
-// Render sends this Windows' DrawList to the Graphics Backend for rendering
-func (w *Window) Render() {
+// RenderFrame sends this Windows' DrawList to the Graphics Backend for rendering
+func (w *Window) RenderFrame() {
 
 	w.gbw.RenderFrame(&w.dl)
 }
@@ -123,6 +120,11 @@ func (w *Window) Destroy() {
 func (w *Window) SetCursor(cursor gb.Cursor) {
 
 	w.gbw.SetCursor(cursor)
+}
+
+func (w *Window) FrameInfo() *gb.FrameInfo {
+
+	return &w.frameInfo
 }
 
 func (w *Window) CreateTexture(width, height int, data *gb.RGBA) gb.TextureID {

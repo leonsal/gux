@@ -147,11 +147,11 @@ func runTest(win *window.Window, tinfo testInfo, maxFrames uint) bool {
 				test.draw(win)
 			})
 			trace.WithRegion(traceCtx, "render", func() {
-				win.Render()
+				win.RenderFrame()
 			})
 		} else {
 			test.draw(win)
-			win.Render()
+			win.RenderFrame()
 		}
 		// All the allocations should be done in the first frame
 		frameCount++

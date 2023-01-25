@@ -10,7 +10,7 @@ type App struct {
 }
 
 type Window struct {
-	win  *window.Window
+	*window.Window
 	view view.IView
 }
 
@@ -40,7 +40,7 @@ func (a *App) NewWindow(title string, width, height int) (*Window, error) {
 		return nil, err
 	}
 	aw := &Window{
-		win: w,
+		Window: w,
 	}
 	a.windows = append(a.windows, aw)
 	return aw, nil

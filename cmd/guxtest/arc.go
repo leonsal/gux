@@ -3,8 +3,8 @@ package main
 import (
 	"math"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -14,12 +14,12 @@ func init() {
 
 type testArc struct{}
 
-func newTestArc(w *gux.Window) ITest {
+func newTestArc(w *window.Window) ITest {
 
 	return new(testArc)
 }
 
-func (t *testArc) draw(win *gux.Window) {
+func (t *testArc) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	radius := float32(100)
@@ -67,6 +67,6 @@ func (t *testArc) draw(win *gux.Window) {
 	}
 }
 
-func (t *testArc) destroy(w *gux.Window) {
+func (t *testArc) destroy(w *window.Window) {
 
 }

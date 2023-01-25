@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -12,12 +12,12 @@ func init() {
 
 type testRect struct{}
 
-func newTestRect(w *gux.Window) ITest {
+func newTestRect(w *window.Window) ITest {
 
 	return new(testRect)
 }
 
-func (t *testRect) draw(win *gux.Window) {
+func (t *testRect) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	startY := float32(50)
@@ -28,16 +28,16 @@ func (t *testRect) draw(win *gux.Window) {
 	const deltaY = height + 50
 	const rounding = 40.0
 	const thickness = 10
-	flagList := []gux.DrawFlags{
-		gux.DrawFlags_RoundCornersTopLeft,
-		gux.DrawFlags_RoundCornersTopRight,
-		gux.DrawFlags_RoundCornersBottomRight,
-		gux.DrawFlags_RoundCornersBottomLeft,
-		gux.DrawFlags_RoundCornersTop,
-		gux.DrawFlags_RoundCornersBottom,
-		gux.DrawFlags_RoundCornersLeft,
-		gux.DrawFlags_RoundCornersRight,
-		gux.DrawFlags_RoundCornersAll,
+	flagList := []window.DrawFlags{
+		window.DrawFlags_RoundCornersTopLeft,
+		window.DrawFlags_RoundCornersTopRight,
+		window.DrawFlags_RoundCornersBottomRight,
+		window.DrawFlags_RoundCornersBottomLeft,
+		window.DrawFlags_RoundCornersTop,
+		window.DrawFlags_RoundCornersBottom,
+		window.DrawFlags_RoundCornersLeft,
+		window.DrawFlags_RoundCornersRight,
+		window.DrawFlags_RoundCornersAll,
 	}
 
 	for idx, flag := range flagList {
@@ -58,6 +58,6 @@ func (t *testRect) draw(win *gux.Window) {
 	}
 }
 
-func (t *testRect) destroy(w *gux.Window) {
+func (t *testRect) destroy(w *window.Window) {
 
 }

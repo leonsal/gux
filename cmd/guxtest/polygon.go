@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -12,12 +12,12 @@ func init() {
 
 type testPolygon struct{}
 
-func newTestPolygon(w *gux.Window) ITest {
+func newTestPolygon(w *window.Window) ITest {
 
 	return new(testPolygon)
 }
 
-func (t *testPolygon) draw(w *gux.Window) {
+func (t *testPolygon) draw(w *window.Window) {
 
 	dl := w.DrawList()
 
@@ -45,5 +45,5 @@ func (t *testPolygon) draw(w *gux.Window) {
 	w.AddConvexPolyFilled(dl, points, gb.MakeColor(0, 255, 255, 255))
 }
 
-func (t *testPolygon) destroy(w *gux.Window) {
+func (t *testPolygon) destroy(w *window.Window) {
 }

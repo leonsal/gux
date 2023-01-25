@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -17,7 +17,7 @@ type testBezier struct {
 	deltaX float32
 }
 
-func newTestBezier(w *gux.Window) ITest {
+func newTestBezier(w *window.Window) ITest {
 
 	t := new(testBezier)
 	t.p1 = gb.Vec2{10, 300}
@@ -27,7 +27,7 @@ func newTestBezier(w *gux.Window) ITest {
 	return t
 }
 
-func (t *testBezier) draw(w *gux.Window) {
+func (t *testBezier) draw(w *window.Window) {
 
 	dl := w.DrawList()
 	t.p1.Y = w.Size().Y / 2
@@ -48,5 +48,5 @@ func (t *testBezier) draw(w *gux.Window) {
 	}
 }
 
-func (t *testBezier) destroy(w *gux.Window) {
+func (t *testBezier) destroy(w *window.Window) {
 }

@@ -1,4 +1,4 @@
-package gux
+package window
 
 import (
 	"github.com/leonsal/gux/gb"
@@ -50,7 +50,7 @@ type Window struct {
 }
 
 // New creates and returns a new Window
-func NewWindow(title string, width, height int, cfg *gb.Config) (*Window, error) {
+func New(title string, width, height int, cfg *gb.Config) (*Window, error) {
 
 	// Creates graphics backend native window
 	w := new(Window)
@@ -101,12 +101,7 @@ func (w *Window) StartFrame() bool {
 	return !w.frameInfo.WinClose
 }
 
-func (w *Window) RenderFrame(view IView) {
-
-	view.Render(w)
-	w.gbw.RenderFrame(&w.dl)
-}
-
+// Render sends this Windows' DrawList to the Graphics Backend for rendering
 func (w *Window) Render() {
 
 	w.gbw.RenderFrame(&w.dl)

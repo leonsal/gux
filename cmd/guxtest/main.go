@@ -12,8 +12,8 @@ import (
 	"runtime/trace"
 	"sort"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 // Initializes colors lists
@@ -32,15 +32,15 @@ func init() {
 
 // testInfo describes a test
 type testInfo struct {
-	name   string                  // Test name
-	order  int                     // Show order
-	create func(*gux.Window) ITest // Test constructor
+	name   string                     // Test name
+	order  int                        // Show order
+	create func(*window.Window) ITest // Test constructor
 }
 
 // ITest is the interface for all tests objects
 type ITest interface {
-	draw(*gux.Window)
-	destroy(*gux.Window)
+	draw(*window.Window)
+	destroy(*window.Window)
 }
 
 var (
@@ -84,7 +84,7 @@ func main() {
 	cfg.UnlimitedRate = false
 	cfg.OpenGL.ES = false
 	cfg.Vulkan.ValidationLayer = true
-	win, err := gux.NewWindow("GUX Test", 2000, 1200, &cfg)
+	win, err := window.New("GUX Test", 2000, 1200, &cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func main() {
 
 // runTest creates the specified test and runs it for the specified number of frames.
 // If 'maxFrames' is zero, runs continously till the window is closed.
-func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
+func runTest(win *window.Window, tinfo testInfo, maxFrames uint) bool {
 
 	// Creates test
 	test := tinfo.create(win)
@@ -178,7 +178,7 @@ func runTest(win *gux.Window, tinfo testInfo, maxFrames uint) bool {
 }
 
 // registerTest is used by tests to register themselves
-func registerTest(name string, order int, create func(*gux.Window) ITest) {
+func registerTest(name string, order int, create func(*window.Window) ITest) {
 
 	mapTests[name] = testInfo{name: name, order: order, create: create}
 }

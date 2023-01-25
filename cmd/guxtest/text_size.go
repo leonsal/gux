@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomedium"
 	"golang.org/x/image/font/opentype"
@@ -17,10 +17,10 @@ func init() {
 }
 
 type testText struct {
-	fonts []*gux.FontAtlas
+	fonts []*window.FontAtlas
 }
 
-func newTestText(win *gux.Window) ITest {
+func newTestText(win *window.Window) ITest {
 
 	t := new(testText)
 
@@ -42,7 +42,7 @@ func newTestText(win *gux.Window) ITest {
 	for _, size := range sizes {
 		opts.Size = float64(size)
 		//fa, err := gux.NewFontAtlasFromFile(win, "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", &opts, runes)
-		fa, err := gux.NewFontAtlas(win, gomedium.TTF, &opts, runes)
+		fa, err := window.NewFontAtlas(win, gomedium.TTF, &opts, runes)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -58,7 +58,7 @@ func newTestText(win *gux.Window) ITest {
 	return t
 }
 
-func (t *testText) draw(win *gux.Window) {
+func (t *testText) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	pos := gb.Vec2{10, 0}
@@ -67,7 +67,7 @@ func (t *testText) draw(win *gux.Window) {
 
 	for _, fa := range t.fonts {
 		origin := pos
-		win.AddText(dl, fa, &origin, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
+		win.AddText(dl, fa, &origin, gb.MakeColor(0, 0, 0, 255), window.TextVAlignBase, text1)
 		pos.Y += fa.Height() * 2
 	}
 
@@ -75,7 +75,7 @@ func (t *testText) draw(win *gux.Window) {
 	//win.AddText(dl, t.fonts[0], pos, gb.MakeColor(0, 0, 0, 255), gux.TextVAlignBase, text1)
 }
 
-func (t *testText) destroy(win *gux.Window) {
+func (t *testText) destroy(win *window.Window) {
 
 	for _, f := range t.fonts {
 		f.Destroy(win)

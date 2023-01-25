@@ -5,8 +5,8 @@ import (
 	"log"
 	"unicode"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
@@ -18,10 +18,10 @@ func init() {
 }
 
 type testTextAlign struct {
-	fa *gux.FontAtlas
+	fa *window.FontAtlas
 }
 
-func newTestTextAlign(win *gux.Window) ITest {
+func newTestTextAlign(win *window.Window) ITest {
 
 	t := new(testTextAlign)
 
@@ -31,8 +31,8 @@ func newTestTextAlign(win *gux.Window) ITest {
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
-	fa, err := gux.NewFontAtlas(win, goregular.TTF, &opts,
-		gux.AsciiSet(), gux.RangeTableSet(unicode.Latin), gux.RangeTableSet(unicode.Common))
+	fa, err := window.NewFontAtlas(win, goregular.TTF, &opts,
+		window.AsciiSet(), window.RangeTableSet(unicode.Latin), window.RangeTableSet(unicode.Common))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func newTestTextAlign(win *gux.Window) ITest {
 	return t
 }
 
-func (t *testTextAlign) draw(win *gux.Window) {
+func (t *testTextAlign) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	pos := gb.Vec2{10, 200}
@@ -60,18 +60,18 @@ func (t *testTextAlign) draw(win *gux.Window) {
 
 	dot := pos
 	textBaseline := "TextVAlignBase"
-	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignBase, textBaseline)
+	win.AddText(dl, t.fa, &dot, textColor, window.TextVAlignBase, textBaseline)
 
 	dot = gb.Vec2{dot.X, pos.Y}
 	textTop := "TextVAlignTop"
-	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignTop, textTop)
+	win.AddText(dl, t.fa, &dot, textColor, window.TextVAlignTop, textTop)
 
 	dot = gb.Vec2{dot.X, pos.Y}
 	textBottom := "TextVAlignBottom"
-	win.AddText(dl, t.fa, &dot, textColor, gux.TextVAlignBottom, textBottom)
+	win.AddText(dl, t.fa, &dot, textColor, window.TextVAlignBottom, textBottom)
 }
 
-func (t *testTextAlign) destroy(win *gux.Window) {
+func (t *testTextAlign) destroy(win *window.Window) {
 
 	t.fa.Destroy(win)
 	log.Println("Destroy font atlas and texture")

@@ -3,8 +3,8 @@ package main
 import (
 	"math"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -18,7 +18,7 @@ type testTransform struct {
 	g3 gb.DrawList
 }
 
-func newTestTransform(win *gux.Window) ITest {
+func newTestTransform(win *window.Window) ITest {
 
 	t := new(testTransform)
 
@@ -60,7 +60,7 @@ func newTestTransform(win *gux.Window) ITest {
 	return t
 }
 
-func (t *testTransform) draw(win *gux.Window) {
+func (t *testTransform) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	var mat gb.Mat3
@@ -87,6 +87,6 @@ func (t *testTransform) draw(win *gux.Window) {
 	}
 }
 
-func (t *testTransform) destroy(*gux.Window) {
+func (t *testTransform) destroy(*window.Window) {
 
 }

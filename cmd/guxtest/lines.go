@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 )
 
 func init() {
@@ -12,12 +12,12 @@ func init() {
 
 type testLines struct{}
 
-func newTestLines(w *gux.Window) ITest {
+func newTestLines(w *window.Window) ITest {
 
 	return new(testLines)
 }
 
-func (t *testLines) draw(w *gux.Window) {
+func (t *testLines) draw(w *window.Window) {
 
 	// Line points
 	points := []gb.Vec2{{0, 10}, {10, 0}, {20, 10}, {30, 0}, {40, 10}, {50, 0}, {60, 10}}
@@ -30,7 +30,7 @@ func (t *testLines) draw(w *gux.Window) {
 	translatePoints(points1, gb.Vec2{10, 10})
 	dl := w.DrawList()
 	for width := 1; width < 60; width += 8 {
-		w.AddPolyLineAntiAliased(dl, points1, gb.MakeColor(0, 0, 0, 255), gux.DrawFlags_None, float32(width))
+		w.AddPolyLineAntiAliased(dl, points1, gb.MakeColor(0, 0, 0, 255), window.DrawFlags_None, float32(width))
 		translatePoints(points1, gb.Vec2{0, 120})
 	}
 
@@ -44,7 +44,7 @@ func (t *testLines) draw(w *gux.Window) {
 	}
 }
 
-func (t *testLines) destroy(w *gux.Window) {
+func (t *testLines) destroy(w *window.Window) {
 
 }
 

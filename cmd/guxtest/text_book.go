@@ -6,8 +6,8 @@ import (
 	"log"
 	"unicode"
 
-	"github.com/leonsal/gux"
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
@@ -19,13 +19,13 @@ func init() {
 }
 
 type testTextBook struct {
-	fa        *gux.FontAtlas
+	fa        *window.FontAtlas
 	lines     []string
 	firstLine int
 	posY      float32
 }
 
-func newTestTextBook(win *gux.Window) ITest {
+func newTestTextBook(win *window.Window) ITest {
 
 	t := new(testTextBook)
 
@@ -35,8 +35,8 @@ func newTestTextBook(win *gux.Window) ITest {
 		DPI:     72,
 		Hinting: font.HintingNone,
 	}
-	fa, err := gux.NewFontAtlas(win, goregular.TTF, &opts,
-		gux.AsciiSet(), gux.RangeTableSet(unicode.Latin), gux.RangeTableSet(unicode.Common))
+	fa, err := window.NewFontAtlas(win, goregular.TTF, &opts,
+		window.AsciiSet(), window.RangeTableSet(unicode.Latin), window.RangeTableSet(unicode.Common))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func newTestTextBook(win *gux.Window) ITest {
 	return t
 }
 
-func (t *testTextBook) draw(win *gux.Window) {
+func (t *testTextBook) draw(win *window.Window) {
 
 	dl := win.DrawList()
 	color := gb.MakeColor(0, 0, 0, 255)
@@ -89,7 +89,7 @@ func (t *testTextBook) draw(win *gux.Window) {
 	// Draw lines
 	for l := t.firstLine; l < t.firstLine+nlines; l++ {
 		pos := origin
-		win.AddText(dl, t.fa, &pos, color, gux.TextVAlignBase, t.lines[l])
+		win.AddText(dl, t.fa, &pos, color, window.TextVAlignBase, t.lines[l])
 		origin.Y += t.fa.Height()
 	}
 
@@ -105,7 +105,7 @@ func (t *testTextBook) draw(win *gux.Window) {
 	}
 }
 
-func (t *testTextBook) destroy(win *gux.Window) {
+func (t *testTextBook) destroy(win *window.Window) {
 
 	t.fa.Destroy(win)
 	log.Println("Destroy font atlas and texture")

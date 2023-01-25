@@ -1,8 +1,31 @@
 - TODO
-	- Text align test
     - Arc angle direction ?
     - Initializes Default circle used when numSegments == 0
     - Draw circles with numSegs=0 scaling and translating the default circle.
+
+Packages dependencies
+	gb
+	window
+		window.go
+		draw commands
+		font_atlas
+	view
+		view.go
+			gb.DrawList
+		event_target.go
+		label.go
+		frame.go ? (window)
+		layout/
+			vbox
+			hbox
+			grid
+			border
+	app
+		New()
+		appwin := a.NewWindow()
+		appwin.Render(topView)
+			- send events to views
+		
 
 
 OpenGL Normalized device coordinates

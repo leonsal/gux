@@ -6,7 +6,7 @@ import (
 )
 
 type App struct {
-	windows []*Window
+	Windows []*Window
 }
 
 type Window struct {
@@ -40,25 +40,29 @@ func (a *App) NewWindow(title string, width, height int) (*Window, error) {
 		return nil, err
 	}
 	aw := &Window{Window: w}
-	a.windows = append(a.windows, aw)
+	a.Windows = append(a.Windows, aw)
 	return aw, nil
 }
 
 func (a *App) Render() bool {
 
-	toclose := []*Window{}
-	for i := 0; i < len(a.windows); i++ {
-		aw := a.windows[i]
-		shouldClose := aw.StartFrame()
-		if shouldClose {
-			toclose = append(toclose, aw)
-			continue
-		}
-		aw.RenderFrame()
-	}
-	for _, aw := range toclose {
-		aw.Close()
-	}
+	////toclose := []*Window{}
+	//fmt.Printf("windows:%+v\n", a.Windows)
+	//aw := a.Windows[0]
+	//shouldClose := aw.StartFrame()
+
+	////for i := 0; i < len(a.windows); i++ {
+	////	aw := a.windows[i]
+	////	shouldClose := aw.StartFrame()
+	////	if shouldClose {
+	////		toclose = append(toclose, aw)
+	////		continue
+	////	}
+	////	aw.RenderFrame()
+	////}
+	////for _, aw := range toclose {
+	////	aw.Close()
+	////}
 	return true
 }
 
@@ -68,9 +72,9 @@ func (aw *Window) SetView(v view.IView) {
 
 func (aw *Window) Close() {
 
-	for i := 0; i < len(app.windows); i++ {
-		if app.windows[i] == aw {
-			app.windows = append(app.windows[:i], app.windows[:i+1]...)
+	for i := 0; i < len(app.Windows); i++ {
+		if app.Windows[i] == aw {
+			app.Windows = append(app.Windows[:i], app.Windows[:i+1]...)
 			break
 		}
 	}

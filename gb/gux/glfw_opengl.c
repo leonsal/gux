@@ -22,11 +22,10 @@
 #endif
 
 
-// Internal state
+// Internal state per Window
 typedef struct {
     gb_config_t     cfg;                // User configuration
     GLFWwindow*     w;                  // GLFW window pointer
-    GLFWcursor**    cursors;            // GLFW cursors
     gb_vec4_t       clear_color;        // Current color to clear color buffer before rendering
     GLuint          handle_shader;      // Handle of compiled shader program
     GLint           uni_tex;            // Location of texture id uniform in the shader
@@ -118,7 +117,6 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     s->cfg = cfg;
     s->w = win;
     glfwSetWindowUserPointer(win, s);
-    _gb_create_cursors(s);
 
     // Initialize OpenGL
     bool res = _gb_init(s, NULL);
@@ -129,6 +127,12 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 
     // Set window event handlers
     _gb_set_ev_handlers(s);
+
+	// Creates cursors only once when the first window is opened
+	if (g_window_count == 0) {
+    	_gb_create_cursors();
+	}
+	g_window_count++;
     return s;
 }
 
@@ -136,15 +140,18 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t bw) {
 
     gb_state_t* s = (gb_state_t*)(bw);
-    glfwMakeContextCurrent(s->w);
-
-    _gb_destroy_cursors(s);
     glfwDestroyWindow(s->w);
     _gb_free(s->frame.events);
     s->frame.events = NULL;
-
-    glfwTerminate();
     _gb_free(s);
+
+	// If all windows were closed, terminates GLFW
+	g_window_count--;
+	if (g_window_count <= 0) {
+    	_gb_destroy_cursors();
+    	glfwTerminate();
+		printf("GLFW TERMINATE\n");
+	}
 }
 
 // Starts the frame returning frame information

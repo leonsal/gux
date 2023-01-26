@@ -55,7 +55,6 @@ struct vulkan_frame_buffers {
 typedef struct {
     gb_config_t                     cfg;
     GLFWwindow*                     w;
-    GLFWcursor**                    cursors;            // GLFW cursors
     gb_vec4_t                       clear_color;
     uint32_t                        min_image_count;
     uint32_t                        queue_family;
@@ -173,7 +172,6 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
     if (cfg != NULL) {
         s->cfg = *cfg;
     }
-    _gb_create_cursors(s);
 
     // Get required Vulkan extensions from GLFW (WSI) and initializes Vulkan
     uint32_t extensions_count = 0;
@@ -189,6 +187,12 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 
     // Set window event handlers
     _gb_set_ev_handlers(s);
+
+	// Creates cursors only once when the first window is opened
+	if (g_window_count == 0) {
+    	_gb_create_cursors();
+	}
+	g_window_count++;
     return s;
 }
 
@@ -196,10 +200,18 @@ gb_window_t gb_create_window(const char* title, int width, int height, gb_config
 void gb_window_destroy(gb_window_t win) {
 
     gb_state_t* s = (gb_state_t*)(win);
-    _gb_destroy_cursors(s);
+    glfwDestroyWindow(s->w);
     _gb_destroy_window(s);
     _gb_destroy_vulkan(s);
     _gb_free(s);
+
+	// If all windows were closed, terminates GLFW
+	g_window_count--;
+	if (g_window_count <= 0) {
+    	_gb_destroy_cursors();
+    	glfwTerminate();
+		printf("VULKAN GLFW TERMINATE\n");
+	}
 }
 
 // Starts the frame returning frame information

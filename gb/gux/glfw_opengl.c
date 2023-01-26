@@ -150,7 +150,6 @@ void gb_window_destroy(gb_window_t bw) {
 	if (g_window_count <= 0) {
     	_gb_destroy_cursors();
     	glfwTerminate();
-		printf("GLFW TERMINATE\n");
 	}
 }
 

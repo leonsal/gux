@@ -210,7 +210,6 @@ void gb_window_destroy(gb_window_t win) {
 	if (g_window_count <= 0) {
     	_gb_destroy_cursors();
     	glfwTerminate();
-		printf("VULKAN GLFW TERMINATE\n");
 	}
 }
 

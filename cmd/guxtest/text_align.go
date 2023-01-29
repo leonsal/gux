@@ -14,7 +14,7 @@ import (
 
 func init() {
 
-	registerTest("text_align", 8, newTestTextAlign)
+	registerTest("text_align", 10, newTestTextAlign)
 }
 
 type testTextAlign struct {

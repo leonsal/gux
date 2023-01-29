@@ -157,6 +157,39 @@ func (w *Window) AddCircleFilled(dl *gb.DrawList, center gb.Vec2, radius float32
 	w.PathFillConvex(dl, col)
 }
 
+func (w *Window) AddImage(dl *gb.DrawList, texID gb.TextureID, pmin, pmax gb.Vec2) {
+
+	w.AddImageUV(dl, texID, pmin, pmax, gb.Vec2{0, 0}, gb.Vec2{1, 1}, gb.RGBAWhite)
+}
+
+func (w *Window) AddImageUV(dl *gb.DrawList, texID gb.TextureID, pmin, pmax, uvMin, uvMax gb.Vec2, col gb.RGBA) {
+
+	cmd, bufIdx, bufVtx := w.NewDrawCmd(dl, 6, 4)
+	cmd.TexID = texID
+	bufVtx[0].Pos = pmin
+	bufVtx[0].UV = uvMin
+	bufVtx[0].Col = col
+
+	bufVtx[1].Pos = gb.Vec2{pmin.X, pmax.Y}
+	bufVtx[1].UV = gb.Vec2{uvMin.X, uvMax.Y}
+	bufVtx[1].Col = col
+
+	bufVtx[2].Pos = gb.Vec2{pmax.X, pmax.Y}
+	bufVtx[2].UV = gb.Vec2{uvMax.X, uvMax.Y}
+	bufVtx[2].Col = col
+
+	bufVtx[3].Pos = gb.Vec2{pmax.X, pmin.Y}
+	bufVtx[3].UV = gb.Vec2{uvMax.X, uvMin.Y}
+	bufVtx[3].Col = col
+
+	bufIdx[0] = 0
+	bufIdx[1] = 1
+	bufIdx[2] = 2
+	bufIdx[3] = 2
+	bufIdx[4] = 3
+	bufIdx[5] = 0
+}
+
 func roundupToEven(v int) int {
 	return ((v + 1) / 2 * 2)
 }

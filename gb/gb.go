@@ -46,6 +46,9 @@ const RGBAShiftG = 8
 const RGBAShiftB = 16
 const RGBAShiftA = 24
 
+const RGBAWhite = 0xFF_FF_FF_FF
+const RGBABlack = 0xFF_00_00_00
+
 // TextureId is the type for textures identifiers
 type TextureID uintptr
 

@@ -15,7 +15,7 @@ import (
 
 func init() {
 
-	registerTest("text_book", 10, newTestTextBook)
+	registerTest("text_book", 11, newTestTextBook)
 }
 
 type testTextBook struct {

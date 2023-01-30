@@ -12,8 +12,16 @@ type FontFamilyType int
 
 const (
 	FontRegular FontFamilyType = iota
+	FontMedium
 	FontBold
 	FontItalic
+	FontMediumItalic
+	FontBoldItalic
+	FontMono
+	FontMonoBold
+	FontMonoItalic
+	FontMonoBoldItalic
+	FontCustom
 )
 
 const (

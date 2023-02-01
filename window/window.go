@@ -90,12 +90,14 @@ func (w *Window) SetEvTimeout(timeout float32) {
 	w.frameParams.EvTimeout = timeout
 }
 
+// StartFrames marks the beginning of a new render frame and returns true if
+// the window should be closed or false otherwise.
 func (w *Window) StartFrame() bool {
 
 	w.dl.Clear()
 	w.bufVec2 = w.bufVec2[:0]
 	w.frameInfo = w.gbw.StartFrame(&w.frameParams)
-	return !w.frameInfo.WinClose
+	return w.frameInfo.WinClose
 }
 
 // RenderFrame sends this Windows' DrawList to the Graphics Backend for rendering

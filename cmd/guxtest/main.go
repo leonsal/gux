@@ -138,7 +138,7 @@ func runTest(win *window.Window, tinfo testInfo, maxFrames uint) bool {
 	// Render Loop
 	abort := false
 	for {
-		if !win.StartFrame() {
+		if win.StartFrame() {
 			abort = true
 			break
 		}

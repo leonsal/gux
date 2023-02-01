@@ -6,18 +6,19 @@ import (
 )
 
 type App struct {
-	Windows []*Window
+	windows []*Window
 }
 
 type Window struct {
 	*window.Window
+	fm   *FontManager
 	view view.IView
 }
 
 // Single App instance
 var app *App
 
-// Init initializes the application and returns reference to its single instance
+// Init initializes the application singleton and returns its reference
 func Init() *App {
 
 	if app == nil {
@@ -26,10 +27,37 @@ func Init() *App {
 	return app
 }
 
-func newApp() *App {
+func (a *App) Close() {
 
-	a := new(App)
-	return a
+	if app == nil {
+		return
+	}
+
+	for i := 0; i < len(a.windows); i++ {
+		a.windows[i].Destroy()
+	}
+	app = nil
+}
+
+// Render renders all the application opened windows and
+// return true if all windows were closed.
+func (a *App) Render() bool {
+
+	if len(a.windows) == 0 {
+		return true
+	}
+
+	for i := 0; i < len(a.windows); i++ {
+		aw := a.windows[i]
+		shouldClose := aw.StartFrame()
+		if shouldClose {
+			a.windows = append(a.windows[:i], a.windows[i+1:]...)
+			aw.Destroy()
+			continue
+		}
+		aw.RenderFrame()
+	}
+	return false
 }
 
 // NewWindow creates and returns a new application window
@@ -40,49 +68,42 @@ func (a *App) NewWindow(title string, width, height int) (*Window, error) {
 		return nil, err
 	}
 	aw := &Window{Window: w}
-	a.Windows = append(a.Windows, aw)
+	a.windows = append(a.windows, aw)
 	return aw, nil
 }
 
-func (a *App) Render() bool {
+// Close closes the specified window
+func (aw *Window) Close() {
 
-	////toclose := []*Window{}
-	//fmt.Printf("windows:%+v\n", a.Windows)
-	//aw := a.Windows[0]
-	//shouldClose := aw.StartFrame()
-
-	////for i := 0; i < len(a.windows); i++ {
-	////	aw := a.windows[i]
-	////	shouldClose := aw.StartFrame()
-	////	if shouldClose {
-	////		toclose = append(toclose, aw)
-	////		continue
-	////	}
-	////	aw.RenderFrame()
-	////}
-	////for _, aw := range toclose {
-	////	aw.Close()
-	////}
-	return true
+	for i := 0; i < len(app.windows); i++ {
+		if app.windows[i] == aw {
+			app.windows = append(app.windows[:i], app.windows[:i+1]...)
+			aw.Destroy()
+			break
+		}
+	}
 }
 
+// SetView sets the top view of this window
 func (aw *Window) SetView(v view.IView) {
 	aw.view = v
 }
 
-func (aw *Window) Close() {
+func newApp() *App {
 
-	for i := 0; i < len(app.Windows); i++ {
-		if app.Windows[i] == aw {
-			app.Windows = append(app.Windows[:i], app.Windows[:i+1]...)
-			break
-		}
-	}
-	aw.Destroy()
+	a := new(App)
+	return a
 }
 
-func (aw *Window) Render() bool {
+func (a *App) defaultFontManager() error {
 
-	//aw.win.Render()
-	return true
+	//	normalSize := 18
+	//	runeSets := [][]rune{}
+	//	runeSets = append(runeSets, window.AsciiSet, window.RangeTableSet(unicode.Latin), window.RangeTableSet(unicode.Common))
+	//	fm, err := NewFontManager(normalSize, 1, 2, runeSets...)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/util"
 )
 
 // DrawList return this window DrawList
@@ -61,7 +62,7 @@ func (w *Window) PathArcTo(dl *gb.DrawList, center gb.Vec2, radius, amin, amax f
 	// If you are trying to draw a full closed circle you don't want the overlapping points!
 	for i := 0; i <= numSegments; i++ {
 		a := amin + (float32(i)/float32(numSegments))*(amax-amin)
-		dl.PathAppend(gb.Vec2{center.X + Cos(a)*radius, center.Y + Sin(a)*radius})
+		dl.PathAppend(gb.Vec2{center.X + util.Cos(a)*radius, center.Y + util.Sin(a)*radius})
 	}
 }
 
@@ -136,7 +137,7 @@ func (w *Window) AddCircle(dl *gb.DrawList, center gb.Vec2, radius float32, col 
 	if (col&gb.RGBAMaskA) == 0 || radius < 0.5 {
 		return
 	}
-	numSegments = Clamp(numSegments, 3, DrawListCircleSegmentMax)
+	numSegments = util.Clamp(numSegments, 3, DrawListCircleSegmentMax)
 
 	// Because we are filling a closed shape we remove 1 from the count of segments/points
 	amax := (2 * math.Pi) * (float64(numSegments) - 1.0) / float64(numSegments)
@@ -149,7 +150,7 @@ func (w *Window) AddCircleFilled(dl *gb.DrawList, center gb.Vec2, radius float32
 	if (col&gb.RGBAMaskA) == 0 || radius < 0.5 {
 		return
 	}
-	numSegments = Clamp(numSegments, 3, DrawListCircleSegmentMax)
+	numSegments = util.Clamp(numSegments, 3, DrawListCircleSegmentMax)
 
 	// Because we are filling a closed shape we remove 1 from the count of segments/points
 	amax := (2 * math.Pi) * (float64(numSegments) - 1.0) / float64(numSegments)

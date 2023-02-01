@@ -156,10 +156,7 @@ void gb_window_destroy(gb_window_t bw) {
 // Starts the frame returning frame information
 gb_frame_info_t* gb_window_start_frame(gb_window_t bw, gb_frame_params_t* params) {
 
-    // Sets OpenGL context from window
     gb_state_t* s = (gb_state_t*)(bw);
-    glfwMakeContextCurrent(s->w);
-
     s->clear_color = params->clear_color;
     _gb_update_frame_info(s, params->ev_timeout);
     return &s->frame;
@@ -191,11 +188,10 @@ void gb_window_render_frame(gb_window_t bw, gb_draw_list_t dl) {
 void gb_set_cursor(gb_window_t win, int cursor) {
 
     gb_state_t* s = (gb_state_t*)(win);
-    glfwMakeContextCurrent(s->w);
     _gb_set_cursor(s, cursor);
 }
 
-// Creates and returns an OpenGL texture idenfifier
+// Creates and returns an OpenGL texture identifier
 gb_texid_t gb_create_texture(gb_window_t w, int width, int height, const gb_rgba_t* data) {
 
     // Sets OpenGL context from window

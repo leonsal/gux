@@ -6,6 +6,7 @@ import (
 	"unicode"
 
 	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/util"
 	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -32,7 +33,7 @@ func newTestTextAlign(win *window.Window) ITest {
 		Hinting: font.HintingNone,
 	}
 	fa, err := window.NewFontAtlas(win, goregular.TTF, &opts,
-		window.AsciiSet(), window.RangeTableSet(unicode.Latin), window.RangeTableSet(unicode.Common))
+		util.AsciiSet(), util.RangeTableSet(unicode.Latin), util.RangeTableSet(unicode.Common))
 	if err != nil {
 		log.Fatal(err)
 	}

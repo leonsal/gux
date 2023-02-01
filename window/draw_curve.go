@@ -1,6 +1,9 @@
 package window
 
-import "github.com/leonsal/gux/gb"
+import (
+	"github.com/leonsal/gux/gb"
+	"github.com/leonsal/gux/util"
+)
 
 func (w *Window) AddBezierQuadratic(dl *gb.DrawList, p1, p2, p3 gb.Vec2, col gb.RGBA, thickness float32, numSegments int) {
 
@@ -16,7 +19,7 @@ func (w *Window) PathBezierQuadraticCurveTo(dl *gb.DrawList, p2, p3 gb.Vec2, num
 
 	p1 := dl.PathBack()
 	if numSegments == 0 {
-		Assert(w.CurveTessellationTol > 0, "")
+		util.Assert(w.CurveTessellationTol > 0, "")
 		pathBezierQuadraticCurveToCasteljau(&dl.Path, p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, w.CurveTessellationTol, 0)
 	} else {
 		tstep := 1.0 / float32(numSegments)
@@ -40,7 +43,7 @@ func (w *Window) PathBezierCubicCurveTo(dl *gb.DrawList, p2, p3, p4 gb.Vec2, num
 
 	p1 := dl.PathBack()
 	if numSegments == 0 {
-		Assert(w.CurveTessellationTol > 0, "")
+		util.Assert(w.CurveTessellationTol > 0, "")
 		pathBezierCubicCurveToCasteljau(&dl.Path, p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, p4.X, p4.Y, w.CurveTessellationTol, 0)
 	} else {
 		tstep := 1.0 / float32(numSegments)

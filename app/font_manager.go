@@ -12,9 +12,9 @@ type FontFamilyType int
 
 const (
 	FontRegular FontFamilyType = iota
-	FontMedium
 	FontBold
 	FontItalic
+	FontMedium
 	FontMediumItalic
 	FontBoldItalic
 	FontMono
@@ -61,24 +61,25 @@ func NewFontManager(normalSize float64, smaller, larger int, runeSets ...[]rune)
 	fm.normalSize = normalSize
 	fm.smaller = smaller
 	fm.larger = larger
+	fm.families = make(map[FontFamilyType]fontInfo)
 	fm.runeSets = append(fm.runeSets, runeSets...)
 	return fm, nil
 }
 
 // AddFamily adds the specified font family to this FontManager.
 // fontData must be a valid TTF/OpenType font description.
-func (fm *FontManager) AddFamily(ff FontFamilyType, fontData []byte) (*FontManager, error) {
+func (fm *FontManager) AddFamily(ff FontFamilyType, fontData []byte) error {
 
 	_, ok := fm.families[ff]
 	if ok {
-		return nil, fmt.Errorf("FontFamily:%d already added to the FontManager", ff)
+		return fmt.Errorf("FontFamily:%d already added to the FontManager", ff)
 	}
 	fm.families[ff] = fontInfo{fontData: fontData}
-	return fm, nil
+	return nil
 }
 
 // BuildFonts builds the font atlases for each family and each size in this FontManager.
-func (fm *FontManager) BuildFonts(w *window.Window) error {
+func (fm *FontManager) BuildFonts(aw *Window) error {
 
 	// Scale the normal font size from the window.
 
@@ -96,8 +97,7 @@ func (fm *FontManager) BuildFonts(w *window.Window) error {
 				DPI:     72,
 				Hinting: font.HintingNone,
 			}
-			fmt.Println("opts", opts)
-			fa, err := window.NewFontAtlas(w, fi.fontData, &opts, fm.runeSets...)
+			fa, err := window.NewFontAtlas(aw.Window, fi.fontData, &opts, fm.runeSets...)
 			if err != nil {
 				return err
 			}
@@ -109,11 +109,11 @@ func (fm *FontManager) BuildFonts(w *window.Window) error {
 
 // DestroyFonts destroys all font atlases created previously for this FontManager.
 // It normally should be called before the window is closed.
-func (fm *FontManager) DestroyFonts(w *window.Window) {
+func (fm *FontManager) DestroyFonts(aw *Window) {
 
 	for _, fi := range fm.families {
 		for _, fa := range fi.faces {
-			fa.Destroy(w)
+			fa.Destroy(aw.Window)
 		}
 		fi.faces = nil
 	}

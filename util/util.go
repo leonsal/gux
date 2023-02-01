@@ -1,6 +1,9 @@
-package window
+package util
 
-import "math"
+import (
+	"math"
+	"unicode"
+)
 
 type Number interface {
 	~int | ~float32 | ~float64
@@ -57,4 +60,31 @@ func Assert(cond bool, msg string) {
 	if !cond {
 		panic("Gux Assertion Failed:" + msg)
 	}
+}
+
+// AsciiSet returns slice of ASCII runes
+func AsciiSet() []rune {
+
+	runes := make([]rune, unicode.MaxASCII-32)
+	for i := range runes {
+		runes[i] = rune(32 + i)
+	}
+	return runes
+}
+
+// RangeTableSet returns a slice of runes from the specified unicode.RangeTable
+func RangeTableSet(table *unicode.RangeTable) []rune {
+
+	var runes []rune
+	for _, rng := range table.R16 {
+		for r := rng.Lo; r <= rng.Hi; r += rng.Stride {
+			runes = append(runes, rune(r))
+		}
+	}
+	for _, rng := range table.R32 {
+		for r := rng.Lo; r <= rng.Hi; r += rng.Stride {
+			runes = append(runes, rune(r))
+		}
+	}
+	return runes
 }

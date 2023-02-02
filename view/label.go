@@ -36,7 +36,6 @@ func (l *Label) Render(w *window.Window) {
 	if !l.visible {
 		return
 	}
-	dl := w.DrawList()
-	w.AddText(dl, w.Font(l.ff, 0), &l.pos, l.color, l.valign, l.text)
+	w.AddText(w.DrawList(), w.Font(l.ff, 0), &l.pos, l.color, l.valign, l.text)
 
 }

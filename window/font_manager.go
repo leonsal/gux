@@ -118,9 +118,9 @@ func (fm *FontManager) DestroyFonts(w *Window) {
 	}
 }
 
-// FontAtlas return pointer to the FontAtlas for the specified font family type and relative size.
+// Font return pointer to the Font for the specified font family type and relative size.
 // The relative size is 0 for normal, +1, +2, ... for larger and -1, -2, ... for smaller font faces.
-func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) *FontAtlas {
+func (fm *FontManager) Font(ff FontFamilyType, relSize int) *FontAtlas {
 
 	fi, ok := fm.families[ff]
 	if !ok {

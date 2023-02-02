@@ -92,7 +92,7 @@ func (w *Window) FontManager() *FontManager {
 
 func (w *Window) Font(ff FontFamilyType, relSize int) *FontAtlas {
 
-	return w.fm.FontAtlas(ff, relSize)
+	return w.fm.Font(ff, relSize)
 }
 
 func (w *Window) SetClearColor(color gb.Vec4) {

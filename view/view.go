@@ -20,3 +20,7 @@ type View struct {
 	visible  bool
 	children []IView
 }
+
+func DispatchEvents(w *window.Window, v IView) {
+
+}

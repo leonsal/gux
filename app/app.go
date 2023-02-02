@@ -8,8 +8,6 @@ import (
 	"github.com/leonsal/gux/view"
 	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font/gofont/gobold"
-	"golang.org/x/image/font/gofont/goitalic"
-	"golang.org/x/image/font/gofont/goregular"
 )
 
 type WindowInfo struct {
@@ -57,6 +55,7 @@ func (a *App) Render() bool {
 	}
 
 	for i := 0; i < len(a.windows); i++ {
+		// Starts frame and checks if window should close
 		wi := a.windows[i]
 		shouldClose := wi.w.StartFrame()
 		if shouldClose {
@@ -65,6 +64,9 @@ func (a *App) Render() bool {
 			continue
 		}
 		if wi.view != nil {
+			// Dispatch events to the top view
+			view.DispatchEvents(wi.w, wi.view)
+			// Render top view and its children
 			wi.view.Render(wi.w)
 		}
 		wi.w.RenderFrame()
@@ -76,6 +78,12 @@ func (a *App) Render() bool {
 func (a *App) NewWindow(title string, width, height int) (*window.Window, error) {
 
 	w, err := window.New(title, width, height, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates default font manager
+	err = a.createFontManager(w)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +119,8 @@ func (a *App) SetView(w *window.Window, v view.IView) {
 	panic("SetView(): Invalid window")
 }
 
-func (a *App) CreateFontManager(w *window.Window) error {
+// createFontManager creates the default FontManager for the window
+func (a *App) createFontManager(w *window.Window) error {
 
 	normalSize := 18.0
 	runeSets := [][]rune{}
@@ -121,20 +130,20 @@ func (a *App) CreateFontManager(w *window.Window) error {
 		return err
 	}
 
-	err = fm.AddFamily(window.FontRegular, goregular.TTF)
-	if err != nil {
-		return err
-	}
+	//err = fm.AddFamily(window.FontRegular, goregular.TTF)
+	//if err != nil {
+	//	return err
+	//}
 
 	err = fm.AddFamily(window.FontBold, gobold.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(window.FontItalic, goitalic.TTF)
-	if err != nil {
-		return err
-	}
+	//err = fm.AddFamily(window.FontItalic, goitalic.TTF)
+	//if err != nil {
+	//	return err
+	//}
 
 	err = fm.BuildFonts(w)
 	if err != nil {

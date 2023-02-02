@@ -16,11 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//w1.SetClearColor(gb.Vec4{0, 1, 0, 1})
-	err = a.CreateFontManager(w1)
-	if err != nil {
-		log.Fatal(err)
-	}
+	w1.SetClearColor(gb.Vec4{0, 1, 0, 1})
 
 	// Second Window
 	w2, err := a.NewWindow("AppWin2", 400, 200)
@@ -28,10 +24,6 @@ func main() {
 		log.Fatal(err)
 	}
 	w2.SetClearColor(gb.Vec4{0.5, 0.5, 0.5, 1})
-	err = a.CreateFontManager(w2)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	for !a.Render() {
 	}

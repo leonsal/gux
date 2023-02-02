@@ -4,20 +4,23 @@ import (
 	"runtime"
 	"unicode"
 
+	"github.com/leonsal/gux/gb"
 	"github.com/leonsal/gux/util"
 	"github.com/leonsal/gux/view"
 	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/gofont/goitalic"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
-type WindowInfo struct {
+type windowInfo struct {
 	w    *window.Window // Native window reference
 	view view.IView     // Current top view for the window
 }
 
 // App is a singleton with the context of the entire Application
 type App struct {
-	windows []*WindowInfo // List of opened native windows
+	windows []*windowInfo // List of opened native windows
 }
 
 // Single Application instance
@@ -55,6 +58,7 @@ func (a *App) Render() bool {
 	}
 
 	for i := 0; i < len(a.windows); i++ {
+
 		// Starts frame and checks if window should close
 		wi := a.windows[i]
 		shouldClose := wi.w.StartFrame()
@@ -77,7 +81,13 @@ func (a *App) Render() bool {
 // NewWindow creates and returns a new application window
 func (a *App) NewWindow(title string, width, height int) (*window.Window, error) {
 
-	w, err := window.New(title, width, height, nil)
+	return a.NewWindowEx(title, width, height, nil)
+}
+
+func (a *App) NewWindowEx(title string, width, height int, cfg *gb.Config) (*window.Window, error) {
+
+	// Creates native window
+	w, err := window.New(title, width, height, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +98,13 @@ func (a *App) NewWindow(title string, width, height int) (*window.Window, error)
 		return nil, err
 	}
 
-	wi := &WindowInfo{w: w}
+	wi := &windowInfo{w: w}
 	a.windows = append(a.windows, wi)
 	return w, nil
 }
 
-// Close closes the specified window
+// Close removes the specified window from the application and then closes it,
+// releasing all its resources.
 func (a *App) CloseWindow(w *window.Window) {
 
 	for i := 0; i < len(app.windows); i++ {
@@ -122,7 +133,7 @@ func (a *App) SetView(w *window.Window, v view.IView) {
 // createFontManager creates the default FontManager for the window
 func (a *App) createFontManager(w *window.Window) error {
 
-	normalSize := 18.0
+	normalSize := 48.0
 	runeSets := [][]rune{}
 	runeSets = append(runeSets, util.AsciiSet(), util.RangeTableSet(unicode.Latin), util.RangeTableSet(unicode.Common))
 	fm, err := window.NewFontManager(normalSize, 1, 2, runeSets...)
@@ -130,20 +141,20 @@ func (a *App) createFontManager(w *window.Window) error {
 		return err
 	}
 
-	//err = fm.AddFamily(window.FontRegular, goregular.TTF)
-	//if err != nil {
-	//	return err
-	//}
+	err = fm.AddFamily(window.FontRegular, goregular.TTF)
+	if err != nil {
+		return err
+	}
 
 	err = fm.AddFamily(window.FontBold, gobold.TTF)
 	if err != nil {
 		return err
 	}
 
-	//err = fm.AddFamily(window.FontItalic, goitalic.TTF)
-	//if err != nil {
-	//	return err
-	//}
+	err = fm.AddFamily(window.FontItalic, goitalic.TTF)
+	if err != nil {
+		return err
+	}
 
 	err = fm.BuildFonts(w)
 	if err != nil {

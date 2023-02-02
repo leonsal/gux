@@ -34,11 +34,11 @@ type fontInfo struct {
 }
 
 type FontManager struct {
-	runeSets   [][]rune                    // Unicode codepoints range tables for the fonts
-	normalSize float64                     // The normal font size in 'points'
-	smaller    int                         // Number of font sizes smaller than the normal size
-	larger     int                         // Number of font sizes greater than the normal size
-	families   map[FontFamilyType]fontInfo // Maps font families to font info
+	runeSets   [][]rune                     // Unicode codepoints range tables for the fonts
+	normalSize float64                      // The normal font size in 'points'
+	smaller    int                          // Number of font sizes smaller than the normal size
+	larger     int                          // Number of font sizes greater than the normal size
+	families   map[FontFamilyType]*fontInfo // Maps font families to font info
 }
 
 // NewFontManager creates and returns a new empty FontManager.
@@ -60,7 +60,7 @@ func NewFontManager(normalSize float64, smaller, larger int, runeSets ...[]rune)
 	fm.normalSize = normalSize
 	fm.smaller = smaller
 	fm.larger = larger
-	fm.families = make(map[FontFamilyType]fontInfo)
+	fm.families = make(map[FontFamilyType]*fontInfo)
 	fm.runeSets = append(fm.runeSets, runeSets...)
 	return fm, nil
 }
@@ -73,7 +73,7 @@ func (fm *FontManager) AddFamily(ff FontFamilyType, fontData []byte) error {
 	if ok {
 		return fmt.Errorf("FontFamily:%d already added to the FontManager", ff)
 	}
-	fm.families[ff] = fontInfo{fontData: fontData}
+	fm.families[ff] = &fontInfo{fontData: fontData}
 	return nil
 }
 
@@ -134,5 +134,6 @@ func (fm *FontManager) Font(ff FontFamilyType, relSize int) *FontAtlas {
 	} else {
 		index = relSize + fm.smaller
 	}
+	fmt.Println(len(fi.faces), index)
 	return fi.faces[index]
 }

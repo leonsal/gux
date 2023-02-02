@@ -7,10 +7,10 @@ import (
 
 type IView interface {
 	Render(*window.Window)
-	Event(gb.Event) bool
-	Pos() gb.Vec2
-	Size() gb.Vec2
-	SetPos(gb.Vec2)
+	//Event(gb.Event) bool
+	//Pos() gb.Vec2
+	//Size() gb.Vec2
+	//SetPos(gb.Vec2)
 }
 
 type View struct {

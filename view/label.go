@@ -17,6 +17,11 @@ type Label struct {
 func NewLabel(text string) *Label {
 
 	l := new(Label)
+	l.visible = true
+	//l.pos = gb.Vec2{100, 100}
+	l.ff = window.FontRegular
+	l.color = gb.MakeColor(0, 0, 0, 255)
+	l.valign = window.TextVAlignTop
 	l.SetText(text)
 	return l
 }
@@ -36,6 +41,6 @@ func (l *Label) Render(w *window.Window) {
 	if !l.visible {
 		return
 	}
-	w.AddText(w.DrawList(), w.Font(l.ff, 0), &l.pos, l.color, l.valign, l.text)
-
+	pos := l.pos
+	w.AddText(w.DrawList(), w.Font(l.ff, 0), &pos, l.color, l.valign, l.text)
 }

@@ -25,12 +25,13 @@ func main() {
 	v := view.NewLabel("This is a label jpq")
 	a.SetView(w1, v)
 
-	//// Second Window
-	//w2, err := a.NewWindow("AppWin2", 400, 200)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//w2.SetClearColor(gb.Vec4{0.5, 0.5, 0.5, 1})
+	// Second Window
+	w2, err := a.NewWindow("AppWin2", 400, 200)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w2.SetClearColor(gb.Vec4{0.5, 0.5, 0.5, 1})
+	a.SetView(w2, v)
 
 	for !a.Render() {
 	}

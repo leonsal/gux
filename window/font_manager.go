@@ -134,6 +134,5 @@ func (fm *FontManager) Font(ff FontFamilyType, relSize int) *FontAtlas {
 	} else {
 		index = relSize + fm.smaller
 	}
-	fmt.Println(len(fi.faces), index)
 	return fi.faces[index]
 }

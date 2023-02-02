@@ -10,7 +10,7 @@ type IView interface {
 	//Event(gb.Event) bool
 	//Pos() gb.Vec2
 	//Size() gb.Vec2
-	//SetPos(gb.Vec2)
+	SetPos(gb.Vec2)
 }
 
 type View struct {
@@ -19,6 +19,11 @@ type View struct {
 	//drawList  gb.DrawList
 	visible  bool
 	children []IView
+}
+
+func (v *View) SetPos(pos gb.Vec2) {
+
+	v.pos = pos
 }
 
 func DispatchEvents(w *window.Window, v IView) {

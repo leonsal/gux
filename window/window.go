@@ -35,9 +35,9 @@ const (
 
 // Window corresponds to a native platform Window
 type Window struct {
-	gbw *gb.Window  // Graphics backend native window reference
-	dl  gb.DrawList // Draw list to render
-
+	gbw                  *gb.Window                    // Graphics backend native window reference
+	dl                   gb.DrawList                   // Draw list to render
+	fm                   *FontManager                  // Current FontManager
 	TexWhiteId           gb.TextureID                  // Texture with white opaque pixel
 	TexLinesId           gb.TextureID                  // Texture for lines
 	TexUvLines           [TexLinesWidthMax + 1]gb.Vec4 // UV coordinates for textured lines
@@ -80,6 +80,21 @@ func (w *Window) Size() gb.Vec2 {
 	return w.frameInfo.WinSize
 }
 
+func (w *Window) SetFontManager(fm *FontManager) {
+
+	w.fm = fm
+}
+
+func (w *Window) FontManager() *FontManager {
+
+	return w.fm
+}
+
+func (w *Window) Font(ff FontFamilyType, relSize int) *FontAtlas {
+
+	return w.fm.FontAtlas(ff, relSize)
+}
+
 func (w *Window) SetClearColor(color gb.Vec4) {
 
 	w.frameParams.ClearColor = color
@@ -114,6 +129,9 @@ func (w *Window) AddList(src *gb.DrawList) {
 
 func (w *Window) Destroy() {
 
+	if w.fm != nil {
+		w.fm.DestroyFonts(w)
+	}
 	w.DeleteTexture(w.TexWhiteId)
 	w.DeleteTexture(w.TexLinesId)
 	w.gbw.Destroy()

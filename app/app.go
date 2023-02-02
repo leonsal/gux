@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"runtime"
 	"unicode"
 
@@ -13,15 +12,14 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-// App is a singleton with the context of the entire Application
-type App struct {
-	windows []*Window // List of opened native windows
+type WindowInfo struct {
+	w    *window.Window // Native window reference
+	view view.IView     // Current top view for the window
 }
 
-type Window struct {
-	*window.Window                     // Embedded window reference
-	fm             *window.FontManager // Window FontManager
-	view           view.IView          // Current top view
+// App is a singleton with the context of the entire Application
+type App struct {
+	windows []*WindowInfo // List of opened native windows
 }
 
 // Single Application instance
@@ -44,8 +42,8 @@ func (a *App) Close() {
 		return
 	}
 
-	for i := 0; i < len(a.windows); i++ {
-		a.windows[i].Close()
+	for _, wi := range a.windows {
+		wi.w.Destroy()
 	}
 }
 
@@ -59,50 +57,61 @@ func (a *App) Render() bool {
 	}
 
 	for i := 0; i < len(a.windows); i++ {
-		aw := a.windows[i]
-		shouldClose := aw.StartFrame()
+		wi := a.windows[i]
+		shouldClose := wi.w.StartFrame()
 		if shouldClose {
 			a.windows = append(a.windows[:i], a.windows[i+1:]...)
-			aw.close()
+			wi.w.Destroy()
 			continue
 		}
-		if aw.view != nil {
-			aw.view.Render(aw.Window)
+		if wi.view != nil {
+			wi.view.Render(wi.w)
 		}
-		aw.RenderFrame()
+		wi.w.RenderFrame()
 	}
 	return false
 }
 
 // NewWindow creates and returns a new application window
-func (a *App) NewWindow(title string, width, height int) (*Window, error) {
+func (a *App) NewWindow(title string, width, height int) (*window.Window, error) {
 
 	w, err := window.New(title, width, height, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	aw := &Window{Window: w}
-	a.windows = append(a.windows, aw)
-	return aw, nil
+	wi := &WindowInfo{w: w}
+	a.windows = append(a.windows, wi)
+	return w, nil
 }
 
 // Close closes the specified window
-func (aw *Window) Close() {
+func (a *App) CloseWindow(w *window.Window) {
 
-	log.Println("close window 1", aw, app)
 	for i := 0; i < len(app.windows); i++ {
-		if app.windows[i] == aw {
-			log.Println("close window 2", aw)
+		wi := app.windows[i]
+		if wi.w == w {
 			app.windows = append(app.windows[:i], app.windows[:i+1]...)
-			aw.close()
+			w.Destroy()
 			break
 		}
 	}
+	panic("CloseWindow(): Invalid window")
 }
 
-// CreateFontManager creates the window default font manager
-func (aw *Window) CreateFontManager() error {
+// SetView sets the top view of the specified window
+func (a *App) SetView(w *window.Window, v view.IView) {
+
+	for _, wi := range a.windows {
+		if wi.w == w {
+			wi.view = v
+			return
+		}
+	}
+	panic("SetView(): Invalid window")
+}
+
+func (a *App) CreateFontManager(w *window.Window) error {
 
 	normalSize := 18.0
 	runeSets := [][]rune{}
@@ -127,29 +136,10 @@ func (aw *Window) CreateFontManager() error {
 		return err
 	}
 
-	err = fm.BuildFonts(aw.Window)
+	err = fm.BuildFonts(w)
 	if err != nil {
 		return err
 	}
-	aw.fm = fm
+	w.SetFontManager(fm)
 	return nil
-}
-
-// SetView sets the top view of this window
-func (aw *Window) SetView(v view.IView) {
-	aw.view = v
-}
-
-func (aw *Window) FontManager() *window.FontManager {
-
-	return aw.fm
-}
-
-func (aw *Window) close() {
-
-	if aw.fm != nil {
-		aw.fm.DestroyFonts(aw.Window)
-		aw.fm = nil
-	}
-	aw.Destroy()
 }

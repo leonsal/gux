@@ -120,11 +120,11 @@ func (fm *FontManager) DestroyFonts(w *Window) {
 
 // FontAtlas return pointer to the FontAtlas for the specified font family type and relative size.
 // The relative size is 0 for normal, +1, +2, ... for larger and -1, -2, ... for smaller font faces.
-func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) (*FontAtlas, error) {
+func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) *FontAtlas {
 
 	fi, ok := fm.families[ff]
 	if !ok {
-		return nil, fmt.Errorf("FontManager does not have FontFamily:%d", ff)
+		return nil
 	}
 	var index int
 	if relSize > fm.larger {
@@ -134,16 +134,5 @@ func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) (*FontAtlas, er
 	} else {
 		index = relSize + fm.smaller
 	}
-	return fi.faces[index], nil
-}
-
-// FontDef returns the default font of this FontManager.
-// The default font is the font with family: FontFamilyRegular and relative size == 0
-func (fm *FontManager) FontDef() *FontAtlas {
-
-	fa, err := fm.FontAtlas(FontRegular, 0)
-	if err != nil {
-		panic(err)
-	}
-	return fa
+	return fi.faces[index]
 }

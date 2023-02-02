@@ -22,8 +22,16 @@ func main() {
 	}
 	w1.SetClearColor(gb.Vec4{0.6, 0.6, 0.6, 1})
 
-	v := view.NewLabel("This is a label jpq")
-	a.SetView(w1, v)
+	group := view.NewGroup()
+	l1 := view.NewLabel("This is a label 1")
+	l1.SetPos(100, 100)
+	l2 := view.NewLabel("This is a label 2")
+	l2.SetPos(100, 200)
+	group.Add(l1)
+	group.Add(l2)
+	group.SetPos(200, 200)
+
+	a.SetView(w1, group)
 
 	// Second Window
 	w2, err := a.NewWindow("AppWin2", 400, 200)
@@ -31,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 	w2.SetClearColor(gb.Vec4{0.5, 0.5, 0.5, 1})
-	a.SetView(w2, v)
+	a.SetView(w2, group)
 
 	for !a.Render() {
 	}

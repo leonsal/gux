@@ -1,9 +1,8 @@
-package app
+package window
 
 import (
 	"fmt"
 
-	"github.com/leonsal/gux/window"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 )
@@ -30,8 +29,8 @@ const (
 )
 
 type fontInfo struct {
-	fontData []byte              // Font data as TrueType or OpenFont used to build the font faces
-	faces    []*window.FontAtlas // List of FontAtlases for font faces from sizes: -smaller to +larger
+	fontData []byte       // Font data as TrueType or OpenFont used to build the font faces
+	faces    []*FontAtlas // List of FontAtlases for font faces from sizes: -smaller to +larger
 }
 
 type FontManager struct {
@@ -79,7 +78,7 @@ func (fm *FontManager) AddFamily(ff FontFamilyType, fontData []byte) error {
 }
 
 // BuildFonts builds the font atlases for each family and each size in this FontManager.
-func (fm *FontManager) BuildFonts(aw *Window) error {
+func (fm *FontManager) BuildFonts(w *Window) error {
 
 	// Scale the normal font size from the window.
 
@@ -97,7 +96,7 @@ func (fm *FontManager) BuildFonts(aw *Window) error {
 				DPI:     72,
 				Hinting: font.HintingNone,
 			}
-			fa, err := window.NewFontAtlas(aw.Window, fi.fontData, &opts, fm.runeSets...)
+			fa, err := NewFontAtlas(w, fi.fontData, &opts, fm.runeSets...)
 			if err != nil {
 				return err
 			}
@@ -109,11 +108,11 @@ func (fm *FontManager) BuildFonts(aw *Window) error {
 
 // DestroyFonts destroys all font atlases created previously for this FontManager.
 // It normally should be called before the window is closed.
-func (fm *FontManager) DestroyFonts(aw *Window) {
+func (fm *FontManager) DestroyFonts(w *Window) {
 
 	for _, fi := range fm.families {
 		for _, fa := range fi.faces {
-			fa.Destroy(aw.Window)
+			fa.Destroy(w)
 		}
 		fi.faces = nil
 	}
@@ -121,7 +120,7 @@ func (fm *FontManager) DestroyFonts(aw *Window) {
 
 // FontAtlas return pointer to the FontAtlas for the specified font family type and relative size.
 // The relative size is 0 for normal, +1, +2, ... for larger and -1, -2, ... for smaller font faces.
-func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) (*window.FontAtlas, error) {
+func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) (*FontAtlas, error) {
 
 	fi, ok := fm.families[ff]
 	if !ok {
@@ -140,7 +139,7 @@ func (fm *FontManager) FontAtlas(ff FontFamilyType, relSize int) (*window.FontAt
 
 // FontDef returns the default font of this FontManager.
 // The default font is the font with family: FontFamilyRegular and relative size == 0
-func (fm *FontManager) FontDef() *window.FontAtlas {
+func (fm *FontManager) FontDef() *FontAtlas {
 
 	fa, err := fm.FontAtlas(FontRegular, 0)
 	if err != nil {
@@ -148,24 +147,3 @@ func (fm *FontManager) FontDef() *window.FontAtlas {
 	}
 	return fa
 }
-
-// gofont/gobold
-// 	Package gobold provides the "Go Bold" TrueType font from the Go font family.
-// gofont/gobolditalic
-// 	Package gobolditalic provides the "Go Bold Italic" TrueType font from the Go font family.
-// gofont/goitalic
-// 	Package goitalic provides the "Go Italic" TrueType font from the Go font family.
-// gofont/gomedium
-// 	Package gomedium provides the "Go Medium" TrueType font from the Go font family.
-// gofont/gomediumitalic
-// 	Package gomediumitalic provides the "Go Medium Italic" TrueType font from the Go font family.
-// gofont/gomono
-// 	Package gomono provides the "Go Mono" TrueType font from the Go font family.
-// gofont/gomonobold
-// 	Package gomonobold provides the "Go Mono Bold" TrueType font from the Go font family.
-// gofont/gomonobolditalic
-// 	Package gomonobolditalic provides the "Go Mono Bold Italic" TrueType font from the Go font family.
-// gofont/gomonoitalic
-// 	Package gomonoitalic provides the "Go Mono Italic" TrueType font from the Go font family.
-// gofont/goregular
-// 	Package goregular provides the "Go Regular" TrueType font from the Go font family.

@@ -19,9 +19,9 @@ type App struct {
 }
 
 type Window struct {
-	*window.Window              // Embedded window reference
-	fm             *FontManager // Window FontManager
-	view           view.IView   // Current top view
+	*window.Window                     // Embedded window reference
+	fm             *window.FontManager // Window FontManager
+	view           view.IView          // Current top view
 }
 
 // Single Application instance
@@ -66,6 +66,9 @@ func (a *App) Render() bool {
 			aw.close()
 			continue
 		}
+		if aw.view != nil {
+			aw.view.Render(aw.Window)
+		}
 		aw.RenderFrame()
 	}
 	return false
@@ -104,27 +107,27 @@ func (aw *Window) CreateFontManager() error {
 	normalSize := 18.0
 	runeSets := [][]rune{}
 	runeSets = append(runeSets, util.AsciiSet(), util.RangeTableSet(unicode.Latin), util.RangeTableSet(unicode.Common))
-	fm, err := NewFontManager(normalSize, 1, 2, runeSets...)
+	fm, err := window.NewFontManager(normalSize, 1, 2, runeSets...)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(FontRegular, goregular.TTF)
+	err = fm.AddFamily(window.FontRegular, goregular.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(FontBold, gobold.TTF)
+	err = fm.AddFamily(window.FontBold, gobold.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(FontItalic, goitalic.TTF)
+	err = fm.AddFamily(window.FontItalic, goitalic.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.BuildFonts(aw)
+	err = fm.BuildFonts(aw.Window)
 	if err != nil {
 		return err
 	}
@@ -137,10 +140,15 @@ func (aw *Window) SetView(v view.IView) {
 	aw.view = v
 }
 
+func (aw *Window) FontManager() *window.FontManager {
+
+	return aw.fm
+}
+
 func (aw *Window) close() {
 
 	if aw.fm != nil {
-		aw.fm.DestroyFonts(aw)
+		aw.fm.DestroyFonts(aw.Window)
 		aw.fm = nil
 	}
 	aw.Destroy()

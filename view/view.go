@@ -1,6 +1,8 @@
 package view
 
 import (
+	"fmt"
+
 	"github.com/leonsal/gux/gb"
 	"github.com/leonsal/gux/window"
 )
@@ -22,10 +24,12 @@ type View struct {
 	scale     gb.Vec2 // View scale
 	rotation  float32 // Rotation in radians
 	transform gb.Mat3
+	children  []IView
 }
 
-func (v *View) Init() {
+func (v *View) Init(iv IView) {
 
+	v.iview = iv
 	v.visible = true
 	v.scale = gb.Vec2{1, 1}
 	v.transform.Identity()
@@ -79,24 +83,18 @@ func (v *View) Transform(t *gb.Mat3) {
 	v.transform.Mult(t)
 }
 
-// Parent is a View which can contain other IViews
-type Parent struct {
-	View
-	children []IView
+func (v *View) Add(iv IView) {
+
+	v.children = append(v.children, iv)
 }
 
-func (p *Parent) Add(v IView) {
-
-	p.children = append(p.children, v)
-}
-
-func (p *Parent) RenderChildren(w *window.Window) {
+func (v *View) RenderChildren(w *window.Window) {
 
 	// Sets parent world transform matrix
 	var mat gb.Mat3
-	mat.SetTranslationVec(p.pos).Rotate(p.rotation).ScaleVec(p.scale)
-
-	for _, c := range p.children {
+	mat.SetTranslationVec(v.pos).Rotate(v.rotation).ScaleVec(v.scale)
+	fmt.Printf("mat:%+v\n", mat)
+	for _, c := range v.children {
 		c.Transform(&mat)
 		c.Render(w)
 	}

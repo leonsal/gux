@@ -17,7 +17,7 @@ type Label struct {
 func NewLabel(text string) *Label {
 
 	l := new(Label)
-	l.visible = true
+	l.Init()
 	//l.pos = gb.Vec2{100, 100}
 	l.ff = window.FontRegular
 	l.color = gb.MakeColor(0, 0, 0, 255)

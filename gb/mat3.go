@@ -186,6 +186,13 @@ func (m *Mat3) SetTranslation(x, y float32) *Mat3 {
 	return m
 }
 
+// SetTranslationVec sets this matrix to a translation matrix for the specified Vec2.
+// Returns pointer to this updated matrix.
+func (m *Mat3) SetTranslationVec(t Vec2) *Mat3 {
+
+	return m.SetTranslation(t.X, t.Y)
+}
+
 // SetRotation set this matrix to a rotation matrix around the origin clockwise direction
 // by the amount of theta radians.
 func (m *Mat3) SetRotation(theta float32) *Mat3 {
@@ -211,6 +218,13 @@ func (m *Mat3) SetScale(x, y float32) *Mat3 {
 	return m
 }
 
+// SetScaleVec set this matrix to a scale matrix for the specified Vec2
+func (m *Mat3) SetScaleVec(s Vec2) *Mat3 {
+
+	m.SetScale(s.X, s.Y)
+	return m
+}
+
 // Rotate applies a rotation of theta radians around the origin
 // in the clockwise direction to this matrix.
 func (m *Mat3) Rotate(theta float32) *Mat3 {
@@ -229,10 +243,22 @@ func (m *Mat3) Translate(x, y float32) *Mat3 {
 	return m
 }
 
+func (m *Mat3) TranslateVec(t Vec2) *Mat3 {
+
+	m.Translate(t.X, t.Y)
+	return m
+}
+
 func (m *Mat3) Scale(x, y float32) *Mat3 {
 
 	var sm Mat3
 	sm.SetScale(x, y)
 	m.Mult(&sm)
+	return m
+}
+
+func (m *Mat3) ScaleVec(s Vec2) *Mat3 {
+
+	m.Scale(s.X, s.Y)
 	return m
 }

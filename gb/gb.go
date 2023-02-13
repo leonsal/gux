@@ -27,8 +27,8 @@ type Vec4 struct {
 }
 
 type Rect struct {
-	Min Vec2
-	Max Vec2
+	Min Vec2 // Top left point of the rectangle
+	Max Vec2 // Bottom right point of the rectangle
 }
 
 // RGBA is a packed color
@@ -61,7 +61,7 @@ type Vertex struct {
 
 // DrawCmd specifies a single draw command
 type DrawCmd struct {
-	ClipRect  Vec4      // Clip rectangle
+	ClipRect  Vec4      // Clip rectangle in window coordinates (min.x, min.y, max.x, max.y)
 	TexID     TextureID // Texture ID
 	idxOffset uint32    // Start offset in index buffer
 	vtxOffset uint32    // Start offset in vertex buffer

@@ -14,19 +14,19 @@ type IView interface {
 	//Size() gb.Vec2
 	SetPos(x, y float32) // Sets the view position relative to its parent
 	SetTransform(t *gb.Mat3)
-	Styles() StyleMap
 }
 
 type View struct {
-	iview     IView    // Associated IView
-	visible   bool     // Visibility state
-	pos       gb.Vec2  // View position relative to its parent
-	scale     gb.Vec2  // View scale
-	rotation  float32  // Rotation in radians
-	transform gb.Mat3  // Current transform matrix used  in AddList2()
-	styles    StyleMap // Custom styles map
-	parent    IView    // Parent IView (maybe nil)
-	children  []IView  // List of child views
+	iview      IView         // Associated IView
+	visible    bool          // Visibility state
+	pos        gb.Vec2       // View position relative to its parent
+	scale      gb.Vec2       // View scale
+	rotation   float32       // Rotation in radians
+	transform  gb.Mat3       // Current transform matrix used  in AddList2()
+	style      StyleMap      // Optional view specific style map
+	styleColor StyleColorMap // Optional view specific style color map
+	parent     IView         // Parent IView (maybe nil)
+	children   []IView       // List of child views
 }
 
 func (v *View) Init(iv IView) {
@@ -35,10 +35,6 @@ func (v *View) Init(iv IView) {
 	v.visible = true
 	v.scale = gb.Vec2{1, 1}
 	v.transform.Identity()
-}
-
-func (v *View) Styles() StyleMap {
-	return v.styles
 }
 
 func (v *View) SetVisible(visible bool) {

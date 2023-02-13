@@ -2,6 +2,7 @@ package window
 
 import (
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/leonsal/gux/gb"
 )
@@ -88,10 +89,9 @@ func (w *Window) AddGlyph(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb
 	pos.X += gi.Advance
 }
 
-// AddText adds command to draw text line
+// AddText adds command to draw text from a string
 func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb.RGBA, align TextVAlign, text string) {
 
-	// For each rune in the text
 	prev := rune(-1)
 	for _, code := range text {
 
@@ -102,5 +102,27 @@ func (w *Window) AddText(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb.
 		}
 		w.AddGlyph(dl, fa, pos, color, align, prev, code)
 		prev = code
+	}
+}
+
+// AddTextBytes adds command to draw text from a slice of bytes encoded in UTF8
+func (w *Window) AddTextBytes(dl *gb.DrawList, fa *FontAtlas, pos *gb.Vec2, color gb.RGBA, align TextVAlign, text []byte) {
+
+	prev := rune(-1)
+	for len(text) > 0 {
+		// Decodes next rune from the byte slice
+		code, size := utf8.DecodeRune(text)
+		if code == utf8.RuneError {
+			break
+		}
+		// Process new line
+		if code == 0x0A {
+			pos.Y += fa.Height()
+			continue
+		}
+		// Adds command to draw glyph
+		w.AddGlyph(dl, fa, pos, color, align, prev, code)
+		prev = code
+		text = text[size:]
 	}
 }

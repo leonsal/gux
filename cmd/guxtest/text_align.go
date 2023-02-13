@@ -19,7 +19,9 @@ func init() {
 }
 
 type testTextAlign struct {
-	fa *window.FontAtlas
+	fa     *window.FontAtlas
+	fcount uint
+	fbuf   []byte
 }
 
 func newTestTextAlign(win *window.Window) ITest {
@@ -47,6 +49,7 @@ func newTestTextAlign(win *window.Window) ITest {
 	}
 	fa.ReleaseImage()
 	t.fa = fa
+	t.fbuf = make([]byte, 0, 10)
 	return t
 }
 
@@ -70,6 +73,12 @@ func (t *testTextAlign) draw(win *window.Window) {
 	dot = gb.Vec2{dot.X, pos.Y}
 	textBottom := "TextVAlignBottom"
 	win.AddText(dl, t.fa, &dot, textColor, window.TextVAlignBottom, textBottom)
+
+	t.fcount++
+	t.fbuf = fmt.Appendf(t.fbuf, "Frame: %d", t.fcount)
+	dot = gb.Vec2{0, 0}
+	win.AddTextBytes(dl, t.fa, &dot, textColor, window.TextVAlignTop, t.fbuf)
+	t.fbuf = t.fbuf[:0]
 }
 
 func (t *testTextAlign) destroy(win *window.Window) {

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/leonsal/gux/app"
+	"github.com/leonsal/gux/color"
 	"github.com/leonsal/gux/gb"
 	"github.com/leonsal/gux/view"
 )
@@ -25,6 +26,8 @@ func main() {
 	group := view.NewGroup()
 	l1 := view.NewLabel("This is a label 1")
 	l1.SetPos(100, 100)
+	l1.SetStyleColor(view.StyleColorText, color.Darkred)
+
 	l2 := view.NewLabel("This is a label 2")
 	l2.SetPos(100, 200)
 	group.Add(l1)

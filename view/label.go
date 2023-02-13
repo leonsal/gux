@@ -1,7 +1,6 @@
 package view
 
 import (
-	"github.com/leonsal/gux/gb"
 	"github.com/leonsal/gux/window"
 )
 
@@ -10,7 +9,6 @@ type Label struct {
 	text string
 	// Style ??
 	ff     window.FontStyleType
-	color  gb.RGBA
 	valign window.TextVAlign
 }
 
@@ -20,7 +18,6 @@ func NewLabel(text string) *Label {
 	l.Init(l)
 	//l.pos = gb.Vec2{100, 100}
 	l.ff = window.FontRegular
-	l.color = gb.MakeColor(0, 0, 0, 255)
 	l.valign = window.TextVAlignTop
 	l.SetText(text)
 	return l
@@ -41,6 +38,7 @@ func (l *Label) Render(w *window.Window) {
 	if !l.visible {
 		return
 	}
+	color := l.StyleColor(w, StyleColorText).RGBA()
 	pos := l.pos
-	w.AddText(w.DrawList(), w.Font(l.ff, 0), &pos, l.color, l.valign, l.text)
+	w.AddText(w.DrawList(), w.Font(l.ff, 0), &pos, color, l.valign, l.text)
 }

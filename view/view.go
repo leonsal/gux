@@ -19,11 +19,11 @@ type IView interface {
 type View struct {
 	visible   bool    // Visibility state
 	iview     IView   // Associated IView
-	parent    IView   // Parent IView (maybe nil)
 	pos       gb.Vec2 // View position relative to its parent
 	scale     gb.Vec2 // View scale
 	rotation  float32 // Rotation in radians
 	transform gb.Mat3
+	parent    IView // Parent IView (maybe nil)
 	children  []IView
 }
 

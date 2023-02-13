@@ -19,7 +19,8 @@ func (w *Window) DrawList() *gb.DrawList {
 func (w *Window) NewDrawCmd(dl *gb.DrawList, idxCount, vtxCount int) (*gb.DrawCmd, []uint32, []gb.Vertex) {
 
 	cmd, bufIdx, bufVtx := dl.NewDrawCmd(idxCount, vtxCount)
-	cmd.ClipRect = gb.Vec4{0, 0, w.frameInfo.WinSize.X, w.frameInfo.WinSize.Y}
+	//cmd.ClipRect = gb.Vec4{0, 0, w.frameInfo.WinSize.X, w.frameInfo.WinSize.Y}
+	cmd.ClipRect = gb.Vec4{w.clipRect.Min.X, w.clipRect.Min.Y, w.clipRect.Max.X, w.clipRect.Max.Y}
 	cmd.TexID = w.TexWhiteId
 	return cmd, bufIdx, bufVtx
 }

@@ -47,6 +47,7 @@ type Window struct {
 	frameParams          gb.FrameParams
 	frameInfo            gb.FrameInfo
 	CurveTessellationTol float32 // IN STYLES ? Tessellation tolerance when using PathBezierCurveTo() without a specific number of segments. Decrease for highly tessellated curves (higher quality, more polygons), increase to reduce quality.
+	clipRect             gb.Rect // Current clip rectangle for Draw Commands
 }
 
 // New creates and returns a new Window
@@ -95,6 +96,16 @@ func (w *Window) Font(ff FontFamilyType, relSize int) *FontAtlas {
 	return w.fm.Font(ff, relSize)
 }
 
+func (w *Window) ClearClipRect() {
+
+	w.clipRect = gb.Rect{gb.Vec2{0, 0}, gb.Vec2{w.frameInfo.WinSize.X, w.frameInfo.WinSize.Y}}
+}
+
+func (w *Window) SetClipRect(r gb.Rect) {
+
+	w.clipRect = r
+}
+
 func (w *Window) SetClearColor(color gb.Vec4) {
 
 	w.frameParams.ClearColor = color
@@ -105,13 +116,14 @@ func (w *Window) SetEvTimeout(timeout float32) {
 	w.frameParams.EvTimeout = timeout
 }
 
-// StartFrames marks the beginning of a new render frame and returns true if
+// StartFrame sets the beginning of a new render frame and returns true if
 // the window should be closed or false otherwise.
 func (w *Window) StartFrame() bool {
 
 	w.dl.Clear()
 	w.bufVec2 = w.bufVec2[:0]
 	w.frameInfo = w.gbw.StartFrame(&w.frameParams)
+	w.ClearClipRect()
 	return w.frameInfo.WinClose
 }
 

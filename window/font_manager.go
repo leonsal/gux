@@ -7,10 +7,10 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-type FontFamilyType int
+type FontStyleType int
 
 const (
-	FontRegular FontFamilyType = iota
+	FontRegular FontStyleType = iota
 	FontBold
 	FontItalic
 	FontMedium
@@ -34,11 +34,11 @@ type fontInfo struct {
 }
 
 type FontManager struct {
-	runeSets   [][]rune                     // Unicode codepoints range tables for the fonts
-	normalSize float64                      // The normal font size in 'points'
-	smaller    int                          // Number of font sizes smaller than the normal size
-	larger     int                          // Number of font sizes greater than the normal size
-	families   map[FontFamilyType]*fontInfo // Maps font families to font info
+	runeSets   [][]rune                    // Unicode codepoints range tables for the fonts
+	normalSize float64                     // The normal font size in 'points'
+	smaller    int                         // Number of font sizes smaller than the normal size
+	larger     int                         // Number of font sizes greater than the normal size
+	styles     map[FontStyleType]*fontInfo // Maps font style to font info
 }
 
 // NewFontManager creates and returns a new empty FontManager.
@@ -60,20 +60,20 @@ func NewFontManager(normalSize float64, smaller, larger int, runeSets ...[]rune)
 	fm.normalSize = normalSize
 	fm.smaller = smaller
 	fm.larger = larger
-	fm.families = make(map[FontFamilyType]*fontInfo)
+	fm.styles = make(map[FontStyleType]*fontInfo)
 	fm.runeSets = append(fm.runeSets, runeSets...)
 	return fm, nil
 }
 
-// AddFamily adds the specified font family to this FontManager.
+// AddStyle adds the specified font style to this FontManager.
 // fontData must be a valid TTF/OpenType font description.
-func (fm *FontManager) AddFamily(ff FontFamilyType, fontData []byte) error {
+func (fm *FontManager) AddStyle(ff FontStyleType, fontData []byte) error {
 
-	_, ok := fm.families[ff]
+	_, ok := fm.styles[ff]
 	if ok {
-		return fmt.Errorf("FontFamily:%d already added to the FontManager", ff)
+		return fmt.Errorf("FontStyle:%d already added to the FontManager", ff)
 	}
-	fm.families[ff] = &fontInfo{fontData: fontData}
+	fm.styles[ff] = &fontInfo{fontData: fontData}
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (fm *FontManager) BuildFonts(w *Window) error {
 
 	// Scale the normal font size from the window.
 
-	for _, fi := range fm.families {
+	for _, fi := range fm.styles {
 
 		// If already built, continue with next family
 		if len(fi.faces) > 0 {
@@ -110,7 +110,7 @@ func (fm *FontManager) BuildFonts(w *Window) error {
 // It normally should be called before the window is closed.
 func (fm *FontManager) DestroyFonts(w *Window) {
 
-	for _, fi := range fm.families {
+	for _, fi := range fm.styles {
 		for _, fa := range fi.faces {
 			fa.Destroy(w)
 		}
@@ -120,9 +120,9 @@ func (fm *FontManager) DestroyFonts(w *Window) {
 
 // Font return pointer to the Font for the specified font family type and relative size.
 // The relative size is 0 for normal, +1, +2, ... for larger and -1, -2, ... for smaller font faces.
-func (fm *FontManager) Font(ff FontFamilyType, relSize int) *FontAtlas {
+func (fm *FontManager) Font(ff FontStyleType, relSize int) *FontAtlas {
 
-	fi, ok := fm.families[ff]
+	fi, ok := fm.styles[ff]
 	if !ok {
 		return nil
 	}

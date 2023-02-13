@@ -91,7 +91,7 @@ func (w *Window) FontManager() *FontManager {
 	return w.fm
 }
 
-func (w *Window) Font(ff FontFamilyType, relSize int) *FontAtlas {
+func (w *Window) Font(ff FontStyleType, relSize int) *FontAtlas {
 
 	return w.fm.Font(ff, relSize)
 }

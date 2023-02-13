@@ -141,17 +141,17 @@ func (a *App) createFontManager(w *window.Window) error {
 		return err
 	}
 
-	err = fm.AddFamily(window.FontRegular, goregular.TTF)
+	err = fm.AddStyle(window.FontRegular, goregular.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(window.FontBold, gobold.TTF)
+	err = fm.AddStyle(window.FontBold, gobold.TTF)
 	if err != nil {
 		return err
 	}
 
-	err = fm.AddFamily(window.FontItalic, goitalic.TTF)
+	err = fm.AddStyle(window.FontItalic, goitalic.TTF)
 	if err != nil {
 		return err
 	}

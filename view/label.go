@@ -9,7 +9,7 @@ type Label struct {
 	View
 	text string
 	// Style ??
-	ff     window.FontFamilyType
+	ff     window.FontStyleType
 	color  gb.RGBA
 	valign window.TextVAlign
 }

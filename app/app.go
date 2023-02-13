@@ -49,7 +49,7 @@ func (a *App) Close() {
 }
 
 // Render renders all the application opened windows.
-// Returns return true if all windows were closed or
+// Returns true if all windows were closed or
 // false if at least one window is opened.
 func (a *App) Render() bool {
 
@@ -98,8 +98,13 @@ func (a *App) NewWindowEx(title string, width, height int, cfg *gb.Config) (*win
 		return nil, err
 	}
 
+	// Save window in application windows list
 	wi := &windowInfo{w: w}
 	a.windows = append(a.windows, wi)
+
+	// Sets window default style maps
+	view.SetWindowStyle(w, view.StyleMapDefault)
+	view.SetWindowStyleColor(w, view.StyleColorMapDefault)
 	return w, nil
 }
 

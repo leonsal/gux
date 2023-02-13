@@ -21,7 +21,6 @@ func main() {
 		log.Fatal(err)
 	}
 	w1.SetClearColor(gb.Vec4{0.6, 0.6, 0.6, 1})
-	view.SetWindowStyle(w1, view.StyleMapDefault)
 
 	group := view.NewGroup()
 	l1 := view.NewLabel("This is a label 1")

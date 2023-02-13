@@ -23,8 +23,8 @@ type View struct {
 	scale      gb.Vec2       // View scale
 	rotation   float32       // Rotation in radians
 	transform  gb.Mat3       // Current transform matrix used  in AddList2()
-	style      StyleMap      // Optional view specific style map
-	styleColor StyleColorMap // Optional view specific style color map
+	style      StyleMap      // Optional specific style map
+	styleColor StyleColorMap // Optional specific style color map
 	parent     IView         // Parent IView (maybe nil)
 	children   []IView       // List of child views
 }

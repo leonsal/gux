@@ -22,8 +22,13 @@ const (
 type StyleColorType int
 
 const (
+	// Text color
 	StyleColorText StyleColorType = iota
+	// Disabled Text color
 	StyleColorTextDisabled
+	// Native window clear color
+	StyleColorWinClear
+	// User views can use from this color configuration number
 	StyleColorUser
 )
 

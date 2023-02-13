@@ -10,4 +10,5 @@ var StyleMapDefault = StyleMap{
 var StyleColorMapDefault = StyleColorMap{
 	StyleColorText:         color.Black,
 	StyleColorTextDisabled: color.Gray,
+	StyleColorWinClear:     color.White,
 }

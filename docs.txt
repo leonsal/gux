@@ -27,6 +27,18 @@ Packages dependencies
 			- send events to views
 		
 
+Declarative Syntax
+------------------------
+
+view.NewVBox().Add{
+	view.NewButton("b1"),
+	view.NewCheckBox("c1"),
+
+
+}
+
+
+
 
 OpenGL Normalized device coordinates
 ------------------------------------

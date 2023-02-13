@@ -13,18 +13,20 @@ type IView interface {
 	//Pos() gb.Vec2
 	//Size() gb.Vec2
 	SetPos(x, y float32) // Sets the view position relative to its parent
-	Transform(t *gb.Mat3)
+	SetTransform(t *gb.Mat3)
+	Styles() StyleMap
 }
 
 type View struct {
-	visible   bool    // Visibility state
-	iview     IView   // Associated IView
-	pos       gb.Vec2 // View position relative to its parent
-	scale     gb.Vec2 // View scale
-	rotation  float32 // Rotation in radians
-	transform gb.Mat3
-	parent    IView // Parent IView (maybe nil)
-	children  []IView
+	iview     IView    // Associated IView
+	visible   bool     // Visibility state
+	pos       gb.Vec2  // View position relative to its parent
+	scale     gb.Vec2  // View scale
+	rotation  float32  // Rotation in radians
+	transform gb.Mat3  // Current transform matrix used  in AddList2()
+	styles    StyleMap // Custom styles map
+	parent    IView    // Parent IView (maybe nil)
+	children  []IView  // List of child views
 }
 
 func (v *View) Init(iv IView) {
@@ -33,6 +35,10 @@ func (v *View) Init(iv IView) {
 	v.visible = true
 	v.scale = gb.Vec2{1, 1}
 	v.transform.Identity()
+}
+
+func (v *View) Styles() StyleMap {
+	return v.styles
 }
 
 func (v *View) SetVisible(visible bool) {
@@ -76,8 +82,8 @@ func (v *View) Rotation() float32 {
 	return v.rotation
 }
 
-// Transform updates the transform matrix of this view and applies
-func (v *View) Transform(t *gb.Mat3) {
+// SetTransform updates the transform matrix of this view and applies
+func (v *View) SetTransform(t *gb.Mat3) {
 
 	v.transform.SetTranslationVec(v.pos).Rotate(v.rotation).ScaleVec(v.scale)
 	v.transform.Mult(t)
@@ -95,7 +101,7 @@ func (v *View) RenderChildren(w *window.Window) {
 	mat.SetTranslationVec(v.pos).Rotate(v.rotation).ScaleVec(v.scale)
 	fmt.Printf("mat:%+v\n", mat)
 	for _, c := range v.children {
-		c.Transform(&mat)
+		c.SetTransform(&mat)
 		c.Render(w)
 	}
 

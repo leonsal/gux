@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"unicode"
 
 	"github.com/leonsal/gux/gb"
@@ -20,7 +21,7 @@ func init() {
 
 type testTextAlign struct {
 	fa     *window.FontAtlas
-	fcount uint
+	fcount uint64
 	fbuf   []byte
 }
 
@@ -74,8 +75,10 @@ func (t *testTextAlign) draw(win *window.Window) {
 	textBottom := "TextVAlignBottom"
 	win.AddText(dl, t.fa, &dot, textColor, window.TextVAlignBottom, textBottom)
 
+	// Formats number of frames with no allocation
 	t.fcount++
-	t.fbuf = fmt.Appendf(t.fbuf, "Frame: %d", t.fcount)
+	t.fbuf = strconv.AppendUint(t.fbuf, t.fcount, 10)
+	// Shows number of frames and resets its buffer
 	dot = gb.Vec2{0, 0}
 	win.AddTextBytes(dl, t.fa, &dot, textColor, window.TextVAlignTop, t.fbuf)
 	t.fbuf = t.fbuf[:0]
